@@ -56,6 +56,11 @@ export async function GET(request: NextRequest) {
       });
       redirectUrl.searchParams.set("error", "store_persistence_failed");
       redirectUrl.searchParams.set("store_id", token.user_id);
+
+      if (storePersistenceError instanceof Error && storePersistenceError.message) {
+        redirectUrl.searchParams.set("persistence_detail", storePersistenceError.message.slice(0, 180));
+      }
+
       return NextResponse.redirect(redirectUrl);
     }
 

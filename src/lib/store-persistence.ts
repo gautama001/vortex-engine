@@ -1,3 +1,5 @@
+import { PrismaClient } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
 
 declare global {
@@ -6,7 +8,19 @@ declare global {
 }
 
 const bootstrapStorePersistence = async (): Promise<void> => {
-  await prisma.$executeRawUnsafe(`
+  const bootstrapDatabaseUrl = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
+  const bootstrapPrisma = bootstrapDatabaseUrl
+    ? new PrismaClient({
+        datasources: {
+          db: {
+            url: bootstrapDatabaseUrl,
+          },
+        },
+      })
+    : prisma;
+
+  try {
+    await bootstrapPrisma.$executeRawUnsafe(`
     DO $$
     BEGIN
       IF NOT EXISTS (
@@ -20,7 +34,7 @@ const bootstrapStorePersistence = async (): Promise<void> => {
     $$;
   `);
 
-  await prisma.$executeRawUnsafe(`
+    await bootstrapPrisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "stores" (
       "id" TEXT NOT NULL,
       "tiendanube_id" TEXT NOT NULL,
@@ -33,15 +47,20 @@ const bootstrapStorePersistence = async (): Promise<void> => {
     );
   `);
 
-  await prisma.$executeRawUnsafe(`
+    await bootstrapPrisma.$executeRawUnsafe(`
     CREATE UNIQUE INDEX IF NOT EXISTS "stores_tiendanube_id_key"
     ON "stores"("tiendanube_id");
   `);
 
-  await prisma.$executeRawUnsafe(`
+    await bootstrapPrisma.$executeRawUnsafe(`
     CREATE INDEX IF NOT EXISTS "stores_status_idx"
     ON "stores"("status");
   `);
+  } finally {
+    if (bootstrapPrisma !== prisma) {
+      await bootstrapPrisma.$disconnect();
+    }
+  }
 };
 
 export const ensureStorePersistence = async (): Promise<void> => {

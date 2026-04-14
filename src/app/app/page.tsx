@@ -55,6 +55,10 @@ export default async function AppDashboardPage({
   const errorCode = Array.isArray(errorParam) ? errorParam[0] : errorParam;
   const storeIdParam = resolvedSearchParams.store_id;
   const attemptedStoreId = Array.isArray(storeIdParam) ? storeIdParam[0] : storeIdParam;
+  const persistenceDetailParam = resolvedSearchParams.persistence_detail;
+  const persistenceDetail = Array.isArray(persistenceDetailParam)
+    ? persistenceDetailParam[0]
+    : persistenceDetailParam;
   const authStatusParam = resolvedSearchParams.auth_status;
   const authStatus = Array.isArray(authStatusParam) ? authStatusParam[0] : authStatusParam;
   const authDetailParam = resolvedSearchParams.auth_detail;
@@ -199,6 +203,13 @@ export default async function AppDashboardPage({
                       Detalle: <span className="text-white">{authDetail}</span>
                     </p>
                   ) : null}
+                </div>
+              ) : null}
+              {errorCode === "store_persistence_failed" && persistenceDetail ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                  <p className="break-words">
+                    Detalle: <span className="text-white">{persistenceDetail}</span>
+                  </p>
                 </div>
               ) : null}
             </CardContent>
