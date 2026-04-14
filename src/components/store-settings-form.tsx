@@ -3,22 +3,16 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { updateStoreSettingsAction } from "@/app/app/actions";
 import {
   initialUpdateStoreSettingsState,
   type UpdateStoreSettingsState,
-  updateStoreSettingsAction,
-} from "@/app/app/actions";
+} from "@/app/app/store-settings-state";
 import { Button } from "@/components/ui/button";
 import type { StoreWidgetSettings } from "@/services/store-service";
 
 type StoreSettingsFormProps = {
   initialSettings: StoreWidgetSettings;
-};
-
-const submitLabelByStatus: Record<UpdateStoreSettingsState["status"], string> = {
-  error: "Guardar cambios",
-  idle: "Guardar cambios",
-  success: "Guardar cambios",
 };
 
 const SaveButton = () => {
