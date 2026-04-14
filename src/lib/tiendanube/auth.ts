@@ -24,9 +24,13 @@ const safeParseJson = (value: string): Record<string, unknown> | TiendaNubeOauth
   }
 };
 
+type TiendaNubeOauthTokenResponseRaw = Omit<TiendaNubeOauthTokenResponse, "user_id"> & {
+  user_id: number | string;
+};
+
 const isOauthTokenResponse = (
-  value: Record<string, unknown> | TiendaNubeOauthTokenResponse,
-): value is TiendaNubeOauthTokenResponse => {
+  value: Record<string, unknown> | TiendaNubeOauthTokenResponseRaw,
+): value is TiendaNubeOauthTokenResponseRaw => {
   return (
     "access_token" in value &&
     "scope" in value &&
@@ -35,7 +39,7 @@ const isOauthTokenResponse = (
     typeof value.access_token === "string" &&
     typeof value.scope === "string" &&
     typeof value.token_type === "string" &&
-    typeof value.user_id === "string"
+    (typeof value.user_id === "string" || typeof value.user_id === "number")
   );
 };
 
@@ -80,7 +84,10 @@ export const exchangeAuthorizationCode = async (
     );
   }
 
-  return parsedBody;
+  return {
+    ...parsedBody,
+    user_id: String(parsedBody.user_id),
+  };
 };
 
 export const associateManualScriptToStore = async (
