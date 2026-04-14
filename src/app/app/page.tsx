@@ -49,6 +49,17 @@ const installationErrors: Record<string, { detail: string; title: string }> = {
   },
 };
 
+const buildStorefrontProductUrl = (domain: string, handle: string | null): string => {
+  const normalizedDomain = domain.replace(/\/+$/, "");
+  const normalizedHandle = (handle ?? "").replace(/^\/+/, "");
+
+  if (!normalizedHandle) {
+    return normalizedDomain;
+  }
+
+  return `${normalizedDomain}/productos/${normalizedHandle}`;
+};
+
 export default async function AppDashboardPage({
   searchParams,
 }: {
@@ -131,7 +142,7 @@ export default async function AppDashboardPage({
       : "Pendiente";
   const storefrontPreviewUrl =
     storefrontContext?.primaryDomain && catalogPreview[0]?.handle
-      ? `${storefrontContext.primaryDomain}/${catalogPreview[0].handle}`
+      ? buildStorefrontProductUrl(storefrontContext.primaryDomain, catalogPreview[0].handle)
       : storefrontContext?.primaryDomain ?? null;
 
   return (
@@ -352,7 +363,12 @@ export default async function AppDashboardPage({
                   <p className="mt-2 text-xl font-semibold text-white">#{product.id}</p>
                   <p className="mt-3 text-sm text-slate-200">{product.name}</p>
                   <p className="mt-2 break-all text-xs text-slate-400">
-                    {product.handle ? `/${product.handle}` : "Sin handle"}
+                    {product.handle
+                      ? buildStorefrontProductUrl(
+                          storefrontContext?.primaryDomain ?? "https://tu-tienda.com",
+                          product.handle,
+                        )
+                      : "Sin handle"}
                   </p>
                 </div>
               ))

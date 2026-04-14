@@ -3,6 +3,7 @@ import { type LocalizedText, type TiendaNubeProduct } from "@/lib/tiendanube/typ
 import { getActiveStoreOrThrow } from "@/services/store-service";
 
 export type StoreCatalogPreviewItem = {
+  createdAt: string | null;
   handle: string | null;
   id: number;
   name: string;
@@ -36,12 +37,14 @@ export const listCatalogPreview = async (
     storeId: tiendanubeId,
   });
   const products = await client.get<TiendaNubeProduct[]>("/products", {
-    fields: "id,name,handle,published",
+    fields: "id,name,handle,published,created_at",
     per_page: limit,
     published: true,
+    sort_by: "created-at-descending",
   });
 
   return products.map((product) => ({
+    createdAt: product.created_at ?? null,
     handle: pickLocalizedValue(product.handle) || null,
     id: product.id,
     name: pickLocalizedValue(product.name),

@@ -8,6 +8,18 @@ export type StorefrontContext = {
   primaryDomain: string | null;
 };
 
+const normalizeDomain = (value: string): string => {
+  return value.replace(/^https?:\/\//, "").replace(/\/+$/, "").trim().toLowerCase();
+};
+
+const isPlatformDomain = (value: string): boolean => {
+  return (
+    value.includes("mitiendanube.com") ||
+    value.includes("tiendanube.com") ||
+    value.includes("nuvemshop.com.br")
+  );
+};
+
 const pickLocalizedValue = (value?: LocalizedText): string => {
   if (!value) {
     return "";
@@ -37,10 +49,14 @@ export const getStorefrontContext = async (
   const storefront = await client.get<TiendaNubeStore>("/store", {
     fields: "name,original_domain,domains,main_currency",
   });
-  const primaryDomain =
-    storefront.original_domain ||
-    storefront.domains?.find((domain) => Boolean(domain)) ||
-    null;
+  const normalizedDomains = (storefront.domains ?? [])
+    .map((domain) => normalizeDomain(domain))
+    .filter(Boolean);
+  const originalDomain = storefront.original_domain
+    ? normalizeDomain(storefront.original_domain)
+    : null;
+  const customDomain = normalizedDomains.find((domain) => !isPlatformDomain(domain)) ?? null;
+  const primaryDomain = customDomain || originalDomain || normalizedDomains[0] || null;
 
   return {
     currencyCode: storefront.main_currency ?? null,
