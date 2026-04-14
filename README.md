@@ -37,11 +37,17 @@ Motor de recomendaciones para TiendaNube orientado a upsell/cross-sell, construi
 
 ## Variables clave
 
-- `DATABASE_URL`: PostgreSQL para Prisma.
+- `DATABASE_URL`: connection string pooler de PostgreSQL para runtime.
+- `DIRECT_URL`: connection string directa para migraciones Prisma.
 - `TIENDANUBE_APP_ID`: App id del partner portal.
 - `TIENDANUBE_CLIENT_SECRET`: Secret para OAuth, middleware admin y validacion de webhooks.
 - `TIENDANUBE_APP_URL`: URL publica de la app.
 - `TIENDANUBE_SCRIPT_ID`: Opcional. Si el ScriptTag no es auto-installed, Vortex lo asocia a la store tras el callback.
+
+### Supabase + Prisma
+
+- Usa `DATABASE_URL` con el pooler (`6543`) para la app.
+- Usa `DIRECT_URL` (`5432`) para `prisma migrate deploy`.
 
 ## Endpoints
 
