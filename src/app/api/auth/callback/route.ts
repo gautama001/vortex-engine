@@ -4,6 +4,7 @@ import { getTiendaNubeConfig } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { ADMIN_SESSION_COOKIE, buildSignedSessionValue, OAUTH_STATE_COOKIE } from "@/lib/security";
 import { associateManualScriptToStore, exchangeAuthorizationCode } from "@/lib/tiendanube/auth";
+import { TiendaNubeApiError } from "@/lib/tiendanube/types";
 import { upsertStoreInstallation } from "@/services/store-service";
 
 export const runtime = "nodejs";
@@ -102,6 +103,20 @@ export async function GET(request: NextRequest) {
       hasCode: Boolean(code),
     });
     redirectUrl.searchParams.set("error", "token_exchange_failed");
+
+    if (callbackError instanceof TiendaNubeApiError) {
+      redirectUrl.searchParams.set("auth_status", String(callbackError.status));
+
+      const responseMessage =
+        callbackError.body?.description ??
+        callbackError.body?.message ??
+        callbackError.message;
+
+      if (responseMessage) {
+        redirectUrl.searchParams.set("auth_detail", responseMessage.slice(0, 180));
+      }
+    }
+
     return NextResponse.redirect(redirectUrl);
   }
 }

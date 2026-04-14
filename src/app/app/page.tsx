@@ -55,6 +55,10 @@ export default async function AppDashboardPage({
   const errorCode = Array.isArray(errorParam) ? errorParam[0] : errorParam;
   const storeIdParam = resolvedSearchParams.store_id;
   const attemptedStoreId = Array.isArray(storeIdParam) ? storeIdParam[0] : storeIdParam;
+  const authStatusParam = resolvedSearchParams.auth_status;
+  const authStatus = Array.isArray(authStatusParam) ? authStatusParam[0] : authStatusParam;
+  const authDetailParam = resolvedSearchParams.auth_detail;
+  const authDetail = Array.isArray(authDetailParam) ? authDetailParam[0] : authDetailParam;
   const installationError = errorCode ? installationErrors[errorCode] : null;
 
   let authenticatedStoreId: string | null = null;
@@ -183,6 +187,20 @@ export default async function AppDashboardPage({
                 Si la app figura activada en TiendaNube pero esta tarjeta aparece, el problema esta
                 de nuestro lado y no en la aprobacion del merchant.
               </p>
+              {errorCode === "token_exchange_failed" && (authStatus || authDetail) ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                  {authStatus ? (
+                    <p>
+                      Status TiendaNube: <span className="text-white">{authStatus}</span>
+                    </p>
+                  ) : null}
+                  {authDetail ? (
+                    <p className="mt-2 break-words">
+                      Detalle: <span className="text-white">{authDetail}</span>
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         ) : null}
