@@ -39,11 +39,24 @@ export async function GET(request: NextRequest) {
 
   try {
     const token = await exchangeAuthorizationCode(code);
-    const store = await upsertStoreInstallation({
-      accessToken: token.access_token,
-      scope: token.scope,
-      tiendanubeId: token.user_id,
-    });
+
+    let store;
+    try {
+      store = await upsertStoreInstallation({
+        accessToken: token.access_token,
+        scope: token.scope,
+        tiendanubeId: token.user_id,
+      });
+    } catch (storePersistenceError) {
+      logger.error("OAuth callback failed while persisting store installation", {
+        error: storePersistenceError,
+        scope: token.scope,
+        storeId: token.user_id,
+      });
+      redirectUrl.searchParams.set("error", "store_persistence_failed");
+      redirectUrl.searchParams.set("store_id", token.user_id);
+      return NextResponse.redirect(redirectUrl);
+    }
 
     let scriptAssociationAttempted = false;
 
@@ -84,10 +97,11 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (callbackError) {
-    logger.error("OAuth callback processing failed", {
+    logger.error("OAuth callback failed while exchanging authorization code", {
       error: callbackError,
+      hasCode: Boolean(code),
     });
-    redirectUrl.searchParams.set("error", "callback_failed");
+    redirectUrl.searchParams.set("error", "token_exchange_failed");
     return NextResponse.redirect(redirectUrl);
   }
 }

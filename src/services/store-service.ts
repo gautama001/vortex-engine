@@ -1,6 +1,7 @@
 import { StoreStatus, type Store } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { ensureStorePersistence } from "@/lib/store-persistence";
 
 type UpsertStoreInstallationInput = {
   accessToken: string;
@@ -12,6 +13,8 @@ type UpsertStoreInstallationInput = {
 export const upsertStoreInstallation = async (
   input: UpsertStoreInstallationInput,
 ): Promise<Store> => {
+  await ensureStorePersistence();
+
   return prisma.store.upsert({
     create: {
       accessToken: input.accessToken,
@@ -31,6 +34,8 @@ export const upsertStoreInstallation = async (
 };
 
 export const getStoreByTiendaNubeId = async (tiendanubeId: string): Promise<Store | null> => {
+  await ensureStorePersistence();
+
   return prisma.store.findUnique({
     where: {
       tiendanubeId,
@@ -52,6 +57,8 @@ export const setStoreStatus = async (
   tiendanubeId: string,
   status: StoreStatus,
 ): Promise<Store | null> => {
+  await ensureStorePersistence();
+
   const existingStore = await getStoreByTiendaNubeId(tiendanubeId);
 
   if (!existingStore) {
@@ -69,6 +76,8 @@ export const setStoreStatus = async (
 };
 
 export const deleteStoreByTiendaNubeId = async (tiendanubeId: string): Promise<boolean> => {
+  await ensureStorePersistence();
+
   const existingStore = await getStoreByTiendaNubeId(tiendanubeId);
 
   if (!existingStore) {
@@ -85,6 +94,8 @@ export const deleteStoreByTiendaNubeId = async (tiendanubeId: string): Promise<b
 };
 
 export const listRecentStores = async (limit = 6): Promise<Store[]> => {
+  await ensureStorePersistence();
+
   return prisma.store.findMany({
     orderBy: {
       updatedAt: "desc",
