@@ -1,0 +1,14 @@
+.next
+node_modules
+.env
+.env.local
+.env.production
+.vercel
+dist
+coverage
+*.log
+*.zip
+*.tar.gz
+*.tgz
+tsconfig.tsbuildinfo
+prisma/dev.db

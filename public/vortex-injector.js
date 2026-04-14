@@ -1,0 +1,327 @@
+(function () {
+  "use strict";
+
+  if (window.__VORTEX_WIDGET_BOOTSTRAPPED__) {
+    return;
+  }
+
+  window.__VORTEX_WIDGET_BOOTSTRAPPED__ = true;
+
+  var currentScript =
+    document.currentScript ||
+    document.querySelector('script[src*="vortex-injector.js"]');
+
+  if (!currentScript) {
+    return;
+  }
+
+  var scriptUrl;
+  try {
+    scriptUrl = new URL(currentScript.src, window.location.href);
+  } catch (_error) {
+    return;
+  }
+
+  var apiOrigin = scriptUrl.origin;
+
+  function getStoreId() {
+    return (
+      scriptUrl.searchParams.get("store") ||
+      (window.LS &&
+      window.LS.store &&
+      window.LS.store.id !== undefined &&
+      window.LS.store.id !== null
+        ? String(window.LS.store.id)
+        : "")
+    );
+  }
+
+  function resolveStoreUrl() {
+    return window.LS &&
+      window.LS.store &&
+      typeof window.LS.store.url === "string" &&
+      window.LS.store.url
+      ? window.LS.store.url.replace(/\/+$/, "")
+      : window.location.origin;
+  }
+
+  function findProductAnchor() {
+    return (
+      document.querySelector('[data-store^="product-form-"]') ||
+      document.querySelector('[data-store="related-products"]') ||
+      document.querySelector('[data-store="product-detail"]')
+    );
+  }
+
+  function findCartAnchor() {
+    return (
+      document.querySelector('[data-store="cart-total"]') ||
+      document.querySelector('[data-store="cart-form"]') ||
+      document.querySelector('[data-store="cart-page"]')
+    );
+  }
+
+  function findCartSeedProductId() {
+    var anchor = document.querySelector('[data-store^="cart-item-"]');
+
+    if (anchor) {
+      var attribute = anchor.getAttribute("data-store") || "";
+      var match = attribute.match(/^cart-item-(\d+)/);
+
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+
+    var items =
+      window.LS &&
+      window.LS.cart &&
+      Array.isArray(window.LS.cart.items)
+        ? window.LS.cart.items
+        : [];
+
+    if (items.length > 0 && items[0].product && items[0].product.id) {
+      return String(items[0].product.id);
+    }
+
+    return "";
+  }
+
+  function resolveContext() {
+    if (window.LS && window.LS.product && window.LS.product.id) {
+      return {
+        anchor: findProductAnchor(),
+        page: "product",
+        productId: String(window.LS.product.id),
+      };
+    }
+
+    var cartProductId = findCartSeedProductId();
+
+    if (cartProductId) {
+      return {
+        anchor: findCartAnchor(),
+        page: "cart",
+        productId: cartProductId,
+      };
+    }
+
+    return null;
+  }
+
+  function ensureStyles() {
+    if (document.getElementById("vortex-widget-styles")) {
+      return;
+    }
+
+    var style = document.createElement("style");
+    style.id = "vortex-widget-styles";
+    style.textContent =
+      ".vortex-widget{margin:24px 0;padding:24px;border-radius:24px;background:linear-gradient(180deg,rgba(7,17,26,.96),rgba(3,8,14,.98));border:1px solid rgba(255,255,255,.09);box-shadow:0 30px 80px -50px rgba(34,211,238,.5);color:#eef6ff;font-family:IBM Plex Sans,Segoe UI,Arial,sans-serif}" +
+      ".vortex-widget__eyebrow{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.3);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#cffafe}" +
+      ".vortex-widget__title{margin:14px 0 8px;font-size:24px;line-height:1.1;color:#fff}" +
+      ".vortex-widget__copy{margin:0 0 18px;color:#b4c6d9;font-size:14px;line-height:1.6}" +
+      ".vortex-widget__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}" +
+      ".vortex-widget__card{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}" +
+      ".vortex-widget__image{width:100%;aspect-ratio:1/1;border-radius:16px;object-fit:cover;background:rgba(255,255,255,.05)}" +
+      ".vortex-widget__name{margin:0;font-size:15px;line-height:1.4;color:#fff}" +
+      ".vortex-widget__meta{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#b4c6d9;font-size:13px}" +
+      ".vortex-widget__button{height:42px;border-radius:999px;border:0;background:#67e8f9;color:#042030;font-weight:700;cursor:pointer;transition:transform .15s ease,opacity .15s ease}" +
+      ".vortex-widget__button[disabled]{opacity:.65;cursor:wait}" +
+      ".vortex-widget__button:hover{transform:translateY(-1px)}";
+    document.head.appendChild(style);
+  }
+
+  function buildProductUrl(item) {
+    if (!item || !item.handle) {
+      return "#";
+    }
+
+    return resolveStoreUrl() + "/" + item.handle;
+  }
+
+  function getCurrencyCode() {
+    return window.LS &&
+      window.LS.currency &&
+      typeof window.LS.currency.code === "string"
+      ? window.LS.currency.code
+      : "ARS";
+  }
+
+  function formatMoney(value) {
+    if (typeof value !== "number" || Number.isNaN(value)) {
+      return "";
+    }
+
+    try {
+      return new Intl.NumberFormat("es-AR", {
+        currency: getCurrencyCode(),
+        style: "currency",
+      }).format(value);
+    } catch (_error) {
+      return "$" + value;
+    }
+  }
+
+  function addItemToCart(item, button) {
+    if (!item || !item.variantId) {
+      window.location.href = buildProductUrl(item);
+      return;
+    }
+
+    if (!window.LS || !window.LS.cart || typeof window.LS.cart.addItem !== "function") {
+      window.location.href = buildProductUrl(item);
+      return;
+    }
+
+    var originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = "Agregando...";
+
+    Promise.resolve(window.LS.cart.addItem(item.variantId, 1))
+      .then(function () {
+        button.textContent = "Agregado";
+        window.setTimeout(function () {
+          button.disabled = false;
+          button.textContent = originalText;
+        }, 1200);
+      })
+      .catch(function () {
+        button.disabled = false;
+        button.textContent = "Ver producto";
+        window.location.href = buildProductUrl(item);
+      });
+  }
+
+  function renderWidget(context, payload) {
+    if (!context || !payload || !Array.isArray(payload.recommendations) || payload.recommendations.length === 0) {
+      return;
+    }
+
+    ensureStyles();
+
+    var mountPoint = context.anchor || document.body;
+    var existing = document.getElementById("vortex-widget");
+
+    if (existing) {
+      existing.remove();
+    }
+
+    var container = document.createElement("section");
+    container.className = "vortex-widget";
+    container.id = "vortex-widget";
+    var strategyLabel =
+      payload.strategy === "related-products" ? "Related intelligence" : "Best sellers fallback";
+
+    container.innerHTML =
+      '<div class="vortex-widget__eyebrow">' +
+      strategyLabel +
+      "</div>" +
+      '<h3 class="vortex-widget__title">Llevate algo que combine mejor con esta compra</h3>' +
+      '<p class="vortex-widget__copy">Vortex selecciono sugerencias de alta afinidad y deja un fallback de cold start listo para convertir.</p>' +
+      '<div class="vortex-widget__grid"></div>';
+
+    var grid = container.querySelector(".vortex-widget__grid");
+
+    payload.recommendations.forEach(function (item) {
+      var card = document.createElement("article");
+      card.className = "vortex-widget__card";
+      var imageUrl = item.imageUrl || "";
+      var priceLabel = item.price ? formatMoney(item.price) : "Ver detalle";
+      var productUrl = buildProductUrl(item);
+
+      card.innerHTML =
+        (imageUrl
+          ? '<a href="' +
+            productUrl +
+            '"><img class="vortex-widget__image" loading="lazy" src="' +
+            imageUrl +
+            '" alt="' +
+            (item.name || "Producto recomendado") +
+            '"></a>'
+          : "") +
+        '<div><a href="' +
+        productUrl +
+        '"><h4 class="vortex-widget__name">' +
+        item.name +
+        '</h4></a></div>' +
+        '<div class="vortex-widget__meta"><span>' +
+        priceLabel +
+        "</span><span>" +
+        item.reason.replace(/-/g, " ") +
+        "</span></div>" +
+        '<button class="vortex-widget__button" type="button">Quick Add</button>';
+
+      var button = card.querySelector(".vortex-widget__button");
+      if (button) {
+        button.addEventListener("click", function () {
+          addItemToCart(item, button);
+        });
+      }
+
+      if (grid) {
+        grid.appendChild(card);
+      }
+    });
+
+    if (mountPoint.parentNode && mountPoint !== document.body) {
+      mountPoint.parentNode.insertBefore(container, mountPoint.nextSibling);
+      return;
+    }
+
+    document.body.appendChild(container);
+  }
+
+  function fetchRecommendations(context) {
+    var storeId = getStoreId();
+
+    if (!storeId || !context) {
+      return Promise.resolve(null);
+    }
+
+    var endpoint =
+      apiOrigin +
+      "/api/v1/recommendations?store_id=" +
+      encodeURIComponent(storeId) +
+      "&limit=4";
+
+    if (context.productId) {
+      endpoint += "&product_id=" + encodeURIComponent(context.productId);
+    }
+
+    return fetch(endpoint, {
+      credentials: "omit",
+      method: "GET",
+      mode: "cors",
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("Failed to fetch recommendations");
+        }
+
+        return response.json();
+      })
+      .catch(function () {
+        return null;
+      });
+  }
+
+  function boot() {
+    var context = resolveContext();
+
+    if (!context) {
+      return;
+    }
+
+    fetchRecommendations(context).then(function (payload) {
+      renderWidget(context, payload);
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+    return;
+  }
+
+  boot();
+})();
