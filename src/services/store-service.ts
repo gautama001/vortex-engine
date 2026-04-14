@@ -68,6 +68,22 @@ export const setStoreStatus = async (
   });
 };
 
+export const deleteStoreByTiendaNubeId = async (tiendanubeId: string): Promise<boolean> => {
+  const existingStore = await getStoreByTiendaNubeId(tiendanubeId);
+
+  if (!existingStore) {
+    return false;
+  }
+
+  await prisma.store.delete({
+    where: {
+      tiendanubeId,
+    },
+  });
+
+  return true;
+};
+
 export const listRecentStores = async (limit = 6): Promise<Store[]> => {
   return prisma.store.findMany({
     orderBy: {
