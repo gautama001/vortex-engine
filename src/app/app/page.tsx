@@ -288,7 +288,10 @@ export default async function AppDashboardPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <StoreSettingsForm initialSettings={widgetSettings} />
+              <StoreSettingsForm
+                initialSettings={widgetSettings}
+                storeId={activeStore?.tiendanubeId ?? authenticatedStoreId ?? ""}
+              />
             </CardContent>
           </Card>
 

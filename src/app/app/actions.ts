@@ -37,12 +37,23 @@ export async function updateStoreSettingsAction(
     }
 
     const verifiedSession = await verifySignedSessionValue(sessionCookie, clientSecret);
+    const requestedStoreIdRaw = formData.get("store_id");
+    const requestedStoreId =
+      typeof requestedStoreIdRaw === "string" ? requestedStoreIdRaw.trim() : "";
+    const targetStoreId = requestedStoreId || verifiedSession?.storeId || "";
 
-    if (!verifiedSession?.storeId) {
+    if (!verifiedSession?.storeId || !targetStoreId) {
       return {
         message: "La sesion admin ya no es valida. Reinstala o volve a conectar la tienda.",
         status: "error",
       };
+    }
+
+    if (requestedStoreId && requestedStoreId !== verifiedSession.storeId) {
+      logger.warn("Store settings action detected session/store mismatch", {
+        requestedStoreId,
+        sessionStoreId: verifiedSession.storeId,
+      });
     }
 
     const recommendationLimit = clamp(
@@ -51,7 +62,7 @@ export async function updateStoreSettingsAction(
       8,
     );
 
-    const updatedStore = await updateStoreWidgetSettings(verifiedSession.storeId, {
+    const updatedStore = await updateStoreWidgetSettings(targetStoreId, {
       cartPageEnabled: formData.get("cart_page_enabled") === "on",
       productPageEnabled: formData.get("product_page_enabled") === "on",
       quickAddLabel: normalizeText(formData.get("quick_add_label"), "Quick Add", 24),
@@ -71,7 +82,7 @@ export async function updateStoreSettingsAction(
 
     if (!updatedStore) {
       return {
-        message: "La tienda autenticada ya no existe en Vortex.",
+        message: "La store activa del panel ya no existe en Vortex. Reinstala o recarga el panel.",
         status: "error",
       };
     }

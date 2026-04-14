@@ -13,6 +13,7 @@ import type { StoreWidgetSettings } from "@/services/store-service";
 
 type StoreSettingsFormProps = {
   initialSettings: StoreWidgetSettings;
+  storeId: string;
 };
 
 const SaveButton = () => {
@@ -52,11 +53,12 @@ const CheckboxRow = ({
   );
 };
 
-export const StoreSettingsForm = ({ initialSettings }: StoreSettingsFormProps) => {
+export const StoreSettingsForm = ({ initialSettings, storeId }: StoreSettingsFormProps) => {
   const [state, formAction] = useActionState(updateStoreSettingsAction, initialUpdateStoreSettingsState);
 
   return (
     <form action={formAction} className="grid gap-5">
+      <input name="store_id" type="hidden" value={storeId} />
       <div className="grid gap-4 md:grid-cols-2">
         <CheckboxRow
           defaultChecked={initialSettings.widgetEnabled}
