@@ -22,7 +22,10 @@
     return;
   }
 
-  var apiOrigin = scriptUrl.origin;
+  var apiOrigin =
+    scriptUrl.searchParams.get("api_origin") ||
+    window.__VORTEX_API_ORIGIN__ ||
+    scriptUrl.origin;
 
   function getStoreId() {
     return (
@@ -193,8 +196,52 @@
       });
   }
 
+  function getWidgetConfig(payload) {
+    var widget = payload && payload.widget ? payload.widget : {};
+
+    return {
+      cartPageEnabled: widget.cartPageEnabled !== false,
+      enabled: widget.widgetEnabled !== false,
+      productPageEnabled: widget.productPageEnabled !== false,
+      quickAddLabel:
+        typeof widget.quickAddLabel === "string" && widget.quickAddLabel
+          ? widget.quickAddLabel
+          : "Quick Add",
+      subtitle:
+        typeof widget.widgetSubtitle === "string" && widget.widgetSubtitle
+          ? widget.widgetSubtitle
+          : "Vortex selecciono sugerencias de alta afinidad y deja un fallback de cold start listo para convertir.",
+      title:
+        typeof widget.widgetTitle === "string" && widget.widgetTitle
+          ? widget.widgetTitle
+          : "Llevate algo que combine mejor con esta compra",
+    };
+  }
+
+  function shouldRenderForContext(context, config) {
+    if (!config.enabled) {
+      return false;
+    }
+
+    if (context.page === "product") {
+      return config.productPageEnabled;
+    }
+
+    if (context.page === "cart") {
+      return config.cartPageEnabled;
+    }
+
+    return true;
+  }
+
   function renderWidget(context, payload) {
     if (!context || !payload || !Array.isArray(payload.recommendations) || payload.recommendations.length === 0) {
+      return;
+    }
+
+    var widgetConfig = getWidgetConfig(payload);
+
+    if (!shouldRenderForContext(context, widgetConfig)) {
       return;
     }
 
@@ -217,8 +264,12 @@
       '<div class="vortex-widget__eyebrow">' +
       strategyLabel +
       "</div>" +
-      '<h3 class="vortex-widget__title">Llevate algo que combine mejor con esta compra</h3>' +
-      '<p class="vortex-widget__copy">Vortex selecciono sugerencias de alta afinidad y deja un fallback de cold start listo para convertir.</p>' +
+      '<h3 class="vortex-widget__title">' +
+      widgetConfig.title +
+      "</h3>" +
+      '<p class="vortex-widget__copy">' +
+      widgetConfig.subtitle +
+      "</p>" +
       '<div class="vortex-widget__grid"></div>';
 
     var grid = container.querySelector(".vortex-widget__grid");
@@ -250,7 +301,9 @@
         "</span><span>" +
         item.reason.replace(/-/g, " ") +
         "</span></div>" +
-        '<button class="vortex-widget__button" type="button">Quick Add</button>';
+        '<button class="vortex-widget__button" type="button">' +
+        widgetConfig.quickAddLabel +
+        "</button>";
 
       var button = card.querySelector(".vortex-widget__button");
       if (button) {
@@ -280,10 +333,7 @@
     }
 
     var endpoint =
-      apiOrigin +
-      "/api/v1/recommendations?store_id=" +
-      encodeURIComponent(storeId) +
-      "&limit=4";
+      apiOrigin + "/api/v1/recommendations?store_id=" + encodeURIComponent(storeId);
 
     if (context.productId) {
       endpoint += "&product_id=" + encodeURIComponent(context.productId);

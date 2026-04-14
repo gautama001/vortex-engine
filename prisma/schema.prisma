@@ -16,13 +16,20 @@ enum StoreStatus {
 }
 
 model Store {
-  id           String      @id @default(cuid())
-  tiendanubeId String      @unique @map("tiendanube_id")
-  accessToken  String      @map("access_token") @db.Text
-  scope        String      @db.Text
-  status       StoreStatus @default(PENDING)
-  createdAt    DateTime    @default(now()) @map("created_at")
-  updatedAt    DateTime    @updatedAt @map("updated_at")
+  id                  String      @id @default(cuid())
+  tiendanubeId        String      @unique @map("tiendanube_id")
+  accessToken         String      @map("access_token") @db.Text
+  scope               String      @db.Text
+  status              StoreStatus @default(PENDING)
+  widgetEnabled       Boolean     @default(true) @map("widget_enabled")
+  productPageEnabled  Boolean     @default(true) @map("product_page_enabled")
+  cartPageEnabled     Boolean     @default(true) @map("cart_page_enabled")
+  widgetTitle         String      @default("Llevate algo que combine mejor con esta compra") @map("widget_title") @db.Text
+  widgetSubtitle      String      @default("Vortex selecciona sugerencias de alta afinidad y activa fallback de cold start para convertir.") @map("widget_subtitle") @db.Text
+  quickAddLabel       String      @default("Quick Add") @map("quick_add_label") @db.Text
+  recommendationLimit Int         @default(4) @map("recommendation_limit")
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
 
   @@index([status], map: "stores_status_idx")
   @@map("stores")

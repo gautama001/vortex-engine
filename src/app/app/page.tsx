@@ -2,6 +2,7 @@ import { StoreStatus } from "@prisma/client";
 import { cookies } from "next/headers";
 import Link from "next/link";
 
+import { StoreSettingsForm } from "@/components/store-settings-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,14 @@ import { Separator } from "@/components/ui/separator";
 import { getTiendaNubeConfig, hasCoreEnvironment } from "@/lib/env";
 import { ADMIN_SESSION_COOKIE, verifySignedSessionValue } from "@/lib/security";
 import { ensureStorePersistence } from "@/lib/store-persistence";
-import { listRecentStores } from "@/services/store-service";
+import { listCatalogPreview } from "@/services/catalog-service";
+import { getStorefrontContext } from "@/services/storefront-service";
+import {
+  DEFAULT_STORE_WIDGET_SETTINGS,
+  getStoreByTiendaNubeId,
+  getStoreWidgetSettings,
+  listRecentStores,
+} from "@/services/store-service";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +58,7 @@ export default async function AppDashboardPage({
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
   const clientSecret = process.env.TIENDANUBE_CLIENT_SECRET;
+  const appUrl = process.env.TIENDANUBE_APP_URL ?? "";
   const resolvedSearchParams = (await searchParams) ?? {};
   const errorParam = resolvedSearchParams.error;
   const errorCode = Array.isArray(errorParam) ? errorParam[0] : errorParam;
@@ -68,6 +77,9 @@ export default async function AppDashboardPage({
   let authenticatedStoreId: string | null = null;
   let persistenceReady = false;
   let stores = [] as Awaited<ReturnType<typeof listRecentStores>>;
+  let activeStore = null as Awaited<ReturnType<typeof getStoreByTiendaNubeId>>;
+  let catalogPreview = [] as Awaited<ReturnType<typeof listCatalogPreview>>;
+  let storefrontContext = null as Awaited<ReturnType<typeof getStorefrontContext>>;
 
   if (sessionCookie && clientSecret) {
     const verifiedSession = await verifySignedSessionValue(sessionCookie, clientSecret);
@@ -78,12 +90,49 @@ export default async function AppDashboardPage({
     try {
       await ensureStorePersistence();
       persistenceReady = true;
-      stores = await listRecentStores(5);
+      stores = await listRecentStores(6);
+
+      if (authenticatedStoreId) {
+        activeStore = await getStoreByTiendaNubeId(authenticatedStoreId);
+
+        if (activeStore?.status === StoreStatus.ACTIVE) {
+          try {
+            const [catalogResult, storefrontResult] = await Promise.all([
+              listCatalogPreview(authenticatedStoreId, 6),
+              getStorefrontContext(authenticatedStoreId),
+            ]);
+            catalogPreview = catalogResult;
+            storefrontContext = storefrontResult;
+          } catch {
+            catalogPreview = [];
+            storefrontContext = null;
+          }
+        }
+      }
     } catch {
       persistenceReady = false;
       stores = [];
+      activeStore = null;
+      catalogPreview = [];
+      storefrontContext = null;
     }
   }
+
+  const widgetSettings = activeStore
+    ? getStoreWidgetSettings(activeStore)
+    : DEFAULT_STORE_WIDGET_SETTINGS;
+  const scriptDevelopmentUrl = appUrl ? `${appUrl}/vortex-injector.js` : "Pendiente";
+  const sampleProductId = catalogPreview[0]?.id;
+  const recommendationsPreviewUrl =
+    appUrl && authenticatedStoreId
+      ? `${appUrl}/api/v1/recommendations?store_id=${authenticatedStoreId}${
+          sampleProductId ? `&product_id=${sampleProductId}` : ""
+        }`
+      : "Pendiente";
+  const storefrontPreviewUrl =
+    storefrontContext?.primaryDomain && catalogPreview[0]?.handle
+      ? `${storefrontContext.primaryDomain}/${catalogPreview[0].handle}`
+      : storefrontContext?.primaryDomain ?? null;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-6 py-8 sm:px-8 lg:px-10">
@@ -102,10 +151,10 @@ export default async function AppDashboardPage({
                   <Badge tone="info">Store activa #{authenticatedStoreId}</Badge>
                 ) : null}
               </div>
-              <CardTitle className="text-4xl tracking-[-0.04em]">Control Plane</CardTitle>
+              <CardTitle className="text-4xl tracking-[-0.04em]">Merchant Control Plane</CardTitle>
               <CardDescription className="max-w-2xl">
-                Dashboard minimo para validar instalaciones, exponer la salud del runtime y dejar
-                visible el estado actual del engine.
+                Panel de operacion del MVP para prender el widget, ajustar copy, validar el script y
+                dejar lista la tienda para pruebas reales de producto.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-3">
@@ -113,21 +162,21 @@ export default async function AppDashboardPage({
                 <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Auth</p>
                 <p className="mt-3 text-3xl font-semibold text-white">OAuth 2.0</p>
                 <p className="mt-2 text-sm leading-6 text-slate-300">
-                  Estado, persistencia y cookie firmada para la superficie admin.
+                  Instalacion persistida, sesion firmada y estado claro para iterar sin friccion.
                 </p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Logic</p>
-                <p className="mt-3 text-3xl font-semibold text-white">Fallback chain</p>
+                <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Config</p>
+                <p className="mt-3 text-3xl font-semibold text-white">Merchant settings</p>
                 <p className="mt-2 text-sm leading-6 text-slate-300">
-                  Tags/categorias primero, best sellers cuando la senal es insuficiente.
+                  Titulo, subtitulo, paginas activas y cantidad de recomendaciones por tienda.
                 </p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Storefront</p>
                 <p className="mt-3 text-3xl font-semibold text-white">Zero deps</p>
                 <p className="mt-2 text-sm leading-6 text-slate-300">
-                  Inyeccion Vanilla JS orientada a Product Page y Cart.
+                  Inyeccion Vanilla JS en Product Page y Cart con Quick Add usando LS.cart.addItem.
                 </p>
               </div>
             </CardContent>
@@ -137,7 +186,7 @@ export default async function AppDashboardPage({
             <CardHeader>
               <CardTitle>Operacion</CardTitle>
               <CardDescription>
-                Variables criticas, callback y recomendaciones expuestas para pruebas rapidas.
+                Variables criticas, estado del runtime y links de activacion para la tienda.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-sm leading-6 text-slate-300">
@@ -161,13 +210,27 @@ export default async function AppDashboardPage({
                     : "Sin configurar"}
                 </p>
               </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <p className="font-medium text-white">Store actual</p>
+                <p className="mt-2">{authenticatedStoreId ? `#${authenticatedStoreId}` : "Sin sesion"}</p>
+                {storefrontContext ? (
+                  <p className="mt-2 text-slate-400">
+                    {storefrontContext.name}
+                    {storefrontContext.currencyCode ? ` | ${storefrontContext.currencyCode}` : ""}
+                  </p>
+                ) : null}
+              </div>
               <div className="flex flex-wrap gap-3">
-                <Button asChild variant="primary">
-                  <Link href="/api/auth/install">Nueva instalacion</Link>
-                </Button>
                 <Button asChild variant="ghost">
                   <Link href="/">Volver al landing</Link>
                 </Button>
+                {storefrontContext?.primaryDomain ? (
+                  <Button asChild variant="secondary">
+                    <Link href={storefrontContext.primaryDomain} target="_blank">
+                      Abrir storefront
+                    </Link>
+                  </Button>
+                ) : null}
               </div>
             </CardContent>
           </Card>
@@ -216,6 +279,84 @@ export default async function AppDashboardPage({
           </Card>
         ) : null}
 
+        <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configuracion del widget</CardTitle>
+              <CardDescription>
+                Ajusta la UX storefront por tienda. Los cambios se guardan sobre la store instalada.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <StoreSettingsForm initialSettings={widgetSettings} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Activacion de storefront</CardTitle>
+              <CardDescription>
+                Lo minimo para prender Vortex en TiendaNube y empezar a testear producto real.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm leading-6 text-slate-300">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="font-medium text-white">Development URL del script</p>
+                <p className="mt-2 break-all">{scriptDevelopmentUrl}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="font-medium text-white">Preview API</p>
+                <p className="mt-2 break-all">{recommendationsPreviewUrl}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="font-medium text-white">Setup del script</p>
+                <p className="mt-2">1. Partner Portal -&gt; Scripts -&gt; Crear script.</p>
+                <p>2. Location: `store`.</p>
+                <p>3. Event: `onfirstinteraction`.</p>
+                <p>4. Development URL: la que ves arriba.</p>
+                <p>5. Probar en `Vortex Demo` antes de activarlo globalmente.</p>
+              </div>
+              {storefrontPreviewUrl ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="font-medium text-white">Pagina sugerida para test</p>
+                  <p className="mt-2 break-all">{storefrontPreviewUrl}</p>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        </section>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Productos detectados</CardTitle>
+            <CardDescription>
+              IDs publicados para elegir rapido un seed product y testear recomendaciones.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {catalogPreview.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-6 text-sm text-slate-300">
+                No pudimos listar productos publicados todavia. Si la tienda tiene catalogo, recarga
+                el panel en unos segundos.
+              </div>
+            ) : (
+              catalogPreview.map((product) => (
+                <div
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+                  key={product.id}
+                >
+                  <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Product ID</p>
+                  <p className="mt-2 text-xl font-semibold text-white">#{product.id}</p>
+                  <p className="mt-3 text-sm text-slate-200">{product.name}</p>
+                  <p className="mt-2 break-all text-xs text-slate-400">
+                    {product.handle ? `/${product.handle}` : "Sin handle"}
+                  </p>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Stores registradas</CardTitle>
@@ -237,6 +378,11 @@ export default async function AppDashboardPage({
                   <div>
                     <p className="text-lg font-medium text-white">Store #{store.tiendanubeId}</p>
                     <p className="mt-2 text-sm text-slate-300">Scopes: {store.scope}</p>
+                    <p className="mt-2 text-sm text-slate-300">
+                      Widget: {store.widgetEnabled ? "activo" : "apagado"} | Pages:{" "}
+                      {store.productPageEnabled ? "producto" : "sin producto"} /{" "}
+                      {store.cartPageEnabled ? "carrito" : "sin carrito"}
+                    </p>
                     <p className="mt-1 text-xs uppercase tracking-[0.24em] text-slate-500">
                       Updated {store.updatedAt.toISOString()}
                     </p>

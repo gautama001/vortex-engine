@@ -3,7 +3,7 @@ import { logger } from "@/lib/logger";
 import { clamp } from "@/lib/utils";
 import { TiendaNubeClient } from "@/lib/tiendanube/client";
 import { type LocalizedText, type TiendaNubeProduct } from "@/lib/tiendanube/types";
-import { getActiveStoreOrThrow } from "@/services/store-service";
+import { getActiveStoreOrThrow, getStoreWidgetSettings, type StoreWidgetSettings } from "@/services/store-service";
 
 type RecommendationReason = "best-seller" | "shared-category" | "shared-tag";
 type RecommendationStrategy = "best-sellers" | "related-products";
@@ -26,6 +26,7 @@ export type RecommendationResult = {
   products: RecommendationItem[];
   seedProductId: number | null;
   strategy: RecommendationStrategy;
+  widget: StoreWidgetSettings;
 };
 
 type ScoredCandidate = {
@@ -234,8 +235,9 @@ export const getRecommendations = async (input: {
   productId?: number | null;
   storeId: string;
 }): Promise<RecommendationResult> => {
-  const limit = clamp(input.limit ?? getDefaultRecommendationLimit(), 1, 8);
   const store = await getActiveStoreOrThrow(input.storeId);
+  const limit = clamp(input.limit ?? store.recommendationLimit ?? getDefaultRecommendationLimit(), 1, 8);
+  const widget = getStoreWidgetSettings(store);
   const client = new TiendaNubeClient({
     accessToken: store.accessToken,
     storeId: input.storeId,
@@ -249,6 +251,7 @@ export const getRecommendations = async (input: {
       products,
       seedProductId: null,
       strategy: "best-sellers",
+      widget,
     };
   }
 
@@ -262,6 +265,7 @@ export const getRecommendations = async (input: {
       products,
       seedProductId: input.productId,
       strategy: "best-sellers",
+      widget,
     };
   }
 
@@ -280,6 +284,7 @@ export const getRecommendations = async (input: {
       products: selectedRelatedProducts,
       seedProductId: seedProduct.id,
       strategy: "related-products",
+      widget,
     };
   }
 
@@ -302,5 +307,6 @@ export const getRecommendations = async (input: {
     products,
     seedProductId: seedProduct.id,
     strategy: selectedRelatedProducts.length > 0 ? "related-products" : "best-sellers",
+    widget,
   };
 };

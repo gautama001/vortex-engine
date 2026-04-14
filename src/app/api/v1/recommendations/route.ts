@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
         recommendations: result.products,
         store_id: storeId,
         strategy: result.strategy,
+        widget: result.widget,
       },
       {
         headers: defaultHeaders,

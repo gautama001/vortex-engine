@@ -46,7 +46,14 @@ export type TiendaNubeOauthTokenResponse = {
   access_token: string;
   scope: string;
   token_type: string;
-  user_id: string;
+  user_id: number | string;
+};
+
+export type TiendaNubeStore = {
+  domains?: string[];
+  main_currency?: string;
+  name?: LocalizedText;
+  original_domain?: string;
 };
 
 export type TiendaNubeScriptAssociation = {

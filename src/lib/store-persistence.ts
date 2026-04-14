@@ -56,6 +56,17 @@ const bootstrapStorePersistence = async (): Promise<void> => {
     CREATE INDEX IF NOT EXISTS "stores_status_idx"
     ON "stores"("status");
   `);
+
+    await bootstrapPrisma.$executeRawUnsafe(`
+    ALTER TABLE "stores"
+    ADD COLUMN IF NOT EXISTS "widget_enabled" BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS "product_page_enabled" BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS "cart_page_enabled" BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS "widget_title" TEXT NOT NULL DEFAULT 'Llevate algo que combine mejor con esta compra',
+    ADD COLUMN IF NOT EXISTS "widget_subtitle" TEXT NOT NULL DEFAULT 'Vortex selecciona sugerencias de alta afinidad y activa fallback de cold start para convertir.',
+    ADD COLUMN IF NOT EXISTS "quick_add_label" TEXT NOT NULL DEFAULT 'Quick Add',
+    ADD COLUMN IF NOT EXISTS "recommendation_limit" INTEGER NOT NULL DEFAULT 4;
+  `);
   } finally {
     if (bootstrapPrisma !== prisma) {
       await bootstrapPrisma.$disconnect();

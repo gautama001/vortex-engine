@@ -6,6 +6,10 @@ import {
   TiendaNubeApiError,
 } from "@/lib/tiendanube/types";
 
+type NormalizedTiendaNubeOauthTokenResponse = Omit<TiendaNubeOauthTokenResponse, "user_id"> & {
+  user_id: string;
+};
+
 const sanitizeStoreDomain = (value: string): string => {
   const normalized = value.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
 
@@ -58,7 +62,7 @@ export const buildInstallUrl = (storeDomain?: string | null, state?: string): st
 
 export const exchangeAuthorizationCode = async (
   code: string,
-): Promise<TiendaNubeOauthTokenResponse> => {
+): Promise<NormalizedTiendaNubeOauthTokenResponse> => {
   const { appId, authBaseUrl, clientSecret } = getTiendaNubeConfig();
   const response = await fetch(new URL("/apps/authorize/token", authBaseUrl), {
     body: JSON.stringify({

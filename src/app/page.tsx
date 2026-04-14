@@ -10,7 +10,7 @@ import { hasCoreEnvironment } from "@/lib/env";
 const capabilities = [
   "OAuth 2.0 de TiendaNube con persistencia en Prisma/PostgreSQL.",
   "Cold start inteligente: related by category/tag y fallback a best sellers.",
-  "ScriptTag storefront sin dependencias con Quick Add vía LS.cart.addItem.",
+  "Script storefront sin dependencias con Quick Add via LS.cart.addItem.",
 ];
 
 export default function HomePage() {
@@ -39,7 +39,7 @@ export default function HomePage() {
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-slate-300">
               El MVP queda preparado para Vercel, App Router, Prisma y widgets de upsell/cross-sell
-              con una estrategia de fallback robusta desde el día cero.
+              con una estrategia de fallback robusta desde el dia cero.
             </p>
           </div>
 
@@ -70,14 +70,14 @@ export default function HomePage() {
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="font-medium text-white">Auth Core</p>
                 <p className="mt-2 leading-6 text-slate-300">
-                  `/api/auth/install`, `/api/auth/callback`, sesiones firmadas y asociación opcional
-                  del ScriptTag.
+                  `/api/auth/install`, `/api/auth/callback`, sesiones firmadas y asociacion opcional
+                  del script manual.
                 </p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="font-medium text-white">Recommendation Engine</p>
                 <p className="mt-2 leading-6 text-slate-300">
-                  `/api/v1/recommendations` resuelve related products por señales semánticas y
+                  `/api/v1/recommendations` resuelve related products por senales semanticas y
                   rellena con best sellers cuando el store no tiene data suficiente.
                 </p>
               </div>
@@ -94,11 +94,11 @@ export default function HomePage() {
 
             <div className="flex flex-wrap gap-3 text-sm">
               <Button asChild variant="secondary">
-                <Link href="/api/auth/install">Iniciar OAuth</Link>
+                <Link href="/app">Abrir dashboard merchant</Link>
               </Button>
               <Button asChild variant="ghost">
                 <Link href="https://tiendanube.github.io/api-documentation/resources/script">
-                  Docs ScriptTag
+                  Docs Scripts
                 </Link>
               </Button>
             </div>
