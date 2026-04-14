@@ -9,11 +9,12 @@ import { upsertStoreInstallation } from "@/services/store-service";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
+  const { appUrl, clientSecret } = getTiendaNubeConfig();
   const code = request.nextUrl.searchParams.get("code");
   const error = request.nextUrl.searchParams.get("error");
   const state = request.nextUrl.searchParams.get("state");
   const persistedState = request.cookies.get(OAUTH_STATE_COOKIE)?.value;
-  const redirectUrl = new URL("/app", request.url);
+  const redirectUrl = new URL("/app", appUrl);
 
   if (error) {
     logger.warn("TiendaNube OAuth callback returned an error", { error });
@@ -21,9 +22,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (!code || !state || !persistedState || persistedState !== state) {
+  const hasStateHandshake = Boolean(state || persistedState);
+  const invalidState =
+    hasStateHandshake && (!state || !persistedState || persistedState !== state);
+
+  if (!code || invalidState) {
     logger.warn("Rejected OAuth callback due to invalid state", {
       hasCode: Boolean(code),
+      hasStateHandshake,
       hasState: Boolean(state),
       persistedState: Boolean(persistedState),
     });
@@ -32,7 +38,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { clientSecret } = getTiendaNubeConfig();
     const token = await exchangeAuthorizationCode(code);
     const store = await upsertStoreInstallation({
       accessToken: token.access_token,
