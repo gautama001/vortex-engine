@@ -131,7 +131,10 @@ export default async function AppDashboardPage({
   const widgetSettings = activeStore
     ? getStoreWidgetSettings(activeStore)
     : DEFAULT_STORE_WIDGET_SETTINGS;
-  const scriptDevelopmentUrl = appUrl ? `${appUrl}/vortex-injector.js` : "Pendiente";
+  const scriptDevelopmentUrl = appUrl
+    ? `${appUrl}/vortex-injector.js?api_origin=${encodeURIComponent(appUrl)}`
+    : "Pendiente";
+  const productionLoaderUrl = appUrl ? `${appUrl}/vortex-storefront-loader.js` : "Pendiente";
   const sampleProductId = catalogPreview[0]?.id;
   const recommendationsPreviewUrl =
     appUrl && authenticatedStoreId
@@ -318,16 +321,21 @@ export default async function AppDashboardPage({
                 <p className="mt-2 break-all">{scriptDevelopmentUrl}</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="font-medium text-white">Loader productivo</p>
+                <p className="mt-2 break-all">{productionLoaderUrl}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                 <p className="font-medium text-white">Preview API</p>
                 <p className="mt-2 break-all">{recommendationsPreviewUrl}</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                 <p className="font-medium text-white">Setup del script</p>
                 <p className="mt-2">1. Partner Portal -&gt; Scripts -&gt; Crear script.</p>
-                <p>2. Location: `store`.</p>
-                <p>3. Event: `onfirstinteraction`.</p>
-                <p>4. Development URL: la que ves arriba.</p>
-                <p>5. Probar en `Vortex Demo` antes de activarlo globalmente.</p>
+                <p>2. Demo store: usar `Development URL` con la URL de desarrollo.</p>
+                <p>3. Produccion: subir `public/vortex-storefront-loader.js` como version activa.</p>
+                <p>4. Location: `store`.</p>
+                <p>5. Event: `onfirstinteraction`.</p>
+                <p>6. Probar en `Vortex Demo` antes de activarlo globalmente.</p>
               </div>
               {storefrontPreviewUrl ? (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
