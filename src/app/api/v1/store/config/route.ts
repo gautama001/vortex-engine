@@ -109,7 +109,7 @@ const normalizeStoreConfigPayload = (payload: unknown): Partial<StoreWidgetSetti
   };
 };
 
-export async function PATCH(request: Request) {
+const handleStoreConfigUpdate = async (request: Request) => {
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
@@ -220,4 +220,12 @@ export async function PATCH(request: Request) {
       },
     );
   }
+};
+
+export async function PATCH(request: Request) {
+  return handleStoreConfigUpdate(request);
+}
+
+export async function POST(request: Request) {
+  return handleStoreConfigUpdate(request);
 }

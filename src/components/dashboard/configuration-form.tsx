@@ -38,6 +38,14 @@ type SavePayload = {
   updatedAt?: string;
 };
 
+const parseJsonSafely = <T,>(rawValue: string): T | null => {
+  try {
+    return JSON.parse(rawValue) as T;
+  } catch {
+    return null;
+  }
+};
+
 const sectionTitleClass = "text-xs uppercase tracking-[0.28em] text-slate-500";
 
 const normalizeHexInput = (value: string): string => {
@@ -141,21 +149,31 @@ export const ConfigurationForm = ({
 
     try {
       const response = await fetch("/api/v1/store/config", {
+        cache: "no-store",
         body: JSON.stringify({
           config: values,
           storeId,
         }),
+        credentials: "same-origin",
         headers: {
+          Accept: "application/json",
           "Content-Type": "application/json",
         },
-        method: "PATCH",
+        method: "POST",
       });
 
-      const payload = (await response.json()) as SavePayload;
-      const nextConfig = payload.config;
-      const nextUpdatedAt = payload.updatedAt;
+      const rawPayload = await response.text();
+      const payload = parseJsonSafely<SavePayload>(rawPayload);
+      const nextConfig = payload?.config;
+      const nextUpdatedAt = payload?.updatedAt;
 
       if (!response.ok || !nextConfig || !nextUpdatedAt) {
+        if (!payload) {
+          throw new Error(
+            `El runtime devolvio una respuesta invalida (${response.status}). Revisa el deploy o la sesion y volve a intentar.`,
+          );
+        }
+
         throw new Error(payload.message || "No pudimos guardar la configuracion.");
       }
 
