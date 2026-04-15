@@ -1,11 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { LoaderCircle, Search, WandSparkles } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LoaderCircle, Search, Sparkles, WandSparkles } from "lucide-react";
 
-import type { MerchantPreviewProduct, StrategyValue } from "@/components/dashboard/types";
+import type {
+  MerchantPreviewProduct,
+  StrategyValue,
+} from "@/components/dashboard/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type LiveAuditorProps = {
@@ -21,8 +30,12 @@ type LiveAuditorProps = {
 };
 
 type ProductSearchPayload = {
+  hasMore?: boolean;
+  page?: number;
   products?: MerchantPreviewProduct[];
 };
+
+const PAGE_SIZE = 8;
 
 const parseJsonSafely = <T,>(rawValue: string): T | null => {
   try {
@@ -30,6 +43,40 @@ const parseJsonSafely = <T,>(rawValue: string): T | null => {
   } catch {
     return null;
   }
+};
+
+const fetchProductBatch = async (input: {
+  page?: number;
+  query?: string;
+}): Promise<{
+  hasMore: boolean;
+  page: number;
+  products: MerchantPreviewProduct[];
+}> => {
+  const params = new URLSearchParams({
+    limit: String(PAGE_SIZE),
+    page: String(input.page ?? 1),
+  });
+
+  if (input.query?.trim()) {
+    params.set("query", input.query.trim());
+  }
+
+  const response = await fetch(`/api/v1/store/products?${params.toString()}`, {
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+  const rawPayload = await response.text();
+  const payload = parseJsonSafely<ProductSearchPayload>(rawPayload);
+
+  return {
+    hasMore: Boolean(payload?.hasMore),
+    page:
+      typeof payload?.page === "number" && Number.isFinite(payload.page)
+        ? payload.page
+        : input.page ?? 1,
+    products: Array.isArray(payload?.products) ? payload.products : [],
+  };
 };
 
 export const LiveAuditor = ({
@@ -43,70 +90,202 @@ export const LiveAuditor = ({
   selectedProductId,
   storefrontUrl,
 }: LiveAuditorProps) => {
+  const [catalogHasMore, setCatalogHasMore] = useState(
+    products.length >= PAGE_SIZE,
+  );
+  const [catalogPage, setCatalogPage] = useState(
+    Math.max(1, Math.ceil(products.length / PAGE_SIZE)),
+  );
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [query, setQuery] = useState("");
-  const [remoteResults, setRemoteResults] = useState<MerchantPreviewProduct[]>([]);
+  const [remoteResults, setRemoteResults] = useState<MerchantPreviewProduct[]>(
+    [],
+  );
+  const [searchHasMore, setSearchHasMore] = useState(false);
+  const [searchPage, setSearchPage] = useState(1);
+  const loadMoreAnchorRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setCatalogPage(Math.max(1, Math.ceil(products.length / PAGE_SIZE)));
+    setCatalogHasMore(products.length >= PAGE_SIZE);
+  }, [products.length]);
+
+  const loadSearchPage = useCallback(
+    async (nextPage: number, append: boolean) => {
+      const normalizedQuery = query.trim();
+
+      if (!normalizedQuery) {
+        setRemoteResults([]);
+        setSearchPage(1);
+        setSearchHasMore(false);
+        return;
+      }
+
+      try {
+        if (append) {
+          setIsLoadingMore(true);
+        } else {
+          setIsSearching(true);
+        }
+
+        const payload = await fetchProductBatch({
+          page: nextPage,
+          query: normalizedQuery,
+        });
+
+        setRemoteResults((currentResults) =>
+          append ? [...currentResults, ...payload.products] : payload.products,
+        );
+        setSearchPage(payload.page);
+        setSearchHasMore(payload.hasMore);
+        onProductsLoaded(payload.products);
+      } catch {
+        if (!append) {
+          setRemoteResults([]);
+        }
+      } finally {
+        setIsSearching(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [onProductsLoaded, query],
+  );
+
+  const loadCatalogPage = useCallback(async () => {
+    try {
+      setIsLoadingMore(true);
+      const nextPage = catalogPage + 1;
+      const payload = await fetchProductBatch({
+        page: nextPage,
+      });
+
+      onProductsLoaded(payload.products);
+      setCatalogPage(payload.page);
+      setCatalogHasMore(payload.hasMore);
+    } catch {
+      setCatalogHasMore(false);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [catalogPage, onProductsLoaded]);
 
   useEffect(() => {
     const normalizedQuery = query.trim();
 
     if (!normalizedQuery) {
       setRemoteResults([]);
+      setSearchPage(1);
+      setSearchHasMore(false);
       setIsSearching(false);
       return;
     }
 
     let cancelled = false;
     const timeoutId = window.setTimeout(async () => {
-      try {
-        setIsSearching(true);
-        const response = await fetch(
-          `/api/v1/store/products?query=${encodeURIComponent(normalizedQuery)}&limit=24`,
-          {
-            cache: "no-store",
-            credentials: "same-origin",
-          },
-        );
-        const rawPayload = await response.text();
-        const payload = parseJsonSafely<ProductSearchPayload>(rawPayload);
-        const nextProducts = Array.isArray(payload?.products) ? payload.products : [];
-
-        if (!cancelled) {
-          setRemoteResults(nextProducts);
-          onProductsLoaded(nextProducts);
-        }
-      } catch {
-        if (!cancelled) {
-          setRemoteResults([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsSearching(false);
-        }
+      if (cancelled) {
+        return;
       }
-    }, 280);
+
+      await loadSearchPage(1, false);
+    }, 220);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [onProductsLoaded, query]);
+  }, [loadSearchPage, query]);
 
   const visibleProducts = useMemo(() => {
     if (query.trim()) {
       return remoteResults;
     }
 
-    return products.slice(0, 24);
+    return products;
   }, [products, query, remoteResults]);
 
+  const productPool = useMemo(() => {
+    return [
+      ...new Map(
+        [...products, ...remoteResults].map((product) => [product.id, product] as const),
+      ).values(),
+    ];
+  }, [products, remoteResults]);
+
+  const selectedSeedProduct = useMemo(() => {
+    if (!selectedProductId) {
+      return null;
+    }
+
+    return productPool.find((product) => product.id === selectedProductId) ?? null;
+  }, [productPool, selectedProductId]);
+
   const manualSelectedProducts = useMemo(() => {
-    const productsById = new Map(products.map((product) => [product.id, product] as const));
+    const productsById = new Map(
+      productPool.map((product) => [product.id, product] as const),
+    );
 
     return manualSelectionProductIds
       .map((productId) => productsById.get(productId) ?? null)
       .filter((product): product is MerchantPreviewProduct => Boolean(product));
-  }, [manualSelectionProductIds, products]);
+  }, [manualSelectionProductIds, productPool]);
+
+  const handleLoadMore = useCallback(async () => {
+    if (isLoadingMore) {
+      return;
+    }
+
+    if (query.trim()) {
+      if (searchHasMore) {
+        await loadSearchPage(searchPage + 1, true);
+      }
+
+      return;
+    }
+
+    if (catalogHasMore) {
+      await loadCatalogPage();
+    }
+  }, [
+    catalogHasMore,
+    isLoadingMore,
+    loadCatalogPage,
+    loadSearchPage,
+    query,
+    searchHasMore,
+    searchPage,
+  ]);
+
+  useEffect(() => {
+    const anchor = loadMoreAnchorRef.current;
+
+    if (!anchor) {
+      return;
+    }
+
+    const shouldObserve = query.trim() ? searchHasMore : catalogHasMore;
+
+    if (!shouldObserve) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void handleLoadMore();
+        }
+      },
+      {
+        rootMargin: "180px 0px",
+      },
+    );
+
+    observer.observe(anchor);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [catalogHasMore, handleLoadMore, query, searchHasMore, visibleProducts.length]);
 
   return (
     <Card className="border-white/8 bg-white/[0.03]">
@@ -121,27 +300,28 @@ export const LiveAuditor = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3">
-          {isSearching ? (
-            <LoaderCircle className="h-4 w-4 animate-spin text-cyan-200" />
-          ) : (
-            <Search className="h-4 w-4 text-slate-400" />
-          )}
-          <input
-            className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar producto por nombre"
-            type="text"
-            value={query}
-          />
-        </label>
-
-        {recommendationAlgorithm === "seleccion-manual" ? (
+        <div className="grid gap-3 xl:grid-cols-2">
           <div className="rounded-2xl border border-cyan-300/20 bg-cyan-400/10 p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-cyan-100">Seleccion manual</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-cyan-100">
+              Semilla activa
+            </p>
             <p className="mt-2 text-sm leading-6 text-slate-100">
-              Los productos que agregues aca quedan fijados para esta tienda y se usan en el widget
-              real cuando la estrategia activa es manual.
+              {selectedSeedProduct
+                ? `${selectedSeedProduct.name} - Product ID #${selectedSeedProduct.id}`
+                : "Todavia no seleccionaste un producto semilla para el preview."}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-cyan-300" />
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                Seleccion manual
+              </p>
+            </div>
+            <p className="mt-2 text-sm leading-6 text-slate-200">
+              {recommendationAlgorithm === "seleccion-manual"
+                ? "Estos productos alimentan la estrategia activa y se reflejan en la vista previa."
+                : "Podes preparar una lista manual ahora y activarla mas adelante cuando cambies la estrategia."}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {manualSelectedProducts.length > 0 ? (
@@ -167,7 +347,22 @@ export const LiveAuditor = ({
               )}
             </div>
           </div>
-        ) : null}
+        </div>
+
+        <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3">
+          {isSearching ? (
+            <LoaderCircle className="h-4 w-4 animate-spin text-cyan-200" />
+          ) : (
+            <Search className="h-4 w-4 text-slate-400" />
+          )}
+          <input
+            className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar producto por nombre"
+            type="text"
+            value={query}
+          />
+        </label>
 
         <div className="grid gap-3 sm:grid-cols-2">
           {visibleProducts.map((product) => {
@@ -200,16 +395,14 @@ export const LiveAuditor = ({
                   >
                     {isActive ? "Semilla activa" : "Usar como semilla"}
                   </Button>
-                  {recommendationAlgorithm === "seleccion-manual" ? (
-                    <Button
-                      onClick={() => onToggleManualProduct(product.id)}
-                      size="sm"
-                      type="button"
-                      variant={isManualSelected ? "secondary" : "ghost"}
-                    >
-                      {isManualSelected ? "Quitar de manual" : "Agregar a manual"}
-                    </Button>
-                  ) : null}
+                  <Button
+                    onClick={() => onToggleManualProduct(product.id)}
+                    size="sm"
+                    type="button"
+                    variant={isManualSelected ? "secondary" : "ghost"}
+                  >
+                    {isManualSelected ? "Quitar de manual" : "Agregar a manual"}
+                  </Button>
                 </div>
               </article>
             );
@@ -222,14 +415,27 @@ export const LiveAuditor = ({
           </div>
         ) : null}
 
+        {(query.trim() ? searchHasMore : catalogHasMore) ? (
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-2 w-full" ref={loadMoreAnchorRef} />
+            <Button onClick={() => void handleLoadMore()} type="button" variant="ghost">
+              {isLoadingMore ? "Cargando mas productos..." : "Cargar mas productos"}
+            </Button>
+          </div>
+        ) : null}
+
         <div className="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/40 p-4 text-sm text-slate-300">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Preview API</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+              Preview API
+            </p>
             <p className="mt-2 break-all">{previewApiUrl}</p>
           </div>
           {storefrontUrl ? (
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pagina de test</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                Pagina de test
+              </p>
               <p className="mt-2 break-all">{storefrontUrl}</p>
             </div>
           ) : null}

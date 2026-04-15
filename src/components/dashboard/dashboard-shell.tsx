@@ -66,25 +66,6 @@ const DashboardContent = ({
   const { commitConfig, selectProduct, setDraftConfig, updateDraftConfig } = useDashboardActions();
   const { draftConfig, lastSavedAt, savedConfig, selectedProductId } = useDashboardState();
   const [catalogPool, setCatalogPool] = useState(storefrontProducts);
-
-  useEffect(() => {
-    setCatalogPool(storefrontProducts);
-  }, [storefrontProducts]);
-
-  const handleConfigChange = useCallback(
-    (config: PersistedWidgetConfig) => {
-      setDraftConfig(widgetConfigFromPersisted(config));
-    },
-    [setDraftConfig],
-  );
-
-  const handleConfigSaved = useCallback(
-    (config: PersistedWidgetConfig, updatedAt: string) => {
-      commitConfig(widgetConfigFromPersisted(config), updatedAt);
-    },
-    [commitConfig],
-  );
-
   const persistedDraft = useMemo(() => widgetConfigToPersisted(draftConfig), [draftConfig]);
   const persistedSaved = useMemo(() => widgetConfigToPersisted(savedConfig), [savedConfig]);
   const mergeCatalogProducts = useCallback((nextProducts: MerchantPreviewProduct[]) => {
@@ -102,6 +83,61 @@ const DashboardContent = ({
       return [...mergedProducts.values()];
     });
   }, []);
+
+  useEffect(() => {
+    setCatalogPool(storefrontProducts);
+  }, [storefrontProducts]);
+
+  useEffect(() => {
+    const missingManualIds = persistedDraft.manualRecommendationProductIds.filter(
+      (productId) => !catalogPool.some((product) => product.id === productId),
+    );
+
+    if (missingManualIds.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/v1/store/products?ids=${encodeURIComponent(missingManualIds.join(","))}`,
+          {
+            cache: "no-store",
+            credentials: "same-origin",
+          },
+        );
+        const payload = (await response.json()) as {
+          products?: MerchantPreviewProduct[];
+        };
+
+        if (!cancelled && Array.isArray(payload.products)) {
+          mergeCatalogProducts(payload.products);
+        }
+      } catch {
+        // noop: the auditor can keep showing ids already present in the pool
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [catalogPool, mergeCatalogProducts, persistedDraft.manualRecommendationProductIds]);
+
+  const handleConfigChange = useCallback(
+    (config: PersistedWidgetConfig) => {
+      setDraftConfig(widgetConfigFromPersisted(config));
+    },
+    [setDraftConfig],
+  );
+
+  const handleConfigSaved = useCallback(
+    (config: PersistedWidgetConfig, updatedAt: string) => {
+      commitConfig(widgetConfigFromPersisted(config), updatedAt);
+    },
+    [commitConfig],
+  );
 
   const toggleManualProduct = useCallback(
     (productId: number) => {

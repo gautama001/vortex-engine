@@ -16,6 +16,8 @@ export type TiendaNubeProductImage = {
   src: string;
 };
 
+export type TiendaNubeProductAttribute = LocalizedText;
+
 export type TiendaNubeProductVariant = {
   id: number;
   image_id?: number | null;
@@ -25,9 +27,12 @@ export type TiendaNubeProductVariant = {
   sku?: string | null;
   stock?: number | null;
   stock_management?: boolean;
+  values?: LocalizedText[];
+  visible?: boolean | null;
 };
 
 export type TiendaNubeProduct = {
+  attributes?: TiendaNubeProductAttribute[];
   categories?: TiendaNubeCategoryReference[];
   created_at?: string;
   description?: LocalizedText;
@@ -40,6 +45,37 @@ export type TiendaNubeProduct = {
   tags?: string | string[] | null;
   updated_at?: string;
   variants?: TiendaNubeProductVariant[];
+};
+
+export type TiendaNubeOrderAttribute = {
+  key?: string | null;
+  name?: string | null;
+  value?: string | null;
+};
+
+export type TiendaNubeOrderProduct = {
+  id?: number | string | null;
+  name?: string | null;
+  price?: number | string | null;
+  product_id?: number | string | null;
+  quantity?: number | string | null;
+  variant_id?: number | string | null;
+};
+
+export type TiendaNubeOrder = {
+  attributes?: TiendaNubeOrderAttribute[];
+  created_at?: string | null;
+  currency?: string | null;
+  id: number | string;
+  note?: string | null;
+  owner_note?: string | null;
+  paid_at?: string | null;
+  payment_status?: string | null;
+  products?: TiendaNubeOrderProduct[];
+  total?: number | string | null;
+  total_paid_by_customer?: number | string | null;
+  total_paid_by_customer_including_fees?: number | string | null;
+  updated_at?: string | null;
 };
 
 export type TiendaNubeOauthTokenResponse = {

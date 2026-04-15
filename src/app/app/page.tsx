@@ -157,7 +157,7 @@ export default async function AppDashboardPage({
       if (activeStore?.status === StoreStatus.ACTIVE) {
         try {
           const [catalogResult, storefrontResult] = await Promise.all([
-            listCatalogPreview(authenticatedStoreId, 24),
+            listCatalogPreview(authenticatedStoreId, 8),
             getStorefrontContext(authenticatedStoreId),
           ]);
           catalogPreview = catalogResult;

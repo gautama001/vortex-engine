@@ -5,7 +5,11 @@ import { getTiendaNubeConfig } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { ADMIN_SESSION_COOKIE, verifySignedSessionValue } from "@/lib/security";
 import { clamp } from "@/lib/utils";
-import { listCatalogPreview, searchCatalogPreview } from "@/services/catalog-service";
+import {
+  getCatalogPreviewByIds,
+  listCatalogPreviewPage,
+  searchCatalogPreviewPage,
+} from "@/services/catalog-service";
 
 export const runtime = "nodejs";
 
@@ -51,14 +55,41 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url);
     const query = url.searchParams.get("query")?.trim() ?? "";
+    const ids = url.searchParams
+      .get("ids")
+      ?.split(",")
+      .map((item) => Number(item.trim()))
+      .filter(Number.isFinite) ?? [];
     const limit = clamp(Number(url.searchParams.get("limit") ?? 24), 1, 36);
-    const products = query
-      ? await searchCatalogPreview(verifiedSession.storeId, query, limit)
-      : await listCatalogPreview(verifiedSession.storeId, limit);
+    const page = clamp(Number(url.searchParams.get("page") ?? 1), 1, 999);
+
+    if (ids.length > 0) {
+      const products = await getCatalogPreviewByIds(verifiedSession.storeId, ids);
+
+      return NextResponse.json(
+        {
+          hasMore: false,
+          page: 1,
+          products,
+          status: "ok",
+          storeId: verifiedSession.storeId,
+        },
+        {
+          headers: noStoreHeaders,
+          status: 200,
+        },
+      );
+    }
+
+    const result = query
+      ? await searchCatalogPreviewPage(verifiedSession.storeId, query, { limit, page })
+      : await listCatalogPreviewPage(verifiedSession.storeId, { limit, page });
 
     return NextResponse.json(
       {
-        products,
+        hasMore: result.hasMore,
+        page: result.page,
+        products: result.products,
         status: "ok",
         storeId: verifiedSession.storeId,
       },

@@ -3,7 +3,11 @@ import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
 import { TiendaNubeClient } from "@/lib/tiendanube/client";
-import { type LocalizedText, type TiendaNubeProduct } from "@/lib/tiendanube/types";
+import {
+  type LocalizedText,
+  type TiendaNubeProduct,
+  type TiendaNubeProductVariant,
+} from "@/lib/tiendanube/types";
 import { getActiveStoreOrThrow, getStoreWidgetSettings, type StoreWidgetSettings } from "@/services/store-service";
 
 type RecommendationReason =
@@ -28,6 +32,7 @@ type RecommendationItem = {
   reason: RecommendationReason;
   score: number;
   tags: string[];
+  variantCount: number;
   variantId: number | null;
 };
 
@@ -100,14 +105,37 @@ const parsePrice = (value?: number | string | null): number | null => {
   return Number.isFinite(parsedValue) ? parsedValue : null;
 };
 
+const isVariantAvailable = (variant: TiendaNubeProductVariant): boolean => {
+  if (!Number.isFinite(variant.id)) {
+    return false;
+  }
+
+  if (variant.visible === false) {
+    return false;
+  }
+
+  if (!variant.stock_management) {
+    return true;
+  }
+
+  if (variant.stock === null || variant.stock === undefined) {
+    return true;
+  }
+
+  return Number(variant.stock) > 0;
+};
+
 const mapProductToRecommendation = (
   product: TiendaNubeProduct,
   reason: RecommendationReason,
   score: number,
 ): RecommendationItem => {
-  const primaryVariant = product.variants?.find((variant) => Boolean(variant.id)) ?? null;
+  const normalizedVariants = (product.variants ?? []).filter((variant) => Number.isFinite(variant.id));
+  const availableVariants = normalizedVariants.filter(isVariantAvailable);
+  const directVariant = availableVariants.length === 1 ? availableVariants[0] : null;
+  const pricingVariant = directVariant ?? availableVariants[0] ?? normalizedVariants[0] ?? null;
   const effectivePrice =
-    parsePrice(primaryVariant?.promotional_price) ?? parsePrice(primaryVariant?.price) ?? null;
+    parsePrice(pricingVariant?.promotional_price) ?? parsePrice(pricingVariant?.price) ?? null;
 
   return {
     categoryIds: extractCategoryIds(product),
@@ -119,7 +147,8 @@ const mapProductToRecommendation = (
     reason,
     score,
     tags: normalizeTags(product.tags),
-    variantId: primaryVariant?.id ?? null,
+    variantCount: availableVariants.length > 0 ? availableVariants.length : normalizedVariants.length,
+    variantId: directVariant?.id ?? null,
   };
 };
 
