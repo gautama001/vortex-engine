@@ -1,4 +1,5 @@
 import { StoreStatus } from "@prisma/client";
+import { unstable_noStore as noStore } from "next/cache";
 import { cookies } from "next/headers";
 import Link from "next/link";
 
@@ -16,7 +17,6 @@ import {
   DEFAULT_STORE_WIDGET_SETTINGS,
   getStoreByTiendaNubeId,
   getStoreWidgetSettings,
-  listRecentStores,
 } from "@/services/store-service";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +65,8 @@ export default async function AppDashboardPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  noStore();
+
   const environmentReady = hasCoreEnvironment();
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
@@ -87,7 +89,6 @@ export default async function AppDashboardPage({
 
   let authenticatedStoreId: string | null = null;
   let persistenceReady = false;
-  let stores = [] as Awaited<ReturnType<typeof listRecentStores>>;
   let activeStore = null as Awaited<ReturnType<typeof getStoreByTiendaNubeId>>;
   let catalogPreview = [] as Awaited<ReturnType<typeof listCatalogPreview>>;
   let storefrontContext = null as Awaited<ReturnType<typeof getStorefrontContext>>;
@@ -101,7 +102,6 @@ export default async function AppDashboardPage({
     try {
       await ensureStorePersistence();
       persistenceReady = true;
-      stores = await listRecentStores(6);
 
       if (authenticatedStoreId) {
         activeStore = await getStoreByTiendaNubeId(authenticatedStoreId);
@@ -122,7 +122,6 @@ export default async function AppDashboardPage({
       }
     } catch {
       persistenceReady = false;
-      stores = [];
       activeStore = null;
       catalogPreview = [];
       storefrontContext = null;
@@ -378,39 +377,34 @@ export default async function AppDashboardPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Stores registradas</CardTitle>
+            <CardTitle>Store conectada</CardTitle>
             <CardDescription>
-              Snapshot del estado persistido en PostgreSQL a traves del modelo `Store`.
+              Estado visible solo para la tienda autenticada en esta sesion.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {stores.length === 0 ? (
+            {!activeStore ? (
               <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-6 text-sm text-slate-300">
-                No hay instalaciones persistidas todavia o el runtime aun no tiene acceso a la base.
+                No hay una store autenticada para esta sesion o todavia no pudimos cargar su estado.
               </div>
             ) : (
-              stores.map((store) => (
-                <div
-                  className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 md:grid-cols-[1fr_auto]"
-                  key={store.id}
-                >
-                  <div>
-                    <p className="text-lg font-medium text-white">Store #{store.tiendanubeId}</p>
-                    <p className="mt-2 text-sm text-slate-300">Scopes: {store.scope}</p>
-                    <p className="mt-2 text-sm text-slate-300">
-                      Widget: {store.widgetEnabled ? "activo" : "apagado"} | Pages:{" "}
-                      {store.productPageEnabled ? "producto" : "sin producto"} /{" "}
-                      {store.cartPageEnabled ? "carrito" : "sin carrito"}
-                    </p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.24em] text-slate-500">
-                      Updated {store.updatedAt.toISOString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center">
-                    <Badge tone={statusTone[store.status]}>{store.status}</Badge>
-                  </div>
+              <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 md:grid-cols-[1fr_auto]">
+                <div>
+                  <p className="text-lg font-medium text-white">Store #{activeStore.tiendanubeId}</p>
+                  <p className="mt-2 text-sm text-slate-300">Scopes: {activeStore.scope}</p>
+                  <p className="mt-2 text-sm text-slate-300">
+                    Widget: {activeStore.widgetEnabled ? "activo" : "apagado"} | Pages:{" "}
+                    {activeStore.productPageEnabled ? "producto" : "sin producto"} /{" "}
+                    {activeStore.cartPageEnabled ? "carrito" : "sin carrito"}
+                  </p>
+                  <p className="mt-1 text-xs uppercase tracking-[0.24em] text-slate-500">
+                    Updated {activeStore.updatedAt.toISOString()}
+                  </p>
                 </div>
-              ))
+                <div className="flex items-center">
+                  <Badge tone={statusTone[activeStore.status]}>{activeStore.status}</Badge>
+                </div>
+              </div>
             )}
 
             <Separator />
