@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 export const InstallForm = () => {
   return (
     <form
-      action="/api/auth/install"
+      action="/oauth/tiendanube/install"
       className="grid gap-3 rounded-[28px] border border-white/10 bg-slate-950/70 p-4 sm:grid-cols-[1fr_auto]"
       method="GET"
     >

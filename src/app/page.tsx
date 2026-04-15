@@ -70,7 +70,8 @@ export default function HomePage() {
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="font-medium text-white">Auth Core</p>
                 <p className="mt-2 leading-6 text-slate-300">
-                  `/api/auth/install`, `/api/auth/callback`, sesiones firmadas y asociacion opcional
+                  `/oauth/tiendanube/install`, `/oauth/tiendanube/callback`, sesiones firmadas y
+                  asociacion opcional
                   del script manual.
                 </p>
               </div>

@@ -51,9 +51,9 @@ Motor de recomendaciones para TiendaNube orientado a upsell/cross-sell, construi
 
 ## Endpoints
 
-- `GET /api/auth/install`
+- `GET /oauth/tiendanube/install`
   - Redirecciona al flujo de instalacion OAuth 2.0.
-- `GET /api/auth/callback`
+- `GET /oauth/tiendanube/callback`
   - Intercambia `code` por `access_token`, persiste `Store` y crea cookie admin firmada.
 - `GET /api/v1/recommendations`
   - Params: `store_id`, `product_id?`, `limit?`.
