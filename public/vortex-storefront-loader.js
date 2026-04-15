@@ -33,7 +33,6 @@
 
   var injector = document.createElement("script");
   injector.async = true;
-  injector.crossOrigin = "anonymous";
   injector.src =
     window.__VORTEX_API_ORIGIN__ + "/vortex-injector.js?" + loaderParams.toString();
 
