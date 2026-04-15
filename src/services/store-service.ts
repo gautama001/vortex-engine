@@ -182,6 +182,17 @@ const selectStoreByTiendaNubeId = async (tiendanubeId: string): Promise<StoreRec
   return rows[0] ? mapStoreRow(rows[0]) : null;
 };
 
+const selectStoreByTiendaNubeIdWithBootstrap = async (
+  tiendanubeId: string,
+): Promise<StoreRecord | null> => {
+  try {
+    return await selectStoreByTiendaNubeId(tiendanubeId);
+  } catch {
+    await ensureStorePersistence();
+    return selectStoreByTiendaNubeId(tiendanubeId);
+  }
+};
+
 export const upsertStoreInstallation = async (
   input: UpsertStoreInstallationInput,
 ): Promise<StoreRecord> => {
@@ -216,8 +227,7 @@ export const upsertStoreInstallation = async (
 export const getStoreByTiendaNubeId = async (
   tiendanubeId: string,
 ): Promise<StoreRecord | null> => {
-  await ensureStorePersistence();
-  return selectStoreByTiendaNubeId(tiendanubeId);
+  return selectStoreByTiendaNubeIdWithBootstrap(tiendanubeId);
 };
 
 export const getStoreWidgetSettings = (store: StoreRecord): StoreWidgetSettings => {

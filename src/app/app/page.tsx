@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTiendaNubeConfig, hasCoreEnvironment } from "@/lib/env";
 import { ADMIN_SESSION_COOKIE, verifySignedSessionValue } from "@/lib/security";
-import { ensureStorePersistence } from "@/lib/store-persistence";
 import { listCatalogPreview } from "@/services/catalog-service";
 import { getStorefrontContext } from "@/services/storefront-service";
 import {
@@ -134,6 +133,7 @@ export default async function AppDashboardPage({
 
   let authenticatedStoreId: string | null = null;
   let persistenceReady = false;
+  let persistenceRuntimeDetail: string | null = null;
   let activeStore = null as Awaited<ReturnType<typeof getStoreByTiendaNubeId>>;
   let catalogPreview = [] as Awaited<ReturnType<typeof listCatalogPreview>>;
   let storefrontContext = null as Awaited<ReturnType<typeof getStorefrontContext>>;
@@ -147,30 +147,28 @@ export default async function AppDashboardPage({
     }
   }
 
-  if (environmentReady) {
+  if (environmentReady && authenticatedStoreId) {
     try {
-      await ensureStorePersistence();
       persistenceReady = true;
+      activeStore = await getStoreByTiendaNubeId(authenticatedStoreId);
 
-      if (authenticatedStoreId) {
-        activeStore = await getStoreByTiendaNubeId(authenticatedStoreId);
-
-        if (activeStore?.status === StoreStatus.ACTIVE) {
-          try {
-            const [catalogResult, storefrontResult] = await Promise.all([
-              listCatalogPreview(authenticatedStoreId, 8),
-              getStorefrontContext(authenticatedStoreId),
-            ]);
-            catalogPreview = catalogResult;
-            storefrontContext = storefrontResult;
-          } catch {
-            catalogPreview = [];
-            storefrontContext = null;
-          }
+      if (activeStore?.status === StoreStatus.ACTIVE) {
+        try {
+          const [catalogResult, storefrontResult] = await Promise.all([
+            listCatalogPreview(authenticatedStoreId, 8),
+            getStorefrontContext(authenticatedStoreId),
+          ]);
+          catalogPreview = catalogResult;
+          storefrontContext = storefrontResult;
+        } catch {
+          catalogPreview = [];
+          storefrontContext = null;
         }
       }
-    } catch {
+    } catch (error) {
       persistenceReady = false;
+      persistenceRuntimeDetail =
+        error instanceof Error ? error.message : "No pudimos resolver la store desde el runtime.";
       activeStore = null;
       catalogPreview = [];
       storefrontContext = null;
@@ -236,6 +234,23 @@ export default async function AppDashboardPage({
                   </p>
                 </div>
               ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {persistenceRuntimeDetail ? (
+          <Card className="border-amber-400/30 bg-amber-500/5">
+            <CardHeader>
+              <CardTitle className="text-2xl text-white">Persistencia degradada</CardTitle>
+              <CardDescription className="text-amber-100/80">
+                El runtime pudo abrir el panel, pero la capa de store no termino de resolver el
+                contexto completo para esta sesion.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-sm leading-6 text-slate-300">
+              <p className="break-words">
+                Detalle: <span className="text-white">{persistenceRuntimeDetail}</span>
+              </p>
             </CardContent>
           </Card>
         ) : null}
