@@ -36,7 +36,7 @@ type StoreRow = {
   widget_title: string | null;
 };
 
-export type StoreRecord = PrismaStore & {
+export type StoreRecord = Omit<PrismaStore, "manualRecommendationProductIds"> & {
   accentColor: string;
   backgroundColor: string;
   borderRadius: number;
