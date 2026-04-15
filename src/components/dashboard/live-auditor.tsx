@@ -100,7 +100,10 @@ export const LiveAuditor = ({
             </div>
           ) : null}
           {storefrontUrl ? (
-            <Button asChild className="w-full sm:w-auto">
+            <Button
+              asChild
+              className="w-full sm:w-auto !text-slate-950 shadow-[0_16px_40px_-22px_rgba(86,226,243,0.95)]"
+            >
               <a href={storefrontUrl} rel="noreferrer" target="_blank">
                 Abrir storefront
               </a>

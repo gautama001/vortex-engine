@@ -205,7 +205,7 @@ export const ConfigurationForm = ({
           <p className={sectionTitleClass}>Branding</p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4">
           <label className="grid gap-2">
             <span className="text-sm text-slate-300">Color de fondo</span>
             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2">

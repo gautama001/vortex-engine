@@ -204,7 +204,10 @@ export const ProfitFirstSummary = ({
                   </p>
                 </div>
 
-                <Button asChild className="w-full sm:w-auto">
+                <Button
+                  asChild
+                  className="w-full sm:w-auto !text-slate-950 shadow-[0_16px_40px_-22px_rgba(86,226,243,0.95)]"
+                >
                   <Link href="#configuracion-widget">
                     Activar Recomendacion
                     <ArrowUpRight className="ml-2 h-4 w-4" />

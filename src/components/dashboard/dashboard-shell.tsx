@@ -254,6 +254,16 @@ const DashboardContent = ({
                   : "Sin cambios publicados en esta sesion"}
               </p>
             </div>
+            <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-5">
+              <p className="text-xs uppercase tracking-[0.24em] text-amber-100">
+                Importante para live
+              </p>
+              <p className="mt-3 text-sm leading-7 text-amber-50/90">
+                Guardar cambios actualiza la configuracion en Vortex, pero no activa por si solo el
+                widget en produccion. Para que renderice en una tienda viva, esa tienda tiene que
+                estar cubierta por una version productiva activa del script en TiendaNube.
+              </p>
+            </div>
             <div className="rounded-2xl border border-cyan-300/20 bg-cyan-400/10 p-5">
               <div className="flex items-center gap-2 text-cyan-100">
                 <Sparkles className="h-4 w-4" />
