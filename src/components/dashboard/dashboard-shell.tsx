@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { BarChart3, RadioTower, Sparkles, Store } from "lucide-react";
 
 import { AnalyticsCard } from "@/components/dashboard/analytics-card";
@@ -66,6 +66,20 @@ const DashboardContent = ({
   const { commitConfig, selectProduct, setDraftConfig } = useDashboardActions();
   const { draftConfig, lastSavedAt, savedConfig, selectedProductId } = useDashboardState();
 
+  const handleConfigChange = useCallback(
+    (config: PersistedWidgetConfig) => {
+      setDraftConfig(widgetConfigFromPersisted(config));
+    },
+    [setDraftConfig],
+  );
+
+  const handleConfigSaved = useCallback(
+    (config: PersistedWidgetConfig, updatedAt: string) => {
+      commitConfig(widgetConfigFromPersisted(config), updatedAt);
+    },
+    [commitConfig],
+  );
+
   const persistedDraft = useMemo(() => widgetConfigToPersisted(draftConfig), [draftConfig]);
   const persistedSaved = useMemo(() => widgetConfigToPersisted(savedConfig), [savedConfig]);
 
@@ -123,12 +137,8 @@ const DashboardContent = ({
           </CardHeader>
           <CardContent>
             <ConfigurationForm
-              onConfigChange={(config) => {
-                setDraftConfig(widgetConfigFromPersisted(config));
-              }}
-              onSaved={(config, updatedAt) => {
-                commitConfig(widgetConfigFromPersisted(config), updatedAt);
-              }}
+              onConfigChange={handleConfigChange}
+              onSaved={handleConfigSaved}
               savedConfig={persistedSaved}
               storeId={storeId}
             />
