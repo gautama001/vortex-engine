@@ -21,6 +21,11 @@ import {
 export const dynamic = "force-dynamic";
 
 const installationErrors: Record<string, { detail: string; title: string }> = {
+  admin_runtime_error: {
+    detail:
+      "Detectamos un fallo transitorio en la validacion de sesion admin. La app limpio la sesion para evitar cruces entre tiendas y te devolvio al ingreso.",
+    title: "Sesion admin reiniciada",
+  },
   callback_failed: {
     detail: "El callback fallo, pero el runtime no devolvio una causa mas especifica.",
     title: "Callback incompleto",
@@ -134,8 +139,12 @@ export default async function AppDashboardPage({
   let storefrontContext = null as Awaited<ReturnType<typeof getStorefrontContext>>;
 
   if (sessionCookie && clientSecret) {
-    const verifiedSession = await verifySignedSessionValue(sessionCookie, clientSecret);
-    authenticatedStoreId = verifiedSession?.storeId ?? null;
+    try {
+      const verifiedSession = await verifySignedSessionValue(sessionCookie, clientSecret);
+      authenticatedStoreId = verifiedSession?.storeId ?? null;
+    } catch {
+      authenticatedStoreId = null;
+    }
   }
 
   if (environmentReady) {

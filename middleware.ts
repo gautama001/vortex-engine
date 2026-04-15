@@ -41,63 +41,67 @@ const buildCleanAppUrl = (request: NextRequest): URL => {
 };
 
 export async function middleware(request: NextRequest) {
-  const clientSecret = process.env.TIENDANUBE_CLIENT_SECRET;
+  try {
+    const clientSecret = process.env.TIENDANUBE_CLIENT_SECRET;
 
-  if (!clientSecret) {
-    return applyPrivateNoStoreHeaders(NextResponse.next());
+    if (!clientSecret) {
+      return applyPrivateNoStoreHeaders(NextResponse.next());
+    }
+
+    const url = request.nextUrl;
+    const hmac = url.searchParams.get("hmac");
+    const requestedStoreId = url.searchParams.get("store_id") || url.searchParams.get("user_id");
+    const sessionCookie = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
+    const session = sessionCookie
+      ? await verifySignedSessionValue(sessionCookie, clientSecret)
+      : null;
+
+    if (hmac) {
+      const timestamp = url.searchParams.get("timestamp");
+
+      if (timestamp && !isRecentTimestamp(timestamp)) {
+        return buildRootRedirect(request, "stale_admin_request");
+      }
+
+      const isValidHmac = await verifySortedQueryHmac(url.searchParams, clientSecret);
+
+      if (!isValidHmac) {
+        return buildRootRedirect(request, "invalid_admin_hmac");
+      }
+
+      if (!requestedStoreId) {
+        return buildRootRedirect(request, "missing_admin_store");
+      }
+
+      const cleanUrl = buildCleanAppUrl(request);
+
+      if (session?.storeId !== requestedStoreId) {
+        const signedSession = await buildSignedSessionValue(requestedStoreId, clientSecret);
+        const response = NextResponse.redirect(cleanUrl);
+
+        response.cookies.set(ADMIN_SESSION_COOKIE, signedSession, {
+          httpOnly: true,
+          path: "/",
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+        });
+
+        return applyPrivateNoStoreHeaders(response);
+      }
+
+      if (cleanUrl.toString() !== request.nextUrl.toString()) {
+        return applyPrivateNoStoreHeaders(NextResponse.redirect(cleanUrl));
+      }
+
+      return applyPrivateNoStoreHeaders(NextResponse.next());
+    }
+
+    if (session?.storeId) {
+      return applyPrivateNoStoreHeaders(NextResponse.next());
+    }
+
+    return buildRootRedirect(request, "missing_admin_session");
+  } catch {
+    return buildRootRedirect(request, "admin_runtime_error");
   }
-
-  const url = request.nextUrl;
-  const hmac = url.searchParams.get("hmac");
-  const requestedStoreId = url.searchParams.get("store_id") || url.searchParams.get("user_id");
-  const sessionCookie = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
-  const session = sessionCookie
-    ? await verifySignedSessionValue(sessionCookie, clientSecret)
-    : null;
-
-  if (hmac) {
-    const timestamp = url.searchParams.get("timestamp");
-
-    if (timestamp && !isRecentTimestamp(timestamp)) {
-      return buildRootRedirect(request, "stale_admin_request");
-    }
-
-    const isValidHmac = await verifySortedQueryHmac(url.searchParams, clientSecret);
-
-    if (!isValidHmac) {
-      return buildRootRedirect(request, "invalid_admin_hmac");
-    }
-
-    if (!requestedStoreId) {
-      return buildRootRedirect(request, "missing_admin_store");
-    }
-
-    const cleanUrl = buildCleanAppUrl(request);
-
-    if (session?.storeId !== requestedStoreId) {
-      const signedSession = await buildSignedSessionValue(requestedStoreId, clientSecret);
-      const response = NextResponse.redirect(cleanUrl);
-
-      response.cookies.set(ADMIN_SESSION_COOKIE, signedSession, {
-        httpOnly: true,
-        path: "/",
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-      });
-
-      return applyPrivateNoStoreHeaders(response);
-    }
-
-    if (cleanUrl.toString() !== request.nextUrl.toString()) {
-      return applyPrivateNoStoreHeaders(NextResponse.redirect(cleanUrl));
-    }
-
-    return applyPrivateNoStoreHeaders(NextResponse.next());
-  }
-
-  if (session?.storeId) {
-    return applyPrivateNoStoreHeaders(NextResponse.next());
-  }
-
-  return buildRootRedirect(request, "missing_admin_session");
 }
