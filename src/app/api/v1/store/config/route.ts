@@ -42,6 +42,14 @@ const normalizeBoolean = (value: unknown, fallback: boolean): boolean => {
   return typeof value === "boolean" ? value : fallback;
 };
 
+const normalizeProductIdList = (value: unknown, fallback: number[]): number[] => {
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+
+  return [...new Set(value.map((item) => Number(item)).filter(Number.isFinite))].slice(0, 24);
+};
+
 const VALID_STRATEGIES = new Set<StrategyValue>(ESTRATEGIAS.map((item) => item.valor));
 
 const normalizeStrategy = (value: unknown, fallback: StrategyValue): StrategyValue => {
@@ -77,6 +85,10 @@ const normalizeStoreConfigPayload = (payload: unknown): Partial<StoreWidgetSetti
     hideOutOfStock: normalizeBoolean(
       config.hideOutOfStock,
       DEFAULT_STORE_WIDGET_SETTINGS.hideOutOfStock,
+    ),
+    manualRecommendationProductIds: normalizeProductIdList(
+      config.manualRecommendationProductIds,
+      DEFAULT_STORE_WIDGET_SETTINGS.manualRecommendationProductIds,
     ),
     productPageEnabled: normalizeBoolean(
       config.productPageEnabled,
@@ -186,6 +198,7 @@ const handleStoreConfigUpdate = async (request: Request) => {
           borderRadius: updatedStore.borderRadius,
           cartPageEnabled: updatedStore.cartPageEnabled,
           hideOutOfStock: updatedStore.hideOutOfStock,
+          manualRecommendationProductIds: updatedStore.manualRecommendationProductIds,
           productPageEnabled: updatedStore.productPageEnabled,
           quickAddLabel: updatedStore.quickAddLabel,
           recommendationAlgorithm: updatedStore.recommendationAlgorithm,

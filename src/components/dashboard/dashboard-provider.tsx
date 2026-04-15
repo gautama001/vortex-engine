@@ -22,6 +22,7 @@ type DashboardActionsValue = {
   resetDraftConfig: () => void;
   selectProduct: (productId: number | null) => void;
   setDraftConfig: (config: WidgetConfig) => void;
+  updateDraftConfig: (updater: (config: WidgetConfig) => WidgetConfig) => void;
 };
 
 const DashboardStateContext = createContext<DashboardStateValue | null>(null);
@@ -68,6 +69,9 @@ export const DashboardProvider = ({
         setSelectedProductId(productId);
       },
       setDraftConfig,
+      updateDraftConfig: (updater) => {
+        setDraftConfig((currentConfig) => updater(currentConfig));
+      },
     }),
     [savedConfig],
   );

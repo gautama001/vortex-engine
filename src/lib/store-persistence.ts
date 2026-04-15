@@ -113,6 +113,7 @@ const bootstrapStorePersistence = async (): Promise<void> => {
     ADD COLUMN IF NOT EXISTS "border_radius" INTEGER NOT NULL DEFAULT 24,
     ADD COLUMN IF NOT EXISTS "recommendation_algorithm" TEXT NOT NULL DEFAULT 'ia-inteligente',
     ADD COLUMN IF NOT EXISTS "hide_out_of_stock" BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS "manual_recommendation_product_ids" TEXT NOT NULL DEFAULT '[]',
     ADD COLUMN IF NOT EXISTS "require_image" BOOLEAN NOT NULL DEFAULT TRUE,
     ADD COLUMN IF NOT EXISTS "widget_title" TEXT NOT NULL DEFAULT 'Llevate algo que combine mejor con esta compra',
     ADD COLUMN IF NOT EXISTS "widget_subtitle" TEXT NOT NULL DEFAULT 'Vortex selecciona sugerencias de alta afinidad y activa fallback de cold start para convertir.',

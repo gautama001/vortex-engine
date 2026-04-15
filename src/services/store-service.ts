@@ -21,6 +21,7 @@ type StoreRow = {
   created_at: Date;
   hide_out_of_stock: boolean | null;
   id: string;
+  manual_recommendation_product_ids: string | null;
   product_page_enabled: boolean | null;
   quick_add_label: string | null;
   recommendation_algorithm: string | null;
@@ -41,6 +42,7 @@ export type StoreRecord = PrismaStore & {
   borderRadius: number;
   cartPageEnabled: boolean;
   hideOutOfStock: boolean;
+  manualRecommendationProductIds: number[];
   productPageEnabled: boolean;
   quickAddLabel: string;
   recommendationAlgorithm: StrategyValue;
@@ -57,6 +59,7 @@ export type StoreWidgetSettings = {
   borderRadius: number;
   cartPageEnabled: boolean;
   hideOutOfStock: boolean;
+  manualRecommendationProductIds: number[];
   productPageEnabled: boolean;
   quickAddLabel: string;
   recommendationAlgorithm: StrategyValue;
@@ -73,6 +76,7 @@ export const DEFAULT_STORE_WIDGET_SETTINGS: StoreWidgetSettings = {
   borderRadius: 24,
   cartPageEnabled: true,
   hideOutOfStock: true,
+  manualRecommendationProductIds: [],
   productPageEnabled: true,
   quickAddLabel: "Quick Add",
   recommendationAlgorithm: "ia-inteligente",
@@ -110,6 +114,34 @@ const normalizeStrategy = (
     : fallback;
 };
 
+const parseManualRecommendationProductIds = (value: string | null | undefined): number[] => {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return [...new Set(parsed.map((item) => Number(item)).filter(Number.isFinite))];
+  } catch {
+    return [];
+  }
+};
+
+const serializeManualRecommendationProductIds = (value: number[] | null | undefined): string => {
+  if (!Array.isArray(value)) {
+    return "[]";
+  }
+
+  return JSON.stringify(
+    [...new Set(value.map((item) => Number(item)).filter(Number.isFinite))].slice(0, 24),
+  );
+};
+
 const mapStoreRow = (row: StoreRow): StoreRecord => {
   return {
     accessToken: row.access_token,
@@ -128,6 +160,9 @@ const mapStoreRow = (row: StoreRow): StoreRecord => {
     hideOutOfStock:
       row.hide_out_of_stock ?? DEFAULT_STORE_WIDGET_SETTINGS.hideOutOfStock,
     id: row.id,
+    manualRecommendationProductIds: parseManualRecommendationProductIds(
+      row.manual_recommendation_product_ids,
+    ),
     productPageEnabled:
       row.product_page_enabled ?? DEFAULT_STORE_WIDGET_SETTINGS.productPageEnabled,
     quickAddLabel: row.quick_add_label ?? DEFAULT_STORE_WIDGET_SETTINGS.quickAddLabel,
@@ -161,6 +196,7 @@ const selectStoreByTiendaNubeId = async (tiendanubeId: string): Promise<StoreRec
       status,
       recommendation_algorithm,
       hide_out_of_stock,
+      manual_recommendation_product_ids,
       require_image,
       background_color,
       accent_color,
@@ -240,6 +276,7 @@ export const getStoreWidgetSettings = (store: StoreRecord): StoreWidgetSettings 
     borderRadius: clamp(store.borderRadius, 8, 32),
     cartPageEnabled: store.cartPageEnabled,
     hideOutOfStock: store.hideOutOfStock,
+    manualRecommendationProductIds: store.manualRecommendationProductIds,
     productPageEnabled: store.productPageEnabled,
     quickAddLabel: store.quickAddLabel,
     recommendationAlgorithm: normalizeStrategy(
@@ -318,6 +355,7 @@ export const listRecentStores = async (limit = 6): Promise<StoreRecord[]> => {
       status,
       recommendation_algorithm,
       hide_out_of_stock,
+      manual_recommendation_product_ids,
       require_image,
       background_color,
       accent_color,
@@ -369,6 +407,9 @@ export const updateStoreWidgetSettings = async (
         existingStore.recommendationAlgorithm,
       )},
       "hide_out_of_stock" = ${input.hideOutOfStock ?? existingStore.hideOutOfStock},
+      "manual_recommendation_product_ids" = ${serializeManualRecommendationProductIds(
+        input.manualRecommendationProductIds ?? existingStore.manualRecommendationProductIds,
+      )},
       "require_image" = ${input.requireImage ?? existingStore.requireImage},
       "widget_enabled" = ${input.widgetEnabled ?? existingStore.widgetEnabled},
       "product_page_enabled" = ${input.productPageEnabled ?? existingStore.productPageEnabled},

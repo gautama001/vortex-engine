@@ -29,6 +29,7 @@ model Store {
   borderRadius        Int         @default(24) @map("border_radius")
   recommendationAlgorithm String   @default("ia-inteligente") @map("recommendation_algorithm") @db.Text
   hideOutOfStock      Boolean     @default(true) @map("hide_out_of_stock")
+  manualRecommendationProductIds String @default("[]") @map("manual_recommendation_product_ids") @db.Text
   requireImage        Boolean     @default(true) @map("require_image")
   widgetTitle         String      @default("Llevate algo que combine mejor con esta compra") @map("widget_title") @db.Text
   widgetSubtitle      String      @default("Vortex selecciona sugerencias de alta afinidad y activa fallback de cold start para convertir.") @map("widget_subtitle") @db.Text

@@ -56,13 +56,17 @@ export const StrategySelector = ({ onValueChange, value }: StrategySelectorProps
               </div>
               <span
                 className={cn(
-                  "inline-flex h-6 min-w-6 items-center justify-center rounded-full border text-[11px]",
+                  "inline-flex h-6 min-w-6 items-center justify-center rounded-full border px-2 text-[11px]",
                   isActive
                     ? "border-cyan-300/40 bg-cyan-300 text-slate-950"
                     : "border-white/10 bg-white/[0.04] text-slate-400",
                 )}
               >
-                {isActive ? "ON" : "•"}
+                {isActive ? (
+                  "ON"
+                ) : (
+                  <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                )}
               </span>
             </div>
             <p className="text-sm leading-6 text-slate-300">{strategy.descripcion}</p>

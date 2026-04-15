@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type ConfigurationFormProps = {
+  manualSelectionProductIds: number[];
   onConfigChange: (config: MerchantWidgetConfig) => void;
   onSaved: (config: MerchantWidgetConfig, updatedAt: string) => void;
   savedConfig: MerchantWidgetConfig;
@@ -89,6 +90,7 @@ const PlacementToggle = ({
 };
 
 export const ConfigurationForm = ({
+  manualSelectionProductIds,
   onConfigChange,
   onSaved,
   savedConfig,
@@ -132,6 +134,12 @@ export const ConfigurationForm = ({
     reset(savedConfig);
     onConfigChange(savedConfig);
   }, [onConfigChange, reset, savedConfig]);
+
+  useEffect(() => {
+    setValue("manualRecommendationProductIds", manualSelectionProductIds, {
+      shouldDirty: true,
+    });
+  }, [manualSelectionProductIds, setValue]);
 
   useEffect(() => {
     onConfigChange({

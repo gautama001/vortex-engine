@@ -1,12 +1,22 @@
 import { getDefaultRecommendationLimit } from "@/lib/env";
 import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
 import { clamp } from "@/lib/utils";
 import { TiendaNubeClient } from "@/lib/tiendanube/client";
 import { type LocalizedText, type TiendaNubeProduct } from "@/lib/tiendanube/types";
 import { getActiveStoreOrThrow, getStoreWidgetSettings, type StoreWidgetSettings } from "@/services/store-service";
 
-type RecommendationReason = "best-seller" | "shared-category" | "shared-tag";
-type RecommendationStrategy = "best-sellers" | "related-products";
+type RecommendationReason =
+  | "best-seller"
+  | "frequently-bought-together"
+  | "manual-pick"
+  | "shared-category"
+  | "shared-tag";
+type RecommendationStrategy =
+  | "best-sellers"
+  | "comprados-juntos"
+  | "related-products"
+  | "seleccion-manual";
 
 type RecommendationItem = {
   categoryIds: number[];
@@ -33,6 +43,13 @@ type ScoredCandidate = {
   categoryMatches: number;
   product: TiendaNubeProduct;
   tagMatches: number;
+};
+
+type FBTRecommendationRow = {
+  frequency: number;
+  product_id: string;
+  related_product_id: string;
+  store_id: string;
 };
 
 const pickLocalizedValue = (value?: LocalizedText): string => {
@@ -152,6 +169,38 @@ const fetchProducts = async (
   });
 };
 
+const fetchProductsByIds = async (
+  client: TiendaNubeClient,
+  productIds: number[],
+): Promise<TiendaNubeProduct[]> => {
+  const uniqueIds = [...new Set(productIds.filter(Number.isFinite))];
+
+  if (uniqueIds.length === 0) {
+    return [];
+  }
+
+  const products = await Promise.all(
+    uniqueIds.map(async (productId) => {
+      try {
+        return await client.get<TiendaNubeProduct>(`/products/${productId}`, {
+          fields: "id,name,handle,tags,categories,images,variants,published",
+        });
+      } catch (error) {
+        logger.warn("Unable to fetch recommendation product by id", {
+          error,
+          productId,
+        });
+
+        return null;
+      }
+    }),
+  );
+
+  return products.filter(
+    (product): product is TiendaNubeProduct => Boolean(product && product.published),
+  );
+};
+
 const fetchRelatedCandidates = async (
   client: TiendaNubeClient,
   seedProduct: TiendaNubeProduct,
@@ -230,6 +279,65 @@ const fetchBestSellers = async (
     .map((product) => mapProductToRecommendation(product, "best-seller", 1));
 };
 
+const fetchFBTRecommendations = async (
+  storeId: string,
+  seedProductId: number,
+  limit: number,
+  client: TiendaNubeClient,
+): Promise<RecommendationItem[]> => {
+  const rows = await prisma.$queryRaw<FBTRecommendationRow[]>`
+    SELECT
+      store_id,
+      product_id,
+      related_product_id,
+      frequency
+    FROM "fbt_recommendations"
+    WHERE "store_id" = ${storeId}
+      AND "product_id" = ${String(seedProductId)}
+      AND "frequency" > 2
+    ORDER BY "frequency" DESC, "updated_at" DESC
+    LIMIT ${limit}
+  `;
+  const frequencyByProductId = new Map<number, number>(
+    rows
+      .map((row) => [Number(row.related_product_id), row.frequency] as const)
+      .filter(([productId]) => Number.isFinite(productId)),
+  );
+  const products = await fetchProductsByIds(client, [...frequencyByProductId.keys()]);
+
+  return products
+    .sort((left, right) => {
+      return (frequencyByProductId.get(right.id) ?? 0) - (frequencyByProductId.get(left.id) ?? 0);
+    })
+    .slice(0, limit)
+    .map((product) =>
+      mapProductToRecommendation(
+        product,
+        "frequently-bought-together",
+        frequencyByProductId.get(product.id) ?? 1,
+      ),
+    );
+};
+
+const fetchManualRecommendations = async (
+  client: TiendaNubeClient,
+  productIds: number[],
+  limit: number,
+  excludedProductIds: number[],
+): Promise<RecommendationItem[]> => {
+  const filteredIds = productIds
+    .filter((productId) => Number.isFinite(productId) && !excludedProductIds.includes(productId))
+    .slice(0, limit);
+  const products = await fetchProductsByIds(client, filteredIds);
+  const indexByProductId = new Map<number, number>(
+    filteredIds.map((productId, index) => [productId, index] as const),
+  );
+
+  return products
+    .sort((left, right) => (indexByProductId.get(left.id) ?? 0) - (indexByProductId.get(right.id) ?? 0))
+    .map((product, index) => mapProductToRecommendation(product, "manual-pick", limit - index));
+};
+
 export const getRecommendations = async (input: {
   limit?: number;
   productId?: number | null;
@@ -265,6 +373,67 @@ export const getRecommendations = async (input: {
       products,
       seedProductId: input.productId,
       strategy: "best-sellers",
+      widget,
+    };
+  }
+
+  if (widget.recommendationAlgorithm === "seleccion-manual") {
+    const manualProducts = await fetchManualRecommendations(
+      client,
+      widget.manualRecommendationProductIds,
+      limit,
+      [seedProduct.id],
+    );
+
+    if (manualProducts.length >= limit) {
+      return {
+        fallbackUsed: false,
+        products: manualProducts.slice(0, limit),
+        seedProductId: seedProduct.id,
+        strategy: "seleccion-manual",
+        widget,
+      };
+    }
+
+    const bestSellerProducts = await fetchBestSellers(
+      client,
+      limit,
+      [seedProduct.id, ...manualProducts.map((product) => product.productId)],
+    );
+
+    return {
+      fallbackUsed: manualProducts.length < limit,
+      products: [...manualProducts, ...bestSellerProducts].slice(0, limit),
+      seedProductId: seedProduct.id,
+      strategy: manualProducts.length > 0 ? "seleccion-manual" : "best-sellers",
+      widget,
+    };
+  }
+
+  if (widget.recommendationAlgorithm === "comprados-juntos") {
+    const fbtProducts = await fetchFBTRecommendations(input.storeId, seedProduct.id, limit, client);
+
+    if (fbtProducts.length >= limit) {
+      return {
+        fallbackUsed: false,
+        products: fbtProducts.slice(0, limit),
+        seedProductId: seedProduct.id,
+        strategy: "comprados-juntos",
+        widget,
+      };
+    }
+
+    const bestSellerProducts = await fetchBestSellers(
+      client,
+      limit,
+      [seedProduct.id, ...fbtProducts.map((product) => product.productId)],
+    );
+
+    return {
+      fallbackUsed: true,
+      products: [...fbtProducts, ...bestSellerProducts].slice(0, limit),
+      seedProductId: seedProduct.id,
+      strategy: fbtProducts.length > 0 ? "comprados-juntos" : "best-sellers",
       widget,
     };
   }

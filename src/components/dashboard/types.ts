@@ -1,12 +1,12 @@
 export const ESTRATEGIAS = [
   {
     descripcion: "Motor hibrido con senales semanticas y fallback automatico a best sellers.",
-    etiqueta: "IA Inteligente",
+    etiqueta: "IA Engine",
     valor: "ia-inteligente",
   },
   {
     descripcion: "Prioriza pares historicos y combinaciones de alta intencion de compra.",
-    etiqueta: "Comprados Juntos Frecuentemente",
+    etiqueta: "Comprados juntos frecuentemente (FBT)",
     valor: "comprados-juntos",
   },
   {
@@ -45,6 +45,7 @@ export type PersistedWidgetConfig = {
   borderRadius: number;
   cartPageEnabled: boolean;
   hideOutOfStock: boolean;
+  manualRecommendationProductIds: number[];
   productPageEnabled: boolean;
   quickAddLabel: string;
   recommendationAlgorithm: StrategyValue;
@@ -70,6 +71,9 @@ export type WidgetConfig = {
   filtros: {
     ocultarSinStock: boolean;
     soloConImagen: boolean;
+  };
+  manuales: {
+    productIds: number[];
   };
   posicionamiento: {
     limiteRecomendaciones: number;
@@ -119,6 +123,9 @@ export const widgetConfigFromPersisted = (config: PersistedWidgetConfig): Widget
       ocultarSinStock: config.hideOutOfStock,
       soloConImagen: config.requireImage,
     },
+    manuales: {
+      productIds: config.manualRecommendationProductIds,
+    },
     posicionamiento: {
       limiteRecomendaciones: config.recommendationLimit,
       mostrarEnCarrito: config.cartPageEnabled,
@@ -135,6 +142,7 @@ export const widgetConfigToPersisted = (config: WidgetConfig): PersistedWidgetCo
     borderRadius: config.estetica.borderRadius,
     cartPageEnabled: config.posicionamiento.mostrarEnCarrito,
     hideOutOfStock: config.filtros.ocultarSinStock,
+    manualRecommendationProductIds: config.manuales.productIds,
     productPageEnabled: config.posicionamiento.mostrarEnProducto,
     quickAddLabel: config.estetica.textoCta,
     recommendationAlgorithm: config.algoritmo,

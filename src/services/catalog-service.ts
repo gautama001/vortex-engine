@@ -11,6 +11,20 @@ export type StoreCatalogPreviewItem = {
   price: number | null;
 };
 
+const mapProductToCatalogPreview = (product: TiendaNubeProduct): StoreCatalogPreviewItem => {
+  const primaryVariant = product.variants?.find((variant) => Boolean(variant.id)) ?? null;
+
+  return {
+    createdAt: product.created_at ?? null,
+    handle: pickLocalizedValue(product.handle) || null,
+    id: product.id,
+    imageUrl: product.images?.[0]?.src ?? null,
+    name: pickLocalizedValue(product.name),
+    price:
+      parsePrice(primaryVariant?.promotional_price) ?? parsePrice(primaryVariant?.price) ?? null,
+  };
+};
+
 const parsePrice = (value?: number | string | null): number | null => {
   if (value === null || value === undefined || value === "") {
     return null;
@@ -41,7 +55,7 @@ const pickLocalizedValue = (value?: LocalizedText): string => {
 
 export const listCatalogPreview = async (
   tiendanubeId: string,
-  limit = 6,
+  limit = 24,
 ): Promise<StoreCatalogPreviewItem[]> => {
   const store = await getActiveStoreOrThrow(tiendanubeId);
   const client = new TiendaNubeClient({
@@ -55,17 +69,32 @@ export const listCatalogPreview = async (
     sort_by: "created-at-descending",
   });
 
-  return products.map((product) => {
-    const primaryVariant = product.variants?.find((variant) => Boolean(variant.id)) ?? null;
+  return products.map(mapProductToCatalogPreview);
+};
 
-    return {
-      createdAt: product.created_at ?? null,
-      handle: pickLocalizedValue(product.handle) || null,
-      id: product.id,
-      imageUrl: product.images?.[0]?.src ?? null,
-      name: pickLocalizedValue(product.name),
-      price:
-        parsePrice(primaryVariant?.promotional_price) ?? parsePrice(primaryVariant?.price) ?? null,
-    };
+export const searchCatalogPreview = async (
+  tiendanubeId: string,
+  query: string,
+  limit = 24,
+): Promise<StoreCatalogPreviewItem[]> => {
+  const normalizedQuery = query.trim();
+
+  if (!normalizedQuery) {
+    return listCatalogPreview(tiendanubeId, limit);
+  }
+
+  const store = await getActiveStoreOrThrow(tiendanubeId);
+  const client = new TiendaNubeClient({
+    accessToken: store.accessToken,
+    storeId: tiendanubeId,
   });
+  const products = await client.get<TiendaNubeProduct[]>("/products", {
+    fields: "id,name,handle,published,created_at,images,variants",
+    per_page: limit,
+    published: true,
+    q: normalizedQuery,
+    sort_by: "created-at-descending",
+  });
+
+  return products.map(mapProductToCatalogPreview);
 };

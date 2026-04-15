@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BarChart3, RadioTower, Sparkles, Store } from "lucide-react";
 
 import { AnalyticsCard } from "@/components/dashboard/analytics-card";
@@ -63,8 +63,13 @@ const DashboardContent = ({
   storefront,
   storefrontProducts,
 }: Omit<DashboardShellProps, "initialConfig">) => {
-  const { commitConfig, selectProduct, setDraftConfig } = useDashboardActions();
+  const { commitConfig, selectProduct, setDraftConfig, updateDraftConfig } = useDashboardActions();
   const { draftConfig, lastSavedAt, savedConfig, selectedProductId } = useDashboardState();
+  const [catalogPool, setCatalogPool] = useState(storefrontProducts);
+
+  useEffect(() => {
+    setCatalogPool(storefrontProducts);
+  }, [storefrontProducts]);
 
   const handleConfigChange = useCallback(
     (config: PersistedWidgetConfig) => {
@@ -82,23 +87,69 @@ const DashboardContent = ({
 
   const persistedDraft = useMemo(() => widgetConfigToPersisted(draftConfig), [draftConfig]);
   const persistedSaved = useMemo(() => widgetConfigToPersisted(savedConfig), [savedConfig]);
+  const mergeCatalogProducts = useCallback((nextProducts: MerchantPreviewProduct[]) => {
+    if (nextProducts.length === 0) {
+      return;
+    }
+
+    setCatalogPool((currentProducts) => {
+      const mergedProducts = new Map(currentProducts.map((product) => [product.id, product] as const));
+
+      for (const product of nextProducts) {
+        mergedProducts.set(product.id, product);
+      }
+
+      return [...mergedProducts.values()];
+    });
+  }, []);
+
+  const toggleManualProduct = useCallback(
+    (productId: number) => {
+      updateDraftConfig((currentConfig) => ({
+        ...currentConfig,
+        manuales: {
+          productIds: currentConfig.manuales.productIds.includes(productId)
+            ? currentConfig.manuales.productIds.filter((currentId) => currentId !== productId)
+            : [...currentConfig.manuales.productIds, productId],
+        },
+      }));
+    },
+    [updateDraftConfig],
+  );
 
   const orderedProducts = useMemo(() => {
-    if (!selectedProductId) {
-      return storefrontProducts;
+    const productsById = new Map(catalogPool.map((product) => [product.id, product] as const));
+    const manualProducts = draftConfig.manuales.productIds
+      .map((productId) => productsById.get(productId) ?? null)
+      .filter((product): product is MerchantPreviewProduct => Boolean(product));
+    const selectedProduct = selectedProductId
+      ? (productsById.get(selectedProductId) ?? null)
+      : null;
+    const seenProductIds = new Set<number>();
+    const sortedProducts: MerchantPreviewProduct[] = [];
+
+    if (selectedProduct) {
+      sortedProducts.push(selectedProduct);
+      seenProductIds.add(selectedProduct.id);
     }
 
-    const selectedProduct = storefrontProducts.find((product) => product.id === selectedProductId);
-
-    if (!selectedProduct) {
-      return storefrontProducts;
+    if (draftConfig.algoritmo === "seleccion-manual") {
+      for (const product of manualProducts) {
+        if (!seenProductIds.has(product.id)) {
+          sortedProducts.push(product);
+          seenProductIds.add(product.id);
+        }
+      }
     }
 
-    return [
-      selectedProduct,
-      ...storefrontProducts.filter((product) => product.id !== selectedProductId),
-    ];
-  }, [selectedProductId, storefrontProducts]);
+    for (const product of catalogPool) {
+      if (!seenProductIds.has(product.id)) {
+        sortedProducts.push(product);
+      }
+    }
+
+    return sortedProducts;
+  }, [catalogPool, draftConfig.algoritmo, draftConfig.manuales.productIds, selectedProductId]);
 
   const previewApiUrl = useMemo(() => {
     const query = new URLSearchParams({
@@ -136,7 +187,8 @@ const DashboardContent = ({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ConfigurationForm
+          <ConfigurationForm
+              manualSelectionProductIds={persistedDraft.manualRecommendationProductIds}
               onConfigChange={handleConfigChange}
               onSaved={handleConfigSaved}
               savedConfig={persistedSaved}
@@ -149,9 +201,13 @@ const DashboardContent = ({
       <div className="grid gap-7">
         <VisualPreview config={persistedDraft} products={orderedProducts} storefront={storefront} />
         <LiveAuditor
+          manualSelectionProductIds={persistedDraft.manualRecommendationProductIds}
+          onProductsLoaded={mergeCatalogProducts}
           onSelectProduct={selectProduct}
+          onToggleManualProduct={toggleManualProduct}
           previewApiUrl={previewApiUrl}
-          products={storefrontProducts}
+          products={catalogPool}
+          recommendationAlgorithm={persistedDraft.recommendationAlgorithm}
           selectedProductId={selectedProductId}
           storefrontUrl={storefrontUrl}
         />
