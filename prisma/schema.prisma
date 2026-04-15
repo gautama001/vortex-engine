@@ -24,6 +24,12 @@ model Store {
   widgetEnabled       Boolean     @default(true) @map("widget_enabled")
   productPageEnabled  Boolean     @default(true) @map("product_page_enabled")
   cartPageEnabled     Boolean     @default(true) @map("cart_page_enabled")
+  backgroundColor     String      @default("#0A0F1A") @map("background_color") @db.Text
+  accentColor         String      @default("#58E2F3") @map("accent_color") @db.Text
+  borderRadius        Int         @default(24) @map("border_radius")
+  recommendationAlgorithm String   @default("ia-inteligente") @map("recommendation_algorithm") @db.Text
+  hideOutOfStock      Boolean     @default(true) @map("hide_out_of_stock")
+  requireImage        Boolean     @default(true) @map("require_image")
   widgetTitle         String      @default("Llevate algo que combine mejor con esta compra") @map("widget_title") @db.Text
   widgetSubtitle      String      @default("Vortex selecciona sugerencias de alta afinidad y activa fallback de cold start para convertir.") @map("widget_subtitle") @db.Text
   quickAddLabel       String      @default("Quick Add") @map("quick_add_label") @db.Text
@@ -33,4 +39,32 @@ model Store {
 
   @@index([status], map: "stores_status_idx")
   @@map("stores")
+}
+
+model FBTRecommendation {
+  id               String   @id @default(cuid())
+  storeId          String   @map("store_id")
+  productId        String   @map("product_id")
+  relatedProductId String   @map("related_product_id")
+  frequency        Int
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@unique([storeId, productId, relatedProductId], map: "fbt_recommendations_store_product_related_key")
+  @@index([storeId, productId], map: "fbt_recommendations_store_product_idx")
+  @@map("fbt_recommendations")
+}
+
+model OrderAttribution {
+  id           String   @id @default(cuid())
+  storeId      String   @map("store_id")
+  orderId      String   @map("order_id")
+  source       String   @default("vortex_widget") @db.Text
+  attributedAt DateTime @default(now()) @map("attributed_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@unique([storeId, orderId], map: "order_attributions_store_order_key")
+  @@index([storeId, attributedAt], map: "order_attributions_store_attributed_idx")
+  @@map("order_attributions")
 }

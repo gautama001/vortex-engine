@@ -6,7 +6,19 @@ export type StoreCatalogPreviewItem = {
   createdAt: string | null;
   handle: string | null;
   id: number;
+  imageUrl: string | null;
   name: string;
+  price: number | null;
+};
+
+const parsePrice = (value?: number | string | null): number | null => {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsedValue = typeof value === "number" ? value : Number(value);
+
+  return Number.isFinite(parsedValue) ? parsedValue : null;
 };
 
 const pickLocalizedValue = (value?: LocalizedText): string => {
@@ -37,16 +49,23 @@ export const listCatalogPreview = async (
     storeId: tiendanubeId,
   });
   const products = await client.get<TiendaNubeProduct[]>("/products", {
-    fields: "id,name,handle,published,created_at",
+    fields: "id,name,handle,published,created_at,images,variants",
     per_page: limit,
     published: true,
     sort_by: "created-at-descending",
   });
 
-  return products.map((product) => ({
-    createdAt: product.created_at ?? null,
-    handle: pickLocalizedValue(product.handle) || null,
-    id: product.id,
-    name: pickLocalizedValue(product.name),
-  }));
+  return products.map((product) => {
+    const primaryVariant = product.variants?.find((variant) => Boolean(variant.id)) ?? null;
+
+    return {
+      createdAt: product.created_at ?? null,
+      handle: pickLocalizedValue(product.handle) || null,
+      id: product.id,
+      imageUrl: product.images?.[0]?.src ?? null,
+      name: pickLocalizedValue(product.name),
+      price:
+        parsePrice(primaryVariant?.promotional_price) ?? parsePrice(primaryVariant?.price) ?? null,
+    };
+  });
 };

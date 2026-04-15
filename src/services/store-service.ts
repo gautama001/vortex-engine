@@ -3,6 +3,7 @@ import { StoreStatus, type Store as PrismaStore } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ensureStorePersistence } from "@/lib/store-persistence";
 import { clamp } from "@/lib/utils";
+import { type StrategyValue } from "@/components/dashboard/types";
 
 type UpsertStoreInstallationInput = {
   accessToken: string;
@@ -13,12 +14,18 @@ type UpsertStoreInstallationInput = {
 
 type StoreRow = {
   access_token: string;
+  accent_color: string | null;
+  background_color: string | null;
+  border_radius: number | null;
   cart_page_enabled: boolean | null;
   created_at: Date;
+  hide_out_of_stock: boolean | null;
   id: string;
   product_page_enabled: boolean | null;
   quick_add_label: string | null;
+  recommendation_algorithm: string | null;
   recommendation_limit: number | null;
+  require_image: boolean | null;
   scope: string;
   status: StoreStatus;
   tiendanube_id: string;
@@ -29,30 +36,48 @@ type StoreRow = {
 };
 
 export type StoreRecord = PrismaStore & {
+  accentColor: string;
+  backgroundColor: string;
+  borderRadius: number;
   cartPageEnabled: boolean;
+  hideOutOfStock: boolean;
   productPageEnabled: boolean;
   quickAddLabel: string;
+  recommendationAlgorithm: StrategyValue;
   recommendationLimit: number;
+  requireImage: boolean;
   widgetEnabled: boolean;
   widgetSubtitle: string;
   widgetTitle: string;
 };
 
 export type StoreWidgetSettings = {
+  accentColor: string;
+  backgroundColor: string;
+  borderRadius: number;
   cartPageEnabled: boolean;
+  hideOutOfStock: boolean;
   productPageEnabled: boolean;
   quickAddLabel: string;
+  recommendationAlgorithm: StrategyValue;
   recommendationLimit: number;
+  requireImage: boolean;
   widgetEnabled: boolean;
   widgetSubtitle: string;
   widgetTitle: string;
 };
 
 export const DEFAULT_STORE_WIDGET_SETTINGS: StoreWidgetSettings = {
+  accentColor: "#58E2F3",
+  backgroundColor: "#0A0F1A",
+  borderRadius: 24,
   cartPageEnabled: true,
+  hideOutOfStock: true,
   productPageEnabled: true,
   quickAddLabel: "Quick Add",
+  recommendationAlgorithm: "ia-inteligente",
   recommendationLimit: 4,
+  requireImage: true,
   widgetEnabled: true,
   widgetSubtitle:
     "Vortex selecciona sugerencias de alta afinidad y activa fallback de cold start para convertir.",
@@ -61,20 +86,61 @@ export const DEFAULT_STORE_WIDGET_SETTINGS: StoreWidgetSettings = {
 
 type UpdateStoreWidgetSettingsInput = Partial<StoreWidgetSettings>;
 
+const HEX_COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+const STRATEGY_VALUES = new Set<StrategyValue>([
+  "comprados-juntos",
+  "ia-inteligente",
+  "seleccion-manual",
+]);
+
+const normalizeColor = (value: string | null | undefined, fallback: string): string => {
+  const normalized = typeof value === "string" ? value.trim() : "";
+
+  return HEX_COLOR_PATTERN.test(normalized) ? normalized.toUpperCase() : fallback;
+};
+
+const normalizeStrategy = (
+  value: string | null | undefined,
+  fallback: StrategyValue,
+): StrategyValue => {
+  const normalized = typeof value === "string" ? value.trim() : "";
+
+  return STRATEGY_VALUES.has(normalized as StrategyValue)
+    ? (normalized as StrategyValue)
+    : fallback;
+};
+
 const mapStoreRow = (row: StoreRow): StoreRecord => {
   return {
     accessToken: row.access_token,
+    accentColor: normalizeColor(row.accent_color, DEFAULT_STORE_WIDGET_SETTINGS.accentColor),
+    backgroundColor: normalizeColor(
+      row.background_color,
+      DEFAULT_STORE_WIDGET_SETTINGS.backgroundColor,
+    ),
+    borderRadius: clamp(
+      row.border_radius ?? DEFAULT_STORE_WIDGET_SETTINGS.borderRadius,
+      8,
+      32,
+    ),
     cartPageEnabled: row.cart_page_enabled ?? DEFAULT_STORE_WIDGET_SETTINGS.cartPageEnabled,
     createdAt: row.created_at,
+    hideOutOfStock:
+      row.hide_out_of_stock ?? DEFAULT_STORE_WIDGET_SETTINGS.hideOutOfStock,
     id: row.id,
     productPageEnabled:
       row.product_page_enabled ?? DEFAULT_STORE_WIDGET_SETTINGS.productPageEnabled,
     quickAddLabel: row.quick_add_label ?? DEFAULT_STORE_WIDGET_SETTINGS.quickAddLabel,
+    recommendationAlgorithm: normalizeStrategy(
+      row.recommendation_algorithm,
+      DEFAULT_STORE_WIDGET_SETTINGS.recommendationAlgorithm,
+    ),
     recommendationLimit: clamp(
       row.recommendation_limit ?? DEFAULT_STORE_WIDGET_SETTINGS.recommendationLimit,
       1,
       8,
     ),
+    requireImage: row.require_image ?? DEFAULT_STORE_WIDGET_SETTINGS.requireImage,
     scope: row.scope,
     status: row.status,
     tiendanubeId: row.tiendanube_id,
@@ -93,6 +159,12 @@ const selectStoreByTiendaNubeId = async (tiendanubeId: string): Promise<StoreRec
       access_token,
       scope,
       status,
+      recommendation_algorithm,
+      hide_out_of_stock,
+      require_image,
+      background_color,
+      accent_color,
+      border_radius,
       widget_enabled,
       product_page_enabled,
       cart_page_enabled,
@@ -150,10 +222,22 @@ export const getStoreByTiendaNubeId = async (
 
 export const getStoreWidgetSettings = (store: StoreRecord): StoreWidgetSettings => {
   return {
+    accentColor: normalizeColor(store.accentColor, DEFAULT_STORE_WIDGET_SETTINGS.accentColor),
+    backgroundColor: normalizeColor(
+      store.backgroundColor,
+      DEFAULT_STORE_WIDGET_SETTINGS.backgroundColor,
+    ),
+    borderRadius: clamp(store.borderRadius, 8, 32),
     cartPageEnabled: store.cartPageEnabled,
+    hideOutOfStock: store.hideOutOfStock,
     productPageEnabled: store.productPageEnabled,
     quickAddLabel: store.quickAddLabel,
+    recommendationAlgorithm: normalizeStrategy(
+      store.recommendationAlgorithm,
+      DEFAULT_STORE_WIDGET_SETTINGS.recommendationAlgorithm,
+    ),
     recommendationLimit: clamp(store.recommendationLimit, 1, 8),
+    requireImage: store.requireImage,
     widgetEnabled: store.widgetEnabled,
     widgetSubtitle: store.widgetSubtitle,
     widgetTitle: store.widgetTitle,
@@ -222,6 +306,12 @@ export const listRecentStores = async (limit = 6): Promise<StoreRecord[]> => {
       access_token,
       scope,
       status,
+      recommendation_algorithm,
+      hide_out_of_stock,
+      require_image,
+      background_color,
+      accent_color,
+      border_radius,
       widget_enabled,
       product_page_enabled,
       cart_page_enabled,
@@ -254,6 +344,22 @@ export const updateStoreWidgetSettings = async (
   await prisma.$executeRaw`
     UPDATE "stores"
     SET
+      "background_color" = ${normalizeColor(
+        input.backgroundColor,
+        existingStore.backgroundColor,
+      )},
+      "accent_color" = ${normalizeColor(input.accentColor, existingStore.accentColor)},
+      "border_radius" = ${clamp(
+        input.borderRadius ?? existingStore.borderRadius,
+        8,
+        32,
+      )},
+      "recommendation_algorithm" = ${normalizeStrategy(
+        input.recommendationAlgorithm,
+        existingStore.recommendationAlgorithm,
+      )},
+      "hide_out_of_stock" = ${input.hideOutOfStock ?? existingStore.hideOutOfStock},
+      "require_image" = ${input.requireImage ?? existingStore.requireImage},
       "widget_enabled" = ${input.widgetEnabled ?? existingStore.widgetEnabled},
       "product_page_enabled" = ${input.productPageEnabled ?? existingStore.productPageEnabled},
       "cart_page_enabled" = ${input.cartPageEnabled ?? existingStore.cartPageEnabled},
