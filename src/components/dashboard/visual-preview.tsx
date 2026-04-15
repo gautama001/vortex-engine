@@ -368,7 +368,7 @@ export const VisualPreview = ({ config, products, storefront }: VisualPreviewPro
       <CardContent className="pb-6">
         <div className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/50 p-3 shadow-[0_30px_80px_-50px_rgba(88,226,243,0.35)]">
           <iframe
-            className="h-[640px] w-full rounded-[22px] bg-white"
+            className="h-[780px] w-full rounded-[22px] bg-white xl:h-[900px] 2xl:h-[980px]"
             sandbox="allow-same-origin"
             srcDoc={previewDocument}
             title="Vortex storefront preview"
