@@ -188,7 +188,7 @@ export default async function AppDashboardPage({
     : null;
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-7xl px-6 py-8 sm:px-8 lg:px-10">
+    <main className="mx-auto min-h-screen w-full max-w-[1760px] px-6 py-8 sm:px-8 lg:px-10 2xl:px-14">
       <div className="grid gap-8">
         <ProfitFirstSummary {...profitSummary} />
 
@@ -231,7 +231,7 @@ export default async function AppDashboardPage({
           </Card>
         ) : null}
 
-        <section className="grid gap-6 lg:grid-cols-[1fr_auto_auto]">
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(250px,0.55fr)_minmax(320px,0.72fr)]">
           <Card className="border-white/8 bg-white/[0.03]">
             <CardHeader>
               <div className="flex flex-wrap items-center gap-3">
@@ -246,7 +246,7 @@ export default async function AppDashboardPage({
                 ) : null}
               </div>
               <CardTitle className="text-4xl tracking-[-0.04em]">Vortex Command Center</CardTitle>
-              <CardDescription className="max-w-3xl">
+              <CardDescription className="max-w-4xl text-base leading-7">
                 Panel de beta privada para gobernar configuracion visual, estrategia,
                 previsualizacion y activacion storefront sin tocar la base operativa ya validada.
               </CardDescription>
@@ -257,7 +257,7 @@ export default async function AppDashboardPage({
             <CardHeader>
               <CardTitle>Store actual</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm leading-6 text-slate-300">
+            <CardContent className="space-y-1 text-[15px] leading-7 text-slate-300">
               <p className="text-white">{authenticatedStoreId ? `#${authenticatedStoreId}` : "Sin sesion"}</p>
               {storefrontContext ? (
                 <p className="mt-2">
@@ -272,7 +272,7 @@ export default async function AppDashboardPage({
             <CardHeader>
               <CardTitle>App URL</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm leading-6 text-slate-300">
+            <CardContent className="space-y-1 text-[15px] leading-7 text-slate-300">
               <p className="break-all">{appUrl || "Sin configurar"}</p>
               <p className="mt-2">
                 Scopes: {environmentReady ? getTiendaNubeConfig().scopes : "Sin configurar"}

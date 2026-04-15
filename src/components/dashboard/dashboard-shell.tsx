@@ -109,13 +109,13 @@ const DashboardContent = ({
   }, [orderedProducts, productPageBaseUrl]);
 
   return (
-    <section className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)_320px]">
-      <div className="grid gap-6">
+    <section className="grid gap-7 xl:grid-cols-[390px_minmax(0,1fr)_340px] 2xl:grid-cols-[430px_minmax(0,1fr)_380px]">
+      <div className="grid gap-7">
         <Card className="border-white/8 bg-white/[0.03]">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Store className="h-4 w-4 text-cyan-300" />
-              <CardTitle className="text-2xl">Configuracion del widget</CardTitle>
+              <CardTitle className="text-[2rem] leading-none">Configuracion del widget</CardTitle>
             </div>
             <CardDescription>
               Ajusta branding, algoritmo y placement con guardado optimista por tienda.
@@ -136,7 +136,7 @@ const DashboardContent = ({
         </Card>
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid gap-7">
         <VisualPreview config={persistedDraft} products={orderedProducts} storefront={storefront} />
         <LiveAuditor
           onSelectProduct={selectProduct}
@@ -147,18 +147,18 @@ const DashboardContent = ({
         />
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid gap-7">
         <Card className="border-white/8 bg-white/[0.03]">
           <CardHeader>
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-cyan-300" />
-              <CardTitle className="text-2xl">Analytics funnel</CardTitle>
+              <CardTitle className="text-[2rem] leading-none">Analytics funnel</CardTitle>
             </div>
             <CardDescription>
               Lectura rapida de rendimiento para vender el ROI cada vez que el merchant entra.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4">
+          <CardContent className="grid gap-5">
             <AnalyticsCard
               etiqueta="Ventas atribuidas"
               porcentaje={formatPercentage(analytics.cvr)}
@@ -178,34 +178,34 @@ const DashboardContent = ({
               tono="positivo"
               valor={formatNumber(analytics.conversions)}
             />
-            <div className="rounded-[26px] border border-white/8 bg-slate-950/45 p-5">
+            <div className="rounded-[26px] border border-white/8 bg-slate-950/45 p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
                     Ventas atribuidas
                   </p>
-                  <p className="mt-2 text-lg font-semibold text-white">{analytics.periodLabel}</p>
+                  <p className="mt-2 text-xl font-semibold text-white">{analytics.periodLabel}</p>
                 </div>
                 <Badge tone="success">ROI visible</Badge>
               </div>
-              <div className="mt-5 grid gap-3">
-                <div className="clip-funnel rounded-[24px] bg-white/[0.04] px-4 py-4 text-center">
+              <div className="mt-5 grid gap-4">
+                <div className="clip-funnel rounded-[24px] bg-white/[0.04] px-5 py-5 text-center">
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Impresiones</p>
-                  <p className="mt-2 text-3xl font-semibold text-white">
+                  <p className="mt-2 text-[2.1rem] font-semibold text-white">
                     {formatNumber(analytics.impressions)}
                   </p>
                 </div>
-                <div className="mx-auto w-[82%] rounded-[22px] bg-white/[0.05] px-4 py-4 text-center">
+                <div className="mx-auto w-[84%] rounded-[22px] bg-white/[0.05] px-5 py-5 text-center">
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Clics</p>
-                  <p className="mt-2 text-2xl font-semibold text-white">
+                  <p className="mt-2 text-[1.9rem] font-semibold text-white">
                     {formatNumber(analytics.clicks)}
                   </p>
                 </div>
-                <div className="mx-auto w-[66%] rounded-[20px] bg-cyan-400/10 px-4 py-4 text-center">
+                <div className="mx-auto w-[68%] rounded-[20px] bg-cyan-400/10 px-5 py-5 text-center">
                   <p className="text-xs uppercase tracking-[0.2em] text-cyan-100">
                     Conversiones
                   </p>
-                  <p className="mt-2 text-2xl font-semibold text-white">
+                  <p className="mt-2 text-[1.9rem] font-semibold text-white">
                     {formatNumber(analytics.conversions)}
                   </p>
                 </div>
@@ -218,22 +218,22 @@ const DashboardContent = ({
           <CardHeader>
             <div className="flex items-center gap-2">
               <RadioTower className="h-4 w-4 text-cyan-300" />
-              <CardTitle className="text-2xl">Operacion</CardTitle>
+              <CardTitle className="text-[2rem] leading-none">Operacion</CardTitle>
             </div>
             <CardDescription>
               Lo minimo para mantener la beta controlada y prender storefront sin friccion.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 text-sm leading-6 text-slate-300">
-            <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
+          <CardContent className="grid gap-5 text-[15px] leading-7 text-slate-300">
+            <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-5">
               <p className="font-medium text-white">Development URL</p>
               <p className="mt-2 break-all">{scriptDevelopmentUrl}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
+            <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-5">
               <p className="font-medium text-white">Loader productivo</p>
               <p className="mt-2 break-all">{productionLoaderUrl}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
+            <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-5">
               <p className="font-medium text-white">Ultima publicacion</p>
               <p className="mt-2">
                 {lastSavedAt
@@ -244,7 +244,7 @@ const DashboardContent = ({
                   : "Sin cambios publicados en esta sesion"}
               </p>
             </div>
-            <div className="rounded-2xl border border-cyan-300/20 bg-cyan-400/10 p-4">
+            <div className="rounded-2xl border border-cyan-300/20 bg-cyan-400/10 p-5">
               <div className="flex items-center gap-2 text-cyan-100">
                 <Sparkles className="h-4 w-4" />
                 <span className="text-xs uppercase tracking-[0.24em]">Store activa</span>

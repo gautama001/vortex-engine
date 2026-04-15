@@ -20,14 +20,14 @@ export const AnalyticsCard = ({
 }: AnalyticsCardProps) => {
   return (
     <Card className="border-white/8 bg-white/[0.03]">
-      <CardContent className="grid gap-3 p-4">
+      <CardContent className="grid gap-4 p-5">
         <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">{etiqueta}</p>
         <div className="flex items-end justify-between gap-3">
-          <p className="text-3xl font-semibold tracking-[-0.04em] text-white">{valor}</p>
+          <p className="text-[2.15rem] font-semibold tracking-[-0.04em] text-white">{valor}</p>
           {porcentaje ? (
             <span
               className={cn(
-                "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium",
+                "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium",
                 tono === "positivo"
                   ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
                   : "border-white/10 bg-white/[0.04] text-slate-300",
