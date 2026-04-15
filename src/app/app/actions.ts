@@ -40,20 +40,25 @@ export async function updateStoreSettingsAction(
     const requestedStoreIdRaw = formData.get("store_id");
     const requestedStoreId =
       typeof requestedStoreIdRaw === "string" ? requestedStoreIdRaw.trim() : "";
-    const targetStoreId = requestedStoreId || verifiedSession?.storeId || "";
+    const sessionStoreId = verifiedSession?.storeId ?? "";
 
-    if (!verifiedSession?.storeId || !targetStoreId) {
+    if (!sessionStoreId) {
       return {
         message: "La sesion admin ya no es valida. Reinstala o volve a conectar la tienda.",
         status: "error",
       };
     }
 
-    if (requestedStoreId && requestedStoreId !== verifiedSession.storeId) {
+    if (requestedStoreId && requestedStoreId !== sessionStoreId) {
       logger.warn("Store settings action detected session/store mismatch", {
         requestedStoreId,
-        sessionStoreId: verifiedSession.storeId,
+        sessionStoreId,
       });
+
+      return {
+        message: "La sesion activa no coincide con la store del formulario. Recarga el panel y vuelve a intentar.",
+        status: "error",
+      };
     }
 
     const recommendationLimit = clamp(
@@ -62,7 +67,7 @@ export async function updateStoreSettingsAction(
       8,
     );
 
-    const updatedStore = await updateStoreWidgetSettings(targetStoreId, {
+    const updatedStore = await updateStoreWidgetSettings(sessionStoreId, {
       cartPageEnabled: formData.get("cart_page_enabled") === "on",
       productPageEnabled: formData.get("product_page_enabled") === "on",
       quickAddLabel: normalizeText(formData.get("quick_add_label"), "Quick Add", 24),
