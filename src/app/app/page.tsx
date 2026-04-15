@@ -45,11 +45,13 @@ const installationErrors: Record<string, { detail: string; title: string }> = {
   },
 };
 
+const DEFAULT_ANALYTICS_SEED = 2026;
+
 const buildProfitSummary = (input: {
   catalogPreview: Awaited<ReturnType<typeof listCatalogPreview>>;
   storeId: string | null;
 }) => {
-  const seed = Number(input.storeId ?? 0) || 229419;
+  const seed = Number(input.storeId ?? 0) || DEFAULT_ANALYTICS_SEED;
   const basePrice = input.catalogPreview[0]?.price ?? 68900;
   const organicAov = Math.round(basePrice * 1.72);
   const vortexAov = Math.round(organicAov * 1.18);
@@ -88,7 +90,7 @@ const buildAnalyticsSnapshot = (input: {
   storeId: string | null;
   vortexRevenue: number;
 }): AnalyticsSnapshot => {
-  const seed = Number(input.storeId ?? 0) || 229419;
+  const seed = Number(input.storeId ?? 0) || DEFAULT_ANALYTICS_SEED;
   const impressions = 9800 + (seed % 9) * 315;
   const clicks = Math.max(320, Math.round(impressions * 0.068));
   const conversions = Math.max(48, Math.round(clicks * 0.185));

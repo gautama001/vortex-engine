@@ -6,7 +6,7 @@
   }
 
   window.__VORTEX_STOREFRONT_LOADER_BOOTSTRAPPED__ = true;
-  window.__VORTEX_API_ORIGIN__ = "https://deepskyblue-eland-528684.hostingersite.com";
+  window.__VORTEX_API_ORIGIN__ = "https://vortexai.com.ar";
 
   var currentScript =
     document.currentScript ||
