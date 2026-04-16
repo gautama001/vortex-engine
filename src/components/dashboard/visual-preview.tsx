@@ -16,6 +16,39 @@ type VisualPreviewProps = {
   storefront: MerchantStorefrontContext | null;
 };
 
+const getContrastTextColor = (hexColor: string): string => {
+  const normalized = hexColor.replace("#", "");
+  const expanded = normalized.length === 3
+    ? normalized
+        .split("")
+        .map((character) => character + character)
+        .join("")
+    : normalized;
+
+  if (!/^[0-9a-fA-F]{6}$/.test(expanded)) {
+    return "#08131f";
+  }
+
+  const red = parseInt(expanded.slice(0, 2), 16);
+  const green = parseInt(expanded.slice(2, 4), 16);
+  const blue = parseInt(expanded.slice(4, 6), 16);
+  const luminance = red * 0.299 + green * 0.587 + blue * 0.114;
+
+  return luminance > 176 ? "#08131f" : "#f8fafc";
+};
+
+const resolveFontStack = (fontFamily: MerchantWidgetConfig["fontFamily"]): string => {
+  switch (fontFamily) {
+    case "editorial-serif":
+      return '"Cormorant Garamond", "Iowan Old Style", "Times New Roman", serif';
+    case "ui-sans":
+      return 'Inter, "Segoe UI", Arial, sans-serif';
+    case "plex-sans":
+    default:
+      return '"IBM Plex Sans", "Segoe UI", Arial, sans-serif';
+  }
+};
+
 const formatMoney = (value: number | null, currencyCode: string | null): string => {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return "Ver detalle";
@@ -58,6 +91,14 @@ const buildPreviewDocument = (
     config.recommendationAlgorithm === "seleccion-manual"
       ? "Agrega productos manuales desde el auditor para ver la grilla final del widget."
       : "Todavia no hay suficientes recomendaciones para renderizar la vista previa.";
+  const fontStack = resolveFontStack(config.fontFamily);
+  const actionTextColor = getContrastTextColor(config.accentColor);
+  const recommendationTag =
+    config.recommendationAlgorithm === "seleccion-manual"
+      ? "curado manual"
+      : config.recommendationAlgorithm === "comprados-juntos"
+        ? "fbt"
+        : "relacionado";
 
   const widgetCards = recommendedProducts
     .map((product) => {
@@ -72,7 +113,7 @@ const buildPreviewDocument = (
             <p class="vortex-name">${escapeHtml(product.name)}</p>
             <div class="vortex-row">
               <span>${escapeHtml(formatMoney(product.price, currencyCode))}</span>
-              <span class="vortex-tag">bundle fit</span>
+              <span class="vortex-tag">${escapeHtml(recommendationTag)}</span>
             </div>
           </div>
           <button class="vortex-button">${escapeHtml(config.quickAddLabel)}</button>
@@ -117,11 +158,14 @@ const buildPreviewDocument = (
             --vortex-bg: ${config.backgroundColor};
             --vortex-accent: ${config.accentColor};
             --vortex-radius: ${config.borderRadius}px;
+            --vortex-text: ${config.fontColor};
+            --vortex-font: ${fontStack};
+            --vortex-action-text: ${actionTextColor};
           }
           * { box-sizing: border-box; }
           body {
             margin: 0;
-            font-family: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+            font-family: var(--vortex-font);
             color: #0f172a;
             background: linear-gradient(180deg, #f6f9fc 0%, #eef3f8 100%);
           }
@@ -222,7 +266,8 @@ const buildPreviewDocument = (
             padding: 18px;
             border-radius: calc(var(--vortex-radius) + 4px);
             background: linear-gradient(180deg, color-mix(in srgb, var(--vortex-bg) 88%, #142235 12%), var(--vortex-bg));
-            color: rgba(255,255,255,.96);
+            color: var(--vortex-text);
+            font-family: var(--vortex-font);
           }
           .vortex-widget--disabled {
             opacity: .8;
@@ -245,10 +290,11 @@ const buildPreviewDocument = (
             margin: 14px 0 8px;
             font-size: 28px;
             line-height: 1.08;
+            color: var(--vortex-text);
           }
           .vortex-widget p {
             margin: 0 0 16px;
-            color: rgba(226,232,240,.78);
+            color: color-mix(in srgb, var(--vortex-text) 76%, transparent);
             font-size: 14px;
             line-height: 1.6;
           }
@@ -266,7 +312,7 @@ const buildPreviewDocument = (
           }
           .vortex-empty p {
             margin: 0;
-            color: rgba(226,232,240,.82);
+            color: color-mix(in srgb, var(--vortex-text) 82%, transparent);
           }
           .vortex-card {
             padding: 12px;
@@ -291,7 +337,7 @@ const buildPreviewDocument = (
             margin: 0;
             font-size: 13px;
             font-weight: 600;
-            color: white;
+            color: var(--vortex-text);
           }
           .vortex-row {
             display: flex;
@@ -300,10 +346,10 @@ const buildPreviewDocument = (
             gap: 10px;
             margin-top: 8px;
             font-size: 12px;
-            color: rgba(226,232,240,.72);
+            color: color-mix(in srgb, var(--vortex-text) 72%, transparent);
           }
           .vortex-tag {
-            color: color-mix(in srgb, white 68%, var(--vortex-accent) 32%);
+            color: color-mix(in srgb, var(--vortex-text) 58%, var(--vortex-accent) 42%);
             text-transform: lowercase;
           }
           .vortex-button {
@@ -313,8 +359,9 @@ const buildPreviewDocument = (
             border: 0;
             border-radius: 999px;
             background: var(--vortex-accent);
-            color: #08131f;
+            color: var(--vortex-action-text);
             font-weight: 700;
+            font-family: var(--vortex-font);
           }
           @media (max-width: 900px) {
             .product {
@@ -394,7 +441,7 @@ export const VisualPreview = ({ config, products, storefront }: VisualPreviewPro
       <CardContent className="pb-6">
         <div className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/50 p-3 shadow-[0_30px_80px_-50px_rgba(88,226,243,0.35)]">
           <iframe
-            className="h-[760px] w-full rounded-[22px] bg-white xl:h-[860px] 2xl:h-[980px]"
+            className="h-[720px] w-full rounded-[22px] bg-white xl:h-[820px] min-[1950px]:h-[960px]"
             sandbox="allow-same-origin"
             srcDoc={previewDocument}
             title="Vortex storefront preview"

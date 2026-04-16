@@ -18,11 +18,29 @@ type NormalizedTiendaNubeOauthTokenResponse = Omit<TiendaNubeOauthTokenResponse,
   user_id: string;
 };
 
-const sanitizeStoreDomain = (value: string): string => {
-  const normalized = value.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+const sanitizeStoreDomain = (value: string): string | null => {
+  const rawValue = value.trim();
+
+  if (!rawValue) {
+    return null;
+  }
+
+  const normalizedCandidate = (() => {
+    try {
+      if (/^https?:\/\//i.test(rawValue)) {
+        return new URL(rawValue).hostname;
+      }
+    } catch {
+      return "";
+    }
+
+    return rawValue.replace(/^https?:\/\//, "").replace(/\/+$/, "").split("/")[0] ?? "";
+  })();
+
+  const normalized = normalizedCandidate.trim().toLowerCase();
 
   if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(normalized)) {
-    throw new Error("Invalid TiendaNube store domain");
+    return null;
   }
 
   return normalized;

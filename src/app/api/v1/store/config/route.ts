@@ -10,7 +10,12 @@ import {
   updateStoreWidgetSettings,
   type StoreWidgetSettings,
 } from "@/services/store-service";
-import { ESTRATEGIAS, type StrategyValue } from "@/components/dashboard/types";
+import {
+  ESTRATEGIAS,
+  FONT_FAMILY_OPTIONS,
+  type FontFamilyValue,
+  type StrategyValue,
+} from "@/components/dashboard/types";
 
 export const runtime = "nodejs";
 
@@ -51,10 +56,19 @@ const normalizeProductIdList = (value: unknown, fallback: number[]): number[] =>
 };
 
 const VALID_STRATEGIES = new Set<StrategyValue>(ESTRATEGIAS.map((item) => item.valor));
+const VALID_FONT_FAMILIES = new Set<FontFamilyValue>(
+  FONT_FAMILY_OPTIONS.map((item) => item.valor),
+);
 
 const normalizeStrategy = (value: unknown, fallback: StrategyValue): StrategyValue => {
   return typeof value === "string" && VALID_STRATEGIES.has(value as StrategyValue)
     ? (value as StrategyValue)
+    : fallback;
+};
+
+const normalizeFontFamily = (value: unknown, fallback: FontFamilyValue): FontFamilyValue => {
+  return typeof value === "string" && VALID_FONT_FAMILIES.has(value as FontFamilyValue)
+    ? (value as FontFamilyValue)
     : fallback;
 };
 
@@ -82,6 +96,8 @@ const normalizeStoreConfigPayload = (payload: unknown): Partial<StoreWidgetSetti
       config.cartPageEnabled,
       DEFAULT_STORE_WIDGET_SETTINGS.cartPageEnabled,
     ),
+    fontColor: normalizeColor(config.fontColor, DEFAULT_STORE_WIDGET_SETTINGS.fontColor),
+    fontFamily: normalizeFontFamily(config.fontFamily, DEFAULT_STORE_WIDGET_SETTINGS.fontFamily),
     hideOutOfStock: normalizeBoolean(
       config.hideOutOfStock,
       DEFAULT_STORE_WIDGET_SETTINGS.hideOutOfStock,
@@ -197,6 +213,8 @@ const handleStoreConfigUpdate = async (request: Request) => {
           backgroundColor: updatedStore.backgroundColor,
           borderRadius: updatedStore.borderRadius,
           cartPageEnabled: updatedStore.cartPageEnabled,
+          fontColor: updatedStore.fontColor,
+          fontFamily: updatedStore.fontFamily,
           hideOutOfStock: updatedStore.hideOutOfStock,
           manualRecommendationProductIds: updatedStore.manualRecommendationProductIds,
           productPageEnabled: updatedStore.productPageEnabled,

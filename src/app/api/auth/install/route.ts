@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       {
         error: "invalid_install_request",
         message:
-          "Usa el subdominio de TiendaNube o Nuvemshop para instalar la app, por ejemplo mitienda.mitiendanube.com.",
+          "No pudimos iniciar el flujo de instalacion en este momento. Verifica la configuracion OAuth de Vortex y vuelve a intentar.",
       },
       { status: 400 },
     );

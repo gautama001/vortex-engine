@@ -39,11 +39,30 @@ export const REGLAS_DE_INVENTARIO = {
 
 export type StrategyValue = (typeof ESTRATEGIAS)[number]["valor"];
 
+export const FONT_FAMILY_OPTIONS = [
+  {
+    etiqueta: "Plex Sans",
+    valor: "plex-sans",
+  },
+  {
+    etiqueta: "UI Sans",
+    valor: "ui-sans",
+  },
+  {
+    etiqueta: "Editorial Serif",
+    valor: "editorial-serif",
+  },
+] as const;
+
+export type FontFamilyValue = (typeof FONT_FAMILY_OPTIONS)[number]["valor"];
+
 export type PersistedWidgetConfig = {
   accentColor: string;
   backgroundColor: string;
   borderRadius: number;
   cartPageEnabled: boolean;
+  fontColor: string;
+  fontFamily: FontFamilyValue;
   hideOutOfStock: boolean;
   manualRecommendationProductIds: number[];
   productPageEnabled: boolean;
@@ -64,6 +83,8 @@ export type WidgetConfig = {
     accentColor: string;
     backgroundColor: string;
     borderRadius: number;
+    fontColor: string;
+    fontFamily: FontFamilyValue;
     subtitulo: string;
     textoCta: string;
     titulo: string;
@@ -115,6 +136,8 @@ export const widgetConfigFromPersisted = (config: PersistedWidgetConfig): Widget
       accentColor: config.accentColor,
       backgroundColor: config.backgroundColor,
       borderRadius: config.borderRadius,
+      fontColor: config.fontColor,
+      fontFamily: config.fontFamily,
       subtitulo: config.widgetSubtitle,
       textoCta: config.quickAddLabel,
       titulo: config.widgetTitle,
@@ -141,6 +164,8 @@ export const widgetConfigToPersisted = (config: WidgetConfig): PersistedWidgetCo
     backgroundColor: config.estetica.backgroundColor,
     borderRadius: config.estetica.borderRadius,
     cartPageEnabled: config.posicionamiento.mostrarEnCarrito,
+    fontColor: config.estetica.fontColor,
+    fontFamily: config.estetica.fontFamily,
     hideOutOfStock: config.filtros.ocultarSinStock,
     manualRecommendationProductIds: config.manuales.productIds,
     productPageEnabled: config.posicionamiento.mostrarEnProducto,

@@ -3,7 +3,7 @@ import { StoreStatus, type Store as PrismaStore } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ensureStorePersistence } from "@/lib/store-persistence";
 import { clamp } from "@/lib/utils";
-import { type StrategyValue } from "@/components/dashboard/types";
+import { FONT_FAMILY_OPTIONS, type FontFamilyValue, type StrategyValue } from "@/components/dashboard/types";
 
 type UpsertStoreInstallationInput = {
   accessToken: string;
@@ -41,6 +41,8 @@ export type StoreRecord = Omit<PrismaStore, "manualRecommendationProductIds"> & 
   backgroundColor: string;
   borderRadius: number;
   cartPageEnabled: boolean;
+  fontColor: string;
+  fontFamily: FontFamilyValue;
   hideOutOfStock: boolean;
   manualRecommendationProductIds: number[];
   productPageEnabled: boolean;
@@ -58,6 +60,8 @@ export type StoreWidgetSettings = {
   backgroundColor: string;
   borderRadius: number;
   cartPageEnabled: boolean;
+  fontColor: string;
+  fontFamily: FontFamilyValue;
   hideOutOfStock: boolean;
   manualRecommendationProductIds: number[];
   productPageEnabled: boolean;
@@ -75,6 +79,8 @@ export const DEFAULT_STORE_WIDGET_SETTINGS: StoreWidgetSettings = {
   backgroundColor: "#0A0F1A",
   borderRadius: 24,
   cartPageEnabled: true,
+  fontColor: "#E6EDF6",
+  fontFamily: "plex-sans",
   hideOutOfStock: true,
   manualRecommendationProductIds: [],
   productPageEnabled: true,
@@ -96,6 +102,9 @@ const STRATEGY_VALUES = new Set<StrategyValue>([
   "ia-inteligente",
   "seleccion-manual",
 ]);
+const FONT_FAMILY_VALUES = new Set<FontFamilyValue>(
+  FONT_FAMILY_OPTIONS.map((option) => option.valor),
+);
 
 const normalizeColor = (value: string | null | undefined, fallback: string): string => {
   const normalized = typeof value === "string" ? value.trim() : "";
@@ -114,35 +123,95 @@ const normalizeStrategy = (
     : fallback;
 };
 
-const parseManualRecommendationProductIds = (value: string | null | undefined): number[] => {
-  if (!value) {
+const normalizeFontFamily = (
+  value: string | null | undefined,
+  fallback: FontFamilyValue,
+): FontFamilyValue => {
+  const normalized = typeof value === "string" ? value.trim() : "";
+
+  return FONT_FAMILY_VALUES.has(normalized as FontFamilyValue)
+    ? (normalized as FontFamilyValue)
+    : fallback;
+};
+
+type ManualMerchandisingState = {
+  fontColor: string;
+  fontFamily: FontFamilyValue;
+  productIds: number[];
+};
+
+const parseProductIds = (value: unknown): number[] => {
+  if (!Array.isArray(value)) {
     return [];
+  }
+
+  return [...new Set(value.map((item) => Number(item)).filter(Number.isFinite))];
+};
+
+const parseManualMerchandisingState = (
+  value: string | null | undefined,
+): ManualMerchandisingState => {
+  if (!value) {
+    return {
+      fontColor: DEFAULT_STORE_WIDGET_SETTINGS.fontColor,
+      fontFamily: DEFAULT_STORE_WIDGET_SETTINGS.fontFamily,
+      productIds: [],
+    };
   }
 
   try {
     const parsed = JSON.parse(value) as unknown;
 
-    if (!Array.isArray(parsed)) {
-      return [];
+    if (Array.isArray(parsed)) {
+      return {
+        fontColor: DEFAULT_STORE_WIDGET_SETTINGS.fontColor,
+        fontFamily: DEFAULT_STORE_WIDGET_SETTINGS.fontFamily,
+        productIds: parseProductIds(parsed),
+      };
     }
 
-    return [...new Set(parsed.map((item) => Number(item)).filter(Number.isFinite))];
+    if (!parsed || typeof parsed !== "object") {
+      return {
+        fontColor: DEFAULT_STORE_WIDGET_SETTINGS.fontColor,
+        fontFamily: DEFAULT_STORE_WIDGET_SETTINGS.fontFamily,
+        productIds: [],
+      };
+    }
+
+    const blob = parsed as {
+      fontColor?: string;
+      fontFamily?: string;
+      ids?: unknown;
+      productIds?: unknown;
+    };
+
+    return {
+      fontColor: normalizeColor(blob.fontColor, DEFAULT_STORE_WIDGET_SETTINGS.fontColor),
+      fontFamily: normalizeFontFamily(blob.fontFamily, DEFAULT_STORE_WIDGET_SETTINGS.fontFamily),
+      productIds: parseProductIds(blob.productIds ?? blob.ids),
+    };
   } catch {
-    return [];
+    return {
+      fontColor: DEFAULT_STORE_WIDGET_SETTINGS.fontColor,
+      fontFamily: DEFAULT_STORE_WIDGET_SETTINGS.fontFamily,
+      productIds: [],
+    };
   }
 };
 
-const serializeManualRecommendationProductIds = (value: number[] | null | undefined): string => {
-  if (!Array.isArray(value)) {
-    return "[]";
-  }
-
-  return JSON.stringify(
-    [...new Set(value.map((item) => Number(item)).filter(Number.isFinite))].slice(0, 24),
-  );
+const serializeManualMerchandisingState = (value: ManualMerchandisingState): string => {
+  return JSON.stringify({
+    fontColor: normalizeColor(value.fontColor, DEFAULT_STORE_WIDGET_SETTINGS.fontColor),
+    fontFamily: normalizeFontFamily(value.fontFamily, DEFAULT_STORE_WIDGET_SETTINGS.fontFamily),
+    productIds: parseProductIds(value.productIds).slice(0, 24),
+  });
 };
 
 const mapStoreRow = (row: StoreRow): StoreRecord => {
+  const manualMerchandisingState = parseManualMerchandisingState(
+    row.manual_recommendation_product_ids,
+  );
+
   return {
     accessToken: row.access_token,
     accentColor: normalizeColor(row.accent_color, DEFAULT_STORE_WIDGET_SETTINGS.accentColor),
@@ -157,12 +226,12 @@ const mapStoreRow = (row: StoreRow): StoreRecord => {
     ),
     cartPageEnabled: row.cart_page_enabled ?? DEFAULT_STORE_WIDGET_SETTINGS.cartPageEnabled,
     createdAt: row.created_at,
+    fontColor: manualMerchandisingState.fontColor,
+    fontFamily: manualMerchandisingState.fontFamily,
     hideOutOfStock:
       row.hide_out_of_stock ?? DEFAULT_STORE_WIDGET_SETTINGS.hideOutOfStock,
     id: row.id,
-    manualRecommendationProductIds: parseManualRecommendationProductIds(
-      row.manual_recommendation_product_ids,
-    ),
+    manualRecommendationProductIds: manualMerchandisingState.productIds,
     productPageEnabled:
       row.product_page_enabled ?? DEFAULT_STORE_WIDGET_SETTINGS.productPageEnabled,
     quickAddLabel: row.quick_add_label ?? DEFAULT_STORE_WIDGET_SETTINGS.quickAddLabel,
@@ -275,6 +344,8 @@ export const getStoreWidgetSettings = (store: StoreRecord): StoreWidgetSettings 
     ),
     borderRadius: clamp(store.borderRadius, 8, 32),
     cartPageEnabled: store.cartPageEnabled,
+    fontColor: normalizeColor(store.fontColor, DEFAULT_STORE_WIDGET_SETTINGS.fontColor),
+    fontFamily: normalizeFontFamily(store.fontFamily, DEFAULT_STORE_WIDGET_SETTINGS.fontFamily),
     hideOutOfStock: store.hideOutOfStock,
     manualRecommendationProductIds: store.manualRecommendationProductIds,
     productPageEnabled: store.productPageEnabled,
@@ -407,9 +478,11 @@ export const updateStoreWidgetSettings = async (
         existingStore.recommendationAlgorithm,
       )},
       "hide_out_of_stock" = ${input.hideOutOfStock ?? existingStore.hideOutOfStock},
-      "manual_recommendation_product_ids" = ${serializeManualRecommendationProductIds(
-        input.manualRecommendationProductIds ?? existingStore.manualRecommendationProductIds,
-      )},
+      "manual_recommendation_product_ids" = ${serializeManualMerchandisingState({
+        fontColor: normalizeColor(input.fontColor, existingStore.fontColor),
+        fontFamily: normalizeFontFamily(input.fontFamily, existingStore.fontFamily),
+        productIds: input.manualRecommendationProductIds ?? existingStore.manualRecommendationProductIds,
+      })},
       "require_image" = ${input.requireImage ?? existingStore.requireImage},
       "widget_enabled" = ${input.widgetEnabled ?? existingStore.widgetEnabled},
       "product_page_enabled" = ${input.productPageEnabled ?? existingStore.productPageEnabled},

@@ -197,7 +197,7 @@ export default async function AppDashboardPage({
     : null;
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[2160px] px-5 py-8 sm:px-7 lg:px-10 2xl:px-14">
+    <main className="mx-auto min-h-screen w-full max-w-[2280px] px-5 py-8 sm:px-7 lg:px-10 min-[1900px]:px-14">
       <div className="grid gap-10">
         <ProfitFirstSummary {...profitSummary} />
 
@@ -257,8 +257,8 @@ export default async function AppDashboardPage({
           </Card>
         ) : null}
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.48fr)] 2xl:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.52fr)_minmax(320px,0.7fr)]">
-          <Card className="border-white/8 bg-white/[0.03] xl:col-span-2 2xl:col-span-1">
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.14fr)_minmax(260px,0.5fr)] min-[1900px]:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.52fr)_minmax(320px,0.7fr)]">
+          <Card className="border-white/8 bg-white/[0.03] xl:col-span-2 min-[1900px]:col-span-1">
             <CardHeader>
               <div className="flex flex-wrap items-center gap-3">
                 <Badge tone={environmentReady ? "success" : "danger"}>

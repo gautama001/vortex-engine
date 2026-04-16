@@ -153,22 +153,8 @@ const DashboardContent = ({
           productIds: nextManualIds,
         },
       }));
-
-      if (draftConfig.algoritmo !== "seleccion-manual") {
-        return;
-      }
-
-      if (isManualSelected) {
-        if (selectedProductId === productId) {
-          selectProduct(nextManualIds[0] ?? null);
-        }
-
-        return;
-      }
-
-      selectProduct(productId);
     },
-    [draftConfig.algoritmo, draftConfig.manuales.productIds, selectProduct, selectedProductId, updateDraftConfig],
+    [draftConfig.manuales.productIds, updateDraftConfig],
   );
 
   const orderedProducts = useMemo(() => {
@@ -210,7 +196,7 @@ const DashboardContent = ({
     const manualProducts = draftConfig.manuales.productIds
       .map((productId) => productsById.get(productId) ?? null)
       .filter((product): product is MerchantPreviewProduct => Boolean(product));
-    const selectedProduct = selectedProductId
+    const selectedSeedProduct = selectedProductId
       ? (productsById.get(selectedProductId) ?? null)
       : null;
     const previewList: MerchantPreviewProduct[] = [];
@@ -225,18 +211,22 @@ const DashboardContent = ({
     };
 
     if (draftConfig.algoritmo === "seleccion-manual") {
-      const prioritizedManualProduct =
-        manualProducts.find((product) => product.id === selectedProductId) ??
-        manualProducts[0] ??
+      const fallbackSeedProduct =
+        catalogPool.find((product) => !draftConfig.manuales.productIds.includes(product.id)) ??
+        catalogPool[0] ??
         null;
+      const heroProduct =
+        selectedSeedProduct && !draftConfig.manuales.productIds.includes(selectedSeedProduct.id)
+          ? selectedSeedProduct
+          : fallbackSeedProduct;
 
-      pushUnique(prioritizedManualProduct);
+      pushUnique(heroProduct);
       manualProducts.forEach(pushUnique);
 
       return previewList;
     }
 
-    pushUnique(selectedProduct ?? catalogPool[0] ?? null);
+    pushUnique(selectedSeedProduct ?? catalogPool[0] ?? null);
     catalogPool.forEach(pushUnique);
 
     return previewList;
@@ -265,7 +255,7 @@ const DashboardContent = ({
   }, [previewProducts, productPageBaseUrl]);
 
   return (
-    <section className="grid gap-8 xl:grid-cols-[minmax(340px,0.96fr)_minmax(0,1.18fr)] 2xl:grid-cols-[minmax(360px,0.92fr)_minmax(0,1.22fr)_minmax(310px,0.72fr)]">
+    <section className="grid gap-8 xl:grid-cols-[minmax(320px,0.9fr)_minmax(0,1.1fr)] min-[1950px]:grid-cols-[minmax(340px,0.92fr)_minmax(0,1.16fr)_minmax(320px,0.72fr)]">
       <div className="grid gap-7 self-start">
         <Card className="border-white/8 bg-white/[0.03]">
           <CardHeader>
@@ -304,7 +294,7 @@ const DashboardContent = ({
         />
       </div>
 
-      <div className="grid gap-7 self-start xl:col-span-2 xl:grid-cols-2 2xl:col-span-1 2xl:grid-cols-1">
+      <div className="grid gap-7 self-start min-[1600px]:grid-cols-2 xl:col-span-2 min-[1950px]:col-span-1 min-[1950px]:grid-cols-1">
         <Card className="border-white/8 bg-white/[0.03]">
           <CardHeader>
             <div className="flex items-center gap-2">

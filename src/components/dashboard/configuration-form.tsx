@@ -14,7 +14,11 @@ import {
 import { useForm, useWatch } from "react-hook-form";
 
 import { StrategySelector } from "@/components/dashboard/strategy-selector";
-import { REGLAS_DE_INVENTARIO, type MerchantWidgetConfig } from "@/components/dashboard/types";
+import {
+  FONT_FAMILY_OPTIONS,
+  REGLAS_DE_INVENTARIO,
+  type MerchantWidgetConfig,
+} from "@/components/dashboard/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -103,6 +107,7 @@ export const ConfigurationForm = ({
 }: ConfigurationFormProps) => {
   const [accentColorDraft, setAccentColorDraft] = useState(savedConfig.accentColor);
   const [backgroundColorDraft, setBackgroundColorDraft] = useState(savedConfig.backgroundColor);
+  const [fontColorDraft, setFontColorDraft] = useState(savedConfig.fontColor);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>(null);
   const [isSaving, setIsSaving] = useState(false);
   const {
@@ -128,6 +133,8 @@ export const ConfigurationForm = ({
         watchedValues.backgroundColor ?? savedConfig.backgroundColor,
       ),
       borderRadius: Number(watchedValues.borderRadius ?? savedConfig.borderRadius),
+      fontColor: normalizeHexInput(watchedValues.fontColor ?? savedConfig.fontColor),
+      fontFamily: watchedValues.fontFamily ?? savedConfig.fontFamily,
       manualRecommendationProductIds:
         watchedValues.manualRecommendationProductIds ??
         manualSelectionProductIds ??
@@ -154,7 +161,8 @@ export const ConfigurationForm = ({
   useEffect(() => {
     setBackgroundColorDraft(savedConfig.backgroundColor);
     setAccentColorDraft(savedConfig.accentColor);
-  }, [savedConfig.accentColor, savedConfig.backgroundColor]);
+    setFontColorDraft(savedConfig.fontColor);
+  }, [savedConfig.accentColor, savedConfig.backgroundColor, savedConfig.fontColor]);
 
   useEffect(() => {
     setValue("manualRecommendationProductIds", manualSelectionProductIds, {
@@ -229,13 +237,18 @@ export const ConfigurationForm = ({
     reset(savedConfig);
     setBackgroundColorDraft(savedConfig.backgroundColor);
     setAccentColorDraft(savedConfig.accentColor);
+    setFontColorDraft(savedConfig.fontColor);
     setSaveStatus(null);
     onConfigChange(savedConfig);
   };
 
-  const applyColorDraft = (field: "accentColor" | "backgroundColor") => {
+  const applyColorDraft = (field: "accentColor" | "backgroundColor" | "fontColor") => {
     const nextValue =
-      field === "backgroundColor" ? backgroundColorDraft : accentColorDraft;
+      field === "backgroundColor"
+        ? backgroundColorDraft
+        : field === "fontColor"
+          ? fontColorDraft
+          : accentColorDraft;
     const normalizedValue = normalizeHexInput(nextValue);
 
     if (!isValidHexColor(normalizedValue)) {
@@ -255,6 +268,11 @@ export const ConfigurationForm = ({
 
     if (field === "backgroundColor") {
       setBackgroundColorDraft(normalizedValue);
+      return;
+    }
+
+    if (field === "fontColor") {
+      setFontColorDraft(normalizedValue);
       return;
     }
 
@@ -356,6 +374,58 @@ export const ConfigurationForm = ({
             </div>
             <span className="text-xs text-slate-500">
               Si usas la pipeta del selector, confirma el cambio con "Aplicar color".
+            </span>
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-sm text-slate-300">Color de fuente</span>
+            <input
+              type="hidden"
+              {...register("fontColor", {
+                pattern: HEX_COLOR_PATTERN,
+              })}
+            />
+            <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3">
+              <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
+                <input
+                  className="h-10 w-10 cursor-pointer rounded-xl border border-white/10 bg-transparent"
+                  type="color"
+                  onChange={(event) => setFontColorDraft(event.target.value.toUpperCase())}
+                  value={fontColorDraft}
+                />
+                <input
+                  className="h-10 min-w-0 rounded-xl border border-white/10 bg-slate-950/50 px-3 text-sm text-white outline-none"
+                  type="text"
+                  onChange={(event) => setFontColorDraft(event.target.value.toUpperCase())}
+                  value={fontColorDraft}
+                />
+              </div>
+              <Button
+                className="w-full"
+                onClick={() => applyColorDraft("fontColor")}
+                size="sm"
+                type="button"
+                variant="secondary"
+              >
+                Aplicar color
+              </Button>
+            </div>
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-sm text-slate-300">Tipografia</span>
+            <select
+              className="h-12 rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm text-white outline-none"
+              {...register("fontFamily")}
+            >
+              {FONT_FAMILY_OPTIONS.map((option) => (
+                <option key={option.valor} value={option.valor}>
+                  {option.etiqueta}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-slate-500">
+              Opciones acotadas para mantener la beta prolija y congruente con storefront.
             </span>
           </label>
         </div>

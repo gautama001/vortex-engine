@@ -300,7 +300,7 @@ export const LiveAuditor = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <div className="grid gap-3 xl:grid-cols-2">
+        <div className="grid gap-3 min-[1650px]:grid-cols-2">
           <div className="rounded-2xl border border-cyan-300/20 bg-cyan-400/10 p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-cyan-100">
               Semilla activa
