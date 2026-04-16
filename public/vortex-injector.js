@@ -187,9 +187,9 @@
       ".vortex-widget__eyebrow{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.3);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#cffafe}" +
       ".vortex-widget__title{margin:14px 0 8px;font-size:24px;line-height:1.1;color:var(--vortex-text,#eef6ff)}" +
       ".vortex-widget__copy{margin:0 0 18px;color:color-mix(in srgb,var(--vortex-text,#eef6ff) 76%, transparent);font-size:14px;line-height:1.6}" +
-      ".vortex-widget__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}" +
+      ".vortex-widget__grid{display:grid;grid-template-columns:repeat(var(--vortex-columns-desktop,4),minmax(0,1fr));gap:14px}" +
       ".vortex-widget__card{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);min-height:100%}" +
-      ".vortex-widget__image{width:100%;aspect-ratio:.76/1;border-radius:16px;object-fit:cover;object-position:center top;background:rgba(255,255,255,.05)}" +
+      ".vortex-widget__image{width:100%;aspect-ratio:.76/1.14;border-radius:16px;object-fit:cover;object-position:center top;background:rgba(255,255,255,.05)}" +
       ".vortex-widget__image--placeholder{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02))}" +
       ".vortex-widget__name{margin:0;font-size:15px;line-height:1.4;color:var(--vortex-text,#eef6ff)}" +
       ".vortex-widget__meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:color-mix(in srgb,var(--vortex-text,#eef6ff) 72%, transparent);font-size:13px}" +
@@ -224,7 +224,7 @@
       ".vortex-widget-toast__body{display:grid;gap:2px}" +
       ".vortex-widget-toast__title{font-size:13px;font-weight:700;color:#f8fafc}" +
       ".vortex-widget-toast__copy{font-size:12px;line-height:1.5;color:#cbd5e1}" +
-      "@media (max-width:640px){.vortex-quickadd-modal{padding:20px}.vortex-quickadd-header{grid-template-columns:1fr}.vortex-quickadd-image{width:100%;height:auto;aspect-ratio:1/1}.vortex-widget__image{aspect-ratio:.72/1}}";
+      "@media (max-width:640px){.vortex-quickadd-modal{padding:20px}.vortex-quickadd-header{grid-template-columns:1fr}.vortex-quickadd-image{width:100%;height:auto;aspect-ratio:1/1}.vortex-widget__grid{grid-template-columns:repeat(var(--vortex-columns-mobile,2),minmax(0,1fr))}.vortex-widget__image{aspect-ratio:.74/1.24}}";
     document.head.appendChild(style);
   }
 
@@ -978,6 +978,11 @@
         !Number.isNaN(widget.discountPercentage)
           ? widget.discountPercentage
           : 0,
+      desktopColumns:
+        typeof widget.desktopColumns === "number" &&
+        !Number.isNaN(widget.desktopColumns)
+          ? Math.min(Math.max(widget.desktopColumns, 2), 4)
+          : 4,
       fontColor:
         typeof widget.fontColor === "string" && widget.fontColor
           ? widget.fontColor
@@ -987,6 +992,11 @@
           ? widget.fontFamily
           : "plex-sans",
       enabled: widget.widgetEnabled !== false,
+      mobileColumns:
+        typeof widget.mobileColumns === "number" &&
+        !Number.isNaN(widget.mobileColumns)
+          ? Math.min(Math.max(widget.mobileColumns, 1), 2)
+          : 2,
       productPageEnabled: widget.productPageEnabled !== false,
       quickAddLabel:
         typeof widget.quickAddLabel === "string" && widget.quickAddLabel
@@ -1121,6 +1131,14 @@
     container.style.fontFamily = resolveFontStack(widgetConfig.fontFamily);
     container.style.setProperty("--vortex-text", widgetConfig.fontColor);
     container.style.setProperty("--vortex-accent", widgetConfig.accentColor);
+    container.style.setProperty(
+      "--vortex-columns-desktop",
+      String(widgetConfig.desktopColumns || 4)
+    );
+    container.style.setProperty(
+      "--vortex-columns-mobile",
+      String(widgetConfig.mobileColumns || 2)
+    );
     container.style.setProperty("--vortex-font", resolveFontStack(widgetConfig.fontFamily));
     container.style.setProperty(
       "--vortex-action-text",

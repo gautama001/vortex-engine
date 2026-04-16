@@ -2,6 +2,7 @@ import { StoreStatus } from "@prisma/client";
 import { unstable_noStore as noStore } from "next/cache";
 import { cookies } from "next/headers";
 
+import { AdminSessionRecovery } from "@/components/app/admin-session-recovery";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { ProfitFirstSummary } from "@/components/dashboard/profit-first-summary";
 import type { AnalyticsSnapshot } from "@/components/dashboard/types";
@@ -195,11 +196,13 @@ export default async function AppDashboardPage({
   const storefrontBaseUrl = storefrontContext?.primaryDomain
     ? storefrontContext.primaryDomain.replace(/\/+$/, "")
     : null;
+  const hasResolvedMerchantContext = Boolean(authenticatedStoreId && activeStore);
+  const resolvedStoreId = authenticatedStoreId ?? "";
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-[2280px] px-5 py-8 sm:px-7 lg:px-10 min-[1900px]:px-14">
       <div className="grid gap-10">
-        <ProfitFirstSummary {...profitSummary} />
+        {hasResolvedMerchantContext ? <ProfitFirstSummary {...profitSummary} /> : null}
 
         {installationError ? (
           <Card className="border-amber-400/30 bg-amber-500/5">
@@ -273,8 +276,9 @@ export default async function AppDashboardPage({
               </div>
               <CardTitle className="text-4xl tracking-[-0.04em]">Vortex Command Center</CardTitle>
               <CardDescription className="max-w-4xl text-base leading-7">
-                Panel de beta privada para gobernar configuracion visual, estrategia,
-                previsualizacion y activacion storefront sin tocar la base operativa ya validada.
+                {hasResolvedMerchantContext
+                  ? "Panel de beta privada para gobernar configuracion visual, estrategia, previsualizacion y activacion storefront sin tocar la base operativa ya validada."
+                  : "La capa operativa de Vortex esta online, pero necesitamos volver a enlazar la sesion merchant para mostrar productos, configuracion y storefront de la tienda correcta."}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -307,7 +311,7 @@ export default async function AppDashboardPage({
           </Card>
         </section>
 
-        {authenticatedStoreId && activeStore ? (
+        {hasResolvedMerchantContext ? (
           <DashboardShell
             analytics={analytics}
             appUrl={appUrl}
@@ -315,20 +319,12 @@ export default async function AppDashboardPage({
             productPageBaseUrl={storefrontBaseUrl}
             productionLoaderUrl={productionLoaderUrl}
             scriptDevelopmentUrl={scriptDevelopmentUrl}
-            storeId={authenticatedStoreId}
+            storeId={resolvedStoreId}
             storefront={storefrontContext}
             storefrontProducts={catalogPreview}
           />
         ) : (
-          <Card className="border-dashed border-white/15 bg-white/[0.03]">
-            <CardHeader>
-              <CardTitle>Store no disponible</CardTitle>
-              <CardDescription>
-                La sesion actual no tiene una tienda activa o todavia no terminamos de cargar el
-                contexto storefront.
-              </CardDescription>
-            </CardHeader>
-          </Card>
+          <AdminSessionRecovery appUrl={appUrl} />
         )}
       </div>
     </main>

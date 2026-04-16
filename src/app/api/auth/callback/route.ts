@@ -9,6 +9,8 @@ import { upsertStoreInstallation } from "@/services/store-service";
 
 export const runtime = "nodejs";
 
+const cookieSameSite = process.env.NODE_ENV === "production" ? "none" : "lax";
+
 export async function GET(request: NextRequest) {
   const { appUrl, clientSecret } = getTiendaNubeConfig();
   const code = request.nextUrl.searchParams.get("code");
@@ -90,7 +92,7 @@ export async function GET(request: NextRequest) {
       maxAge: 60 * 60 * 12,
       name: ADMIN_SESSION_COOKIE,
       path: "/",
-      sameSite: "lax",
+      sameSite: cookieSameSite,
       secure: process.env.NODE_ENV === "production",
       value: sessionValue,
     });

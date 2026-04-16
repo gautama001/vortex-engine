@@ -55,9 +55,13 @@ export const FONT_FAMILY_OPTIONS = [
 ] as const;
 
 export const DISCOUNT_PERCENTAGE_OPTIONS = [0, 10, 20, 30, 40, 50] as const;
+export const DESKTOP_COLUMN_OPTIONS = [2, 3, 4] as const;
+export const MOBILE_COLUMN_OPTIONS = [1, 2] as const;
 
 export type DiscountPercentageValue =
   (typeof DISCOUNT_PERCENTAGE_OPTIONS)[number];
+export type DesktopColumnValue = (typeof DESKTOP_COLUMN_OPTIONS)[number];
+export type MobileColumnValue = (typeof MOBILE_COLUMN_OPTIONS)[number];
 
 export type FontFamilyValue = (typeof FONT_FAMILY_OPTIONS)[number]["valor"];
 
@@ -66,11 +70,13 @@ export type PersistedWidgetConfig = {
   backgroundColor: string;
   borderRadius: number;
   cartPageEnabled: boolean;
+  desktopColumns: DesktopColumnValue;
   discountPercentage: DiscountPercentageValue;
   fontColor: string;
   fontFamily: FontFamilyValue;
   hideOutOfStock: boolean;
   manualRecommendationProductIds: number[];
+  mobileColumns: MobileColumnValue;
   productPageEnabled: boolean;
   quickAddLabel: string;
   recommendationAlgorithm: StrategyValue;
@@ -89,9 +95,11 @@ export type WidgetConfig = {
     accentColor: string;
     backgroundColor: string;
     borderRadius: number;
+    desktopColumns: DesktopColumnValue;
     discountPercentage: DiscountPercentageValue;
     fontColor: string;
     fontFamily: FontFamilyValue;
+    mobileColumns: MobileColumnValue;
     subtitulo: string;
     textoCta: string;
     titulo: string;
@@ -143,9 +151,11 @@ export const widgetConfigFromPersisted = (config: PersistedWidgetConfig): Widget
       accentColor: config.accentColor,
       backgroundColor: config.backgroundColor,
       borderRadius: config.borderRadius,
+      desktopColumns: config.desktopColumns,
       discountPercentage: config.discountPercentage,
       fontColor: config.fontColor,
       fontFamily: config.fontFamily,
+      mobileColumns: config.mobileColumns,
       subtitulo: config.widgetSubtitle,
       textoCta: config.quickAddLabel,
       titulo: config.widgetTitle,
@@ -172,11 +182,13 @@ export const widgetConfigToPersisted = (config: WidgetConfig): PersistedWidgetCo
     backgroundColor: config.estetica.backgroundColor,
     borderRadius: config.estetica.borderRadius,
     cartPageEnabled: config.posicionamiento.mostrarEnCarrito,
+    desktopColumns: config.estetica.desktopColumns,
     discountPercentage: config.estetica.discountPercentage,
     fontColor: config.estetica.fontColor,
     fontFamily: config.estetica.fontFamily,
     hideOutOfStock: config.filtros.ocultarSinStock,
     manualRecommendationProductIds: config.manuales.productIds,
+    mobileColumns: config.estetica.mobileColumns,
     productPageEnabled: config.posicionamiento.mostrarEnProducto,
     quickAddLabel: config.estetica.textoCta,
     recommendationAlgorithm: config.algoritmo,

@@ -8,9 +8,9 @@ import { Separator } from "@/components/ui/separator";
 import { hasCoreEnvironment } from "@/lib/env";
 
 const capabilities = [
-  "OAuth 2.0 de TiendaNube con persistencia en Prisma/PostgreSQL.",
-  "Cold start inteligente: related by category/tag y fallback a best sellers.",
-  "Script storefront sin dependencias con Quick Add via LS.cart.addItem.",
+  "Instalacion guiada para merchants de TiendaNube con sesion segura por tienda.",
+  "Recomendaciones listas para PDP y carrito con fallback automatico cuando falta data.",
+  "Quick add nativo y merchandising visual configurable sin tocar el theme.",
 ];
 
 export default function HomePage() {
@@ -18,6 +18,13 @@ export default function HomePage() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-8 sm:px-8 lg:px-10">
+      <div
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(circle at top, rgba(34,211,238,0.14), transparent 38%), radial-gradient(circle at 85% 20%, rgba(59,130,246,0.16), transparent 24%), linear-gradient(180deg, #07111a 0%, #04070d 60%, #02050a 100%)",
+        }}
+      />
       <div className="flex items-center justify-between">
         <Badge tone={environmentReady ? "success" : "danger"}>
           {environmentReady ? "Runtime listo" : "Config pendiente"}
@@ -32,14 +39,14 @@ export default function HomePage() {
         <div className="space-y-7">
           <div className="space-y-5">
             <p className="text-sm uppercase tracking-[0.32em] text-cyan-200/80">
-              Vortex Engine / TiendaNube Recommendations Core
+              Vortex para TiendaNube
             </p>
             <h1 className="max-w-4xl text-5xl font-semibold tracking-[-0.04em] text-white sm:text-6xl">
-              Recomendaciones Nexus-grade para storefronts que no pueden esperar datos perfectos.
+              Upsell, cross-sell y bundles visuales listos para vender mas desde el storefront.
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-slate-300">
-              El MVP queda preparado para Vercel, App Router, Prisma y widgets de upsell/cross-sell
-              con una estrategia de fallback robusta desde el dia cero.
+              Vortex conecta tu tienda, analiza catalogo y publica widgets de recomendaciones con
+              quick add real, branding configurable y una experiencia pensada para mobile commerce.
             </p>
           </div>
 
@@ -68,25 +75,24 @@ export default function HomePage() {
           <CardContent className="space-y-5">
             <div className="grid gap-3 text-sm text-slate-200">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="font-medium text-white">Auth Core</p>
+                <p className="font-medium text-white">Instalacion y autenticacion</p>
                 <p className="mt-2 leading-6 text-slate-300">
-                  `/oauth/tiendanube/install`, `/oauth/tiendanube/callback`, sesiones firmadas y
-                  asociacion opcional
-                  del script manual.
+                  Flujo OAuth con callback, sesion firmada por tienda y recuperacion segura cuando
+                  TiendaNube reabre la app sin contexto completo.
                 </p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="font-medium text-white">Recommendation Engine</p>
+                <p className="font-medium text-white">Motor de recomendaciones</p>
                 <p className="mt-2 leading-6 text-slate-300">
-                  `/api/v1/recommendations` resuelve related products por senales semanticas y
-                  rellena con best sellers cuando el store no tiene data suficiente.
+                  Estrategias IA, FBT y seleccion manual para alimentar widgets de producto y
+                  carrito con fallback a best sellers cuando el store todavia no tiene señales.
                 </p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="font-medium text-white">Injector</p>
+                <p className="font-medium text-white">Widget storefront</p>
                 <p className="mt-2 leading-6 text-slate-300">
-                  `public/vortex-injector.js` detecta Product Page o Cart, consulta la API y
-                  renderiza Quick Add dentro del DOM de TiendaNube.
+                  Inyeccion liviana para product page y cart drawer, con quick add, descuentos
+                  visuales y grillas adaptadas para desktop y mobile.
                 </p>
               </div>
             </div>

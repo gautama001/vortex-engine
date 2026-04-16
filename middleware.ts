@@ -12,6 +12,8 @@ export const config = {
   matcher: ["/app/:path*"],
 };
 
+const cookieSameSite = process.env.NODE_ENV === "production" ? "none" : "lax";
+
 const applyPrivateNoStoreHeaders = (response: NextResponse): NextResponse => {
   response.headers.set("Cache-Control", "private, no-store, max-age=0, must-revalidate");
   response.headers.set("Pragma", "no-cache");
@@ -81,8 +83,9 @@ export async function middleware(request: NextRequest) {
 
         response.cookies.set(ADMIN_SESSION_COOKIE, signedSession, {
           httpOnly: true,
+          maxAge: 60 * 60 * 12,
           path: "/",
-          sameSite: "lax",
+          sameSite: cookieSameSite,
           secure: process.env.NODE_ENV === "production",
         });
 
@@ -100,7 +103,13 @@ export async function middleware(request: NextRequest) {
       return applyPrivateNoStoreHeaders(NextResponse.next());
     }
 
-    return buildRootRedirect(request, "missing_admin_session");
+    const response = applyPrivateNoStoreHeaders(NextResponse.next());
+
+    if (sessionCookie) {
+      response.cookies.delete(ADMIN_SESSION_COOKIE);
+    }
+
+    return response;
   } catch {
     return buildRootRedirect(request, "admin_runtime_error");
   }

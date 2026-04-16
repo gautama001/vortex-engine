@@ -6,6 +6,8 @@ import { buildInstallUrl } from "@/lib/tiendanube/auth";
 
 export const runtime = "nodejs";
 
+const cookieSameSite = process.env.NODE_ENV === "production" ? "none" : "lax";
+
 export async function GET(request: NextRequest) {
   const storeDomain = request.nextUrl.searchParams.get("store_domain");
   const state = crypto.randomUUID();
@@ -19,7 +21,7 @@ export async function GET(request: NextRequest) {
       maxAge: 60 * 10,
       name: OAUTH_STATE_COOKIE,
       path: "/",
-      sameSite: "lax",
+      sameSite: cookieSameSite,
       secure: process.env.NODE_ENV === "production",
       value: state,
     });

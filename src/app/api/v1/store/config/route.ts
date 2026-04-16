@@ -11,11 +11,15 @@ import {
   type StoreWidgetSettings,
 } from "@/services/store-service";
 import {
+  DESKTOP_COLUMN_OPTIONS,
   DISCOUNT_PERCENTAGE_OPTIONS,
   ESTRATEGIAS,
   FONT_FAMILY_OPTIONS,
+  MOBILE_COLUMN_OPTIONS,
+  type DesktopColumnValue,
   type DiscountPercentageValue,
   type FontFamilyValue,
+  type MobileColumnValue,
   type StrategyValue,
 } from "@/components/dashboard/types";
 
@@ -64,6 +68,8 @@ const VALID_FONT_FAMILIES = new Set<FontFamilyValue>(
 const VALID_DISCOUNT_PERCENTAGES = new Set<DiscountPercentageValue>(
   DISCOUNT_PERCENTAGE_OPTIONS,
 );
+const VALID_DESKTOP_COLUMNS = new Set<DesktopColumnValue>(DESKTOP_COLUMN_OPTIONS);
+const VALID_MOBILE_COLUMNS = new Set<MobileColumnValue>(MOBILE_COLUMN_OPTIONS);
 
 const normalizeStrategy = (value: unknown, fallback: StrategyValue): StrategyValue => {
   return typeof value === "string" && VALID_STRATEGIES.has(value as StrategyValue)
@@ -86,6 +92,30 @@ const normalizeDiscountPercentage = (
 
   return VALID_DISCOUNT_PERCENTAGES.has(normalized as DiscountPercentageValue)
     ? (normalized as DiscountPercentageValue)
+    : fallback;
+};
+
+const normalizeDesktopColumns = (
+  value: unknown,
+  fallback: DesktopColumnValue,
+): DesktopColumnValue => {
+  const normalized =
+    typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+
+  return VALID_DESKTOP_COLUMNS.has(normalized as DesktopColumnValue)
+    ? (normalized as DesktopColumnValue)
+    : fallback;
+};
+
+const normalizeMobileColumns = (
+  value: unknown,
+  fallback: MobileColumnValue,
+): MobileColumnValue => {
+  const normalized =
+    typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+
+  return VALID_MOBILE_COLUMNS.has(normalized as MobileColumnValue)
+    ? (normalized as MobileColumnValue)
     : fallback;
 };
 
@@ -113,6 +143,10 @@ const normalizeStoreConfigPayload = (payload: unknown): Partial<StoreWidgetSetti
       config.cartPageEnabled,
       DEFAULT_STORE_WIDGET_SETTINGS.cartPageEnabled,
     ),
+    desktopColumns: normalizeDesktopColumns(
+      config.desktopColumns,
+      DEFAULT_STORE_WIDGET_SETTINGS.desktopColumns,
+    ),
     discountPercentage: normalizeDiscountPercentage(
       config.discountPercentage,
       DEFAULT_STORE_WIDGET_SETTINGS.discountPercentage,
@@ -126,6 +160,10 @@ const normalizeStoreConfigPayload = (payload: unknown): Partial<StoreWidgetSetti
     manualRecommendationProductIds: normalizeProductIdList(
       config.manualRecommendationProductIds,
       DEFAULT_STORE_WIDGET_SETTINGS.manualRecommendationProductIds,
+    ),
+    mobileColumns: normalizeMobileColumns(
+      config.mobileColumns,
+      DEFAULT_STORE_WIDGET_SETTINGS.mobileColumns,
     ),
     productPageEnabled: normalizeBoolean(
       config.productPageEnabled,
@@ -234,11 +272,13 @@ const handleStoreConfigUpdate = async (request: Request) => {
           backgroundColor: updatedStore.backgroundColor,
           borderRadius: updatedStore.borderRadius,
           cartPageEnabled: updatedStore.cartPageEnabled,
+          desktopColumns: updatedStore.desktopColumns,
           discountPercentage: updatedStore.discountPercentage,
           fontColor: updatedStore.fontColor,
           fontFamily: updatedStore.fontFamily,
           hideOutOfStock: updatedStore.hideOutOfStock,
           manualRecommendationProductIds: updatedStore.manualRecommendationProductIds,
+          mobileColumns: updatedStore.mobileColumns,
           productPageEnabled: updatedStore.productPageEnabled,
           quickAddLabel: updatedStore.quickAddLabel,
           recommendationAlgorithm: updatedStore.recommendationAlgorithm,

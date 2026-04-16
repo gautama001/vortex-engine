@@ -9,19 +9,18 @@ export const InstallForm = () => {
     >
       <label className="grid gap-2">
         <span className="text-[11px] font-medium uppercase tracking-[0.28em] text-slate-400">
-          Tienda de destino
+          URL o subdominio de la tienda
         </span>
         <input
           autoComplete="off"
           className="h-12 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:bg-white/10"
           name="store_domain"
-          placeholder="mitienda.mitiendanube.com"
+          placeholder="gautamashoes.mitiendanube.com o www.tumarca.com"
           type="text"
         />
         <span className="text-xs leading-5 text-slate-400">
-          Si pegas el subdominio de TiendaNube o Nuvemshop abrimos el authorize directo de esa
-          tienda. Si pegas un dominio custom publico, Vortex deriva al authorize general para que
-          TiendaNube resuelva la sesion correcta.
+          Podes pegar el subdominio de TiendaNube o el dominio publico de la tienda. Vortex
+          inicia el flujo de autorizacion y deja la sesion merchant lista para abrir el panel.
         </span>
       </label>
 

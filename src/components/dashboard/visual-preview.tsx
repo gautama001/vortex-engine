@@ -92,6 +92,7 @@ const buildPreviewDocument = (
   config: MerchantWidgetConfig,
   products: MerchantPreviewProduct[],
   storefront: MerchantStorefrontContext | null,
+  viewport: "desktop" | "mobile",
 ): string => {
   const heroProduct = products[0] ?? null;
   const recommendedProducts = products.slice(1, config.recommendationLimit + 1);
@@ -101,13 +102,14 @@ const buildPreviewDocument = (
       ? "Comprados juntos (FBT)"
       : config.recommendationAlgorithm === "seleccion-manual"
         ? "Seleccion manual"
-        : "IA Engine";
+          : "IA Engine";
   const emptyStateCopy =
     config.recommendationAlgorithm === "seleccion-manual"
       ? "Agrega productos manuales desde el auditor para ver la grilla final del widget."
       : "Todavia no hay suficientes recomendaciones para renderizar la vista previa.";
   const fontStack = resolveFontStack(config.fontFamily);
   const actionTextColor = getContrastTextColor(config.accentColor);
+  const isMobileViewport = viewport === "mobile";
 
   const widgetCards = recommendedProducts
     .map((product) => {
@@ -192,6 +194,8 @@ const buildPreviewDocument = (
             --vortex-text: ${config.fontColor};
             --vortex-font: ${fontStack};
             --vortex-action-text: ${actionTextColor};
+            --vortex-columns-desktop: ${config.desktopColumns};
+            --vortex-columns-mobile: ${config.mobileColumns};
           }
           * { box-sizing: border-box; }
           body {
@@ -332,7 +336,7 @@ const buildPreviewDocument = (
           .vortex-grid {
             display: grid;
             gap: 12px;
-            grid-template-columns: repeat(${Math.max(2, Math.min(config.recommendationLimit, 4))}, minmax(0, 1fr));
+            grid-template-columns: repeat(var(--vortex-columns-desktop), minmax(0, 1fr));
           }
           .vortex-empty {
             grid-column: 1 / -1;
@@ -354,7 +358,7 @@ const buildPreviewDocument = (
           }
           .vortex-image {
             width: 100%;
-            aspect-ratio: 0.77 / 1;
+            aspect-ratio: 0.76 / 1.14;
             border-radius: calc(var(--vortex-radius) - 8px);
             object-fit: cover;
             object-position: center top;
@@ -419,16 +423,16 @@ const buildPreviewDocument = (
               grid-template-columns: 1fr;
             }
             .vortex-grid {
-              grid-template-columns: repeat(2, minmax(0, 1fr));
+              grid-template-columns: repeat(var(--vortex-columns-mobile), minmax(0, 1fr));
             }
             .vortex-image {
-              aspect-ratio: 0.72 / 1;
+              aspect-ratio: 0.74 / 1.24;
             }
           }
         </style>
       </head>
       <body>
-        <div class="frame">
+        <div class="frame" data-viewport="${isMobileViewport ? "mobile" : "desktop"}">
           <div class="storefront">
         <div class="topbar">
           <div class="topbar__brand">
@@ -468,7 +472,10 @@ const buildPreviewDocument = (
 
 export const VisualPreview = ({ config, products, storefront }: VisualPreviewProps) => {
   const previewDocument = useMemo(() => {
-    return buildPreviewDocument(config, products, storefront);
+    return buildPreviewDocument(config, products, storefront, "desktop");
+  }, [config, products, storefront]);
+  const mobilePreviewDocument = useMemo(() => {
+    return buildPreviewDocument(config, products, storefront, "mobile");
   }, [config, products, storefront]);
 
   return (
@@ -493,13 +500,48 @@ export const VisualPreview = ({ config, products, storefront }: VisualPreviewPro
         </div>
       </CardHeader>
       <CardContent className="pb-6">
-        <div className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/50 p-3 shadow-[0_30px_80px_-50px_rgba(88,226,243,0.35)]">
-          <iframe
-            className="h-[720px] w-full rounded-[22px] bg-white xl:h-[820px] min-[1950px]:h-[960px]"
-            sandbox="allow-same-origin"
-            srcDoc={previewDocument}
-            title="Vortex storefront preview"
-          />
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/50 p-3 shadow-[0_30px_80px_-50px_rgba(88,226,243,0.35)]">
+            <div className="mb-3 flex items-center justify-between gap-3 px-1">
+              <div>
+                <p className="text-sm font-medium text-white">Preview desktop</p>
+                <p className="text-xs text-slate-400">
+                  {config.desktopColumns} columnas activas para storefront desktop.
+                </p>
+              </div>
+              <div className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-400">
+                Desktop
+              </div>
+            </div>
+            <iframe
+              className="h-[720px] w-full rounded-[22px] bg-white xl:h-[800px] min-[1950px]:h-[920px]"
+              sandbox="allow-same-origin"
+              srcDoc={previewDocument}
+              title="Vortex storefront preview desktop"
+            />
+          </div>
+
+          <div className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/50 p-3 shadow-[0_30px_80px_-50px_rgba(88,226,243,0.24)]">
+            <div className="mb-3 flex items-center justify-between gap-3 px-1">
+              <div>
+                <p className="text-sm font-medium text-white">Preview mobile</p>
+                <p className="text-xs text-slate-400">
+                  {config.mobileColumns} columnas activas para storefront mobile.
+                </p>
+              </div>
+              <div className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-400">
+                Mobile
+              </div>
+            </div>
+            <div className="mx-auto w-full max-w-[340px] overflow-hidden rounded-[30px] border border-white/10 bg-[#02050a] p-2">
+              <iframe
+                className="h-[760px] w-full rounded-[24px] bg-white"
+                sandbox="allow-same-origin"
+                srcDoc={mobilePreviewDocument}
+                title="Vortex storefront preview mobile"
+              />
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

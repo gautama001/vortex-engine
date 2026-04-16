@@ -15,8 +15,10 @@ import { useForm, useWatch } from "react-hook-form";
 
 import { StrategySelector } from "@/components/dashboard/strategy-selector";
 import {
+  DESKTOP_COLUMN_OPTIONS,
   DISCOUNT_PERCENTAGE_OPTIONS,
   FONT_FAMILY_OPTIONS,
+  MOBILE_COLUMN_OPTIONS,
   REGLAS_DE_INVENTARIO,
   type MerchantWidgetConfig,
 } from "@/components/dashboard/types";
@@ -54,6 +56,10 @@ const parseJsonSafely = <T,>(rawValue: string): T | null => {
 
 const sectionTitleClass = "text-xs uppercase tracking-[0.28em] text-slate-500";
 const HEX_COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+const darkOptionStyle = {
+  backgroundColor: "#0b1220",
+  color: "#e5eef5",
+};
 
 const normalizeHexInput = (value: string): string => {
   if (!value) {
@@ -134,6 +140,9 @@ export const ConfigurationForm = ({
         watchedValues.backgroundColor ?? savedConfig.backgroundColor,
       ),
       borderRadius: Number(watchedValues.borderRadius ?? savedConfig.borderRadius),
+      desktopColumns: Number(
+        watchedValues.desktopColumns ?? savedConfig.desktopColumns,
+      ) as MerchantWidgetConfig["desktopColumns"],
       discountPercentage: Number(
         watchedValues.discountPercentage ?? savedConfig.discountPercentage,
       ) as MerchantWidgetConfig["discountPercentage"],
@@ -143,6 +152,9 @@ export const ConfigurationForm = ({
         watchedValues.manualRecommendationProductIds ??
         manualSelectionProductIds ??
         savedConfig.manualRecommendationProductIds,
+      mobileColumns: Number(
+        watchedValues.mobileColumns ?? savedConfig.mobileColumns,
+      ) as MerchantWidgetConfig["mobileColumns"],
       recommendationLimit: Number(
         watchedValues.recommendationLimit ?? savedConfig.recommendationLimit,
       ),
@@ -420,10 +432,11 @@ export const ConfigurationForm = ({
             <span className="text-sm text-slate-300">Tipografia</span>
             <select
               className="h-12 rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm text-white outline-none"
+              style={{ colorScheme: "dark" }}
               {...register("fontFamily")}
             >
               {FONT_FAMILY_OPTIONS.map((option) => (
-                <option key={option.valor} value={option.valor}>
+                <option key={option.valor} style={darkOptionStyle} value={option.valor}>
                   {option.etiqueta}
                 </option>
               ))}
@@ -515,12 +528,13 @@ export const ConfigurationForm = ({
             <span className="text-sm text-slate-300">Descuento visual</span>
             <select
               className="h-12 rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm text-white outline-none"
+              style={{ colorScheme: "dark" }}
               {...register("discountPercentage", {
                 valueAsNumber: true,
               })}
             >
               {DISCOUNT_PERCENTAGE_OPTIONS.map((option) => (
-                <option key={option} value={option}>
+                <option key={option} style={darkOptionStyle} value={option}>
                   {option === 0 ? "Sin descuento" : `${option}% OFF`}
                 </option>
               ))}
@@ -529,6 +543,42 @@ export const ConfigurationForm = ({
               Visual merchandising para la card. No altera todavia el precio transaccional del checkout.
             </span>
           </label>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="text-sm text-slate-300">Columnas desktop</span>
+              <select
+                className="h-12 rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm text-white outline-none"
+                style={{ colorScheme: "dark" }}
+                {...register("desktopColumns", {
+                  valueAsNumber: true,
+                })}
+              >
+                {DESKTOP_COLUMN_OPTIONS.map((option) => (
+                  <option key={option} style={darkOptionStyle} value={option}>
+                    {option} columnas
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm text-slate-300">Columnas mobile</span>
+              <select
+                className="h-12 rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm text-white outline-none"
+                style={{ colorScheme: "dark" }}
+                {...register("mobileColumns", {
+                  valueAsNumber: true,
+                })}
+              >
+                {MOBILE_COLUMN_OPTIONS.map((option) => (
+                  <option key={option} style={darkOptionStyle} value={option}>
+                    {option} columnas
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
       </section>
 
