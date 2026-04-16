@@ -19,8 +19,9 @@ export const InstallForm = () => {
           type="text"
         />
         <span className="text-xs leading-5 text-slate-400">
-          Usa el subdominio de TiendaNube o Nuvemshop. No pegues el dominio custom publico de la
-          tienda.
+          Si pegas el subdominio de TiendaNube o Nuvemshop abrimos el authorize directo de esa
+          tienda. Si pegas un dominio custom publico, Vortex deriva al authorize general para que
+          TiendaNube resuelva la sesion correcta.
         </span>
       </label>
 
