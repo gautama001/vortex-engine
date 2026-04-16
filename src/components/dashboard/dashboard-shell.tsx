@@ -265,8 +265,8 @@ const DashboardContent = ({
   }, [previewProducts, productPageBaseUrl]);
 
   return (
-    <section className="grid gap-8 xl:grid-cols-[360px_minmax(0,1fr)_280px] 2xl:grid-cols-[390px_minmax(820px,1fr)_300px]">
-      <div className="grid gap-7">
+    <section className="grid gap-8 xl:grid-cols-[minmax(340px,0.96fr)_minmax(0,1.18fr)] 2xl:grid-cols-[minmax(360px,0.92fr)_minmax(0,1.22fr)_minmax(310px,0.72fr)]">
+      <div className="grid gap-7 self-start">
         <Card className="border-white/8 bg-white/[0.03]">
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -289,7 +289,7 @@ const DashboardContent = ({
         </Card>
       </div>
 
-      <div className="grid gap-7">
+      <div className="grid gap-7 self-start">
         <VisualPreview config={persistedDraft} products={previewProducts} storefront={storefront} />
         <LiveAuditor
           manualSelectionProductIds={persistedDraft.manualRecommendationProductIds}
@@ -304,7 +304,7 @@ const DashboardContent = ({
         />
       </div>
 
-      <div className="grid gap-7">
+      <div className="grid gap-7 self-start xl:col-span-2 xl:grid-cols-2 2xl:col-span-1 2xl:grid-cols-1">
         <Card className="border-white/8 bg-white/[0.03]">
           <CardHeader>
             <div className="flex items-center gap-2">

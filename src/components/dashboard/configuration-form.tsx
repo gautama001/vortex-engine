@@ -291,20 +291,23 @@ export const ConfigurationForm = ({
                 pattern: HEX_COLOR_PATTERN,
               })}
             />
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2">
-              <input
-                className="h-10 w-10 cursor-pointer rounded-xl border border-white/10 bg-transparent"
-                type="color"
-                onChange={(event) => setBackgroundColorDraft(event.target.value.toUpperCase())}
-                value={backgroundColorDraft}
-              />
-              <input
-                className="h-10 flex-1 rounded-xl border border-white/10 bg-slate-950/50 px-3 text-sm text-white outline-none"
-                type="text"
-                onChange={(event) => setBackgroundColorDraft(event.target.value.toUpperCase())}
-                value={backgroundColorDraft}
-              />
+            <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3">
+              <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
+                <input
+                  className="h-10 w-10 cursor-pointer rounded-xl border border-white/10 bg-transparent"
+                  type="color"
+                  onChange={(event) => setBackgroundColorDraft(event.target.value.toUpperCase())}
+                  value={backgroundColorDraft}
+                />
+                <input
+                  className="h-10 min-w-0 rounded-xl border border-white/10 bg-slate-950/50 px-3 text-sm text-white outline-none"
+                  type="text"
+                  onChange={(event) => setBackgroundColorDraft(event.target.value.toUpperCase())}
+                  value={backgroundColorDraft}
+                />
+              </div>
               <Button
+                className="w-full"
                 onClick={() => applyColorDraft("backgroundColor")}
                 size="sm"
                 type="button"
@@ -326,20 +329,23 @@ export const ConfigurationForm = ({
                 pattern: HEX_COLOR_PATTERN,
               })}
             />
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2">
-              <input
-                className="h-10 w-10 cursor-pointer rounded-xl border border-white/10 bg-transparent"
-                type="color"
-                onChange={(event) => setAccentColorDraft(event.target.value.toUpperCase())}
-                value={accentColorDraft}
-              />
-              <input
-                className="h-10 flex-1 rounded-xl border border-white/10 bg-slate-950/50 px-3 text-sm text-white outline-none"
-                type="text"
-                onChange={(event) => setAccentColorDraft(event.target.value.toUpperCase())}
-                value={accentColorDraft}
-              />
+            <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3">
+              <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
+                <input
+                  className="h-10 w-10 cursor-pointer rounded-xl border border-white/10 bg-transparent"
+                  type="color"
+                  onChange={(event) => setAccentColorDraft(event.target.value.toUpperCase())}
+                  value={accentColorDraft}
+                />
+                <input
+                  className="h-10 min-w-0 rounded-xl border border-white/10 bg-slate-950/50 px-3 text-sm text-white outline-none"
+                  type="text"
+                  onChange={(event) => setAccentColorDraft(event.target.value.toUpperCase())}
+                  value={accentColorDraft}
+                />
+              </div>
               <Button
+                className="w-full"
                 onClick={() => applyColorDraft("accentColor")}
                 size="sm"
                 type="button"
