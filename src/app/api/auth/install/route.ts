@@ -39,7 +39,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         error: "invalid_install_request",
-        message: "El dominio de TiendaNube no es valido.",
+        message:
+          "Usa el subdominio de TiendaNube o Nuvemshop para instalar la app, por ejemplo mitienda.mitiendanube.com.",
       },
       { status: 400 },
     );

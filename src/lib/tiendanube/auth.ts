@@ -65,6 +65,12 @@ export const buildInstallUrl = (storeDomain?: string | null, state?: string): st
   const useStoreSpecificAdminRoute = normalizedStoreDomain
     ? isPlatformStoreDomain(normalizedStoreDomain)
     : false;
+
+  if (normalizedStoreDomain && !useStoreSpecificAdminRoute) {
+    throw new Error(
+      "Unsupported TiendaNube install domain. Use the TiendaNube/Nuvemshop subdomain.",
+    );
+  }
   const baseUrl =
     normalizedStoreDomain && useStoreSpecificAdminRoute
       ? `https://${normalizedStoreDomain}`
