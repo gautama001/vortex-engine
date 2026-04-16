@@ -15,9 +15,13 @@ export const InstallForm = () => {
           autoComplete="off"
           className="h-12 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:bg-white/10"
           name="store_domain"
-          placeholder="mimarca.mitiendanube.com"
+          placeholder="mitienda.mitiendanube.com"
           type="text"
         />
+        <span className="text-xs leading-5 text-slate-400">
+          Usa el subdominio de TiendaNube o Nuvemshop. No pegues el dominio custom publico de la
+          tienda.
+        </span>
       </label>
 
       <div className="flex items-end">

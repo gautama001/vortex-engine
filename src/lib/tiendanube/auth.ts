@@ -6,6 +6,14 @@ import {
   TiendaNubeApiError,
 } from "@/lib/tiendanube/types";
 
+const TIENDANUBE_STORE_DOMAIN_SUFFIXES = [
+  ".mitiendanube.com",
+  ".tiendanube.com",
+  ".nuvemshop.com.br",
+  ".nuvemshop.com",
+  ".nuvemshop.com.ar",
+];
+
 type NormalizedTiendaNubeOauthTokenResponse = Omit<TiendaNubeOauthTokenResponse, "user_id"> & {
   user_id: string;
 };
@@ -18,6 +26,10 @@ const sanitizeStoreDomain = (value: string): string => {
   }
 
   return normalized;
+};
+
+const isPlatformStoreDomain = (value: string): boolean => {
+  return TIENDANUBE_STORE_DOMAIN_SUFFIXES.some((suffix) => value.endsWith(suffix));
 };
 
 const safeParseJson = (value: string): Record<string, unknown> | TiendaNubeOauthTokenResponse | null => {
@@ -49,8 +61,17 @@ const isOauthTokenResponse = (
 
 export const buildInstallUrl = (storeDomain?: string | null, state?: string): string => {
   const { appId, authBaseUrl } = getTiendaNubeConfig();
-  const baseUrl = storeDomain ? `https://${sanitizeStoreDomain(storeDomain)}` : authBaseUrl;
-  const pathname = storeDomain ? `/admin/apps/${appId}/authorize` : `/apps/${appId}/authorize`;
+  const normalizedStoreDomain = storeDomain ? sanitizeStoreDomain(storeDomain) : null;
+  const useStoreSpecificAdminRoute = normalizedStoreDomain
+    ? isPlatformStoreDomain(normalizedStoreDomain)
+    : false;
+  const baseUrl =
+    normalizedStoreDomain && useStoreSpecificAdminRoute
+      ? `https://${normalizedStoreDomain}`
+      : authBaseUrl;
+  const pathname = useStoreSpecificAdminRoute
+    ? `/admin/apps/${appId}/authorize`
+    : `/apps/${appId}/authorize`;
   const url = new URL(pathname, baseUrl);
 
   if (state) {
