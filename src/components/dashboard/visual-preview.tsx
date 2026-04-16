@@ -46,11 +46,18 @@ const buildPreviewDocument = (
   storefront: MerchantStorefrontContext | null,
 ): string => {
   const heroProduct = products[0] ?? null;
-  const recommendedProducts =
-    products.slice(1, config.recommendationLimit + 1).length > 0
-      ? products.slice(1, config.recommendationLimit + 1)
-      : products.slice(0, config.recommendationLimit);
+  const recommendedProducts = products.slice(1, config.recommendationLimit + 1);
   const currencyCode = storefront?.currencyCode ?? "ARS";
+  const strategyLabel =
+    config.recommendationAlgorithm === "comprados-juntos"
+      ? "Comprados juntos (FBT)"
+      : config.recommendationAlgorithm === "seleccion-manual"
+        ? "Seleccion manual"
+        : "IA Engine";
+  const emptyStateCopy =
+    config.recommendationAlgorithm === "seleccion-manual"
+      ? "Agrega productos manuales desde el auditor para ver la grilla final del widget."
+      : "Todavia no hay suficientes recomendaciones para renderizar la vista previa.";
 
   const widgetCards = recommendedProducts
     .map((product) => {
@@ -74,13 +81,21 @@ const buildPreviewDocument = (
     })
     .join("");
 
+  const widgetGridMarkup =
+    widgetCards ||
+    `
+      <div class="vortex-empty">
+        <p>${escapeHtml(emptyStateCopy)}</p>
+      </div>
+    `;
+
   const widgetState = config.widgetEnabled
     ? `
       <section class="vortex-widget">
-        <div class="vortex-eyebrow">Combine and Save</div>
+        <div class="vortex-eyebrow">${escapeHtml(strategyLabel)}</div>
         <h3>${escapeHtml(config.widgetTitle)}</h3>
         <p>${escapeHtml(config.widgetSubtitle)}</p>
-        <div class="vortex-grid">${widgetCards}</div>
+        <div class="vortex-grid">${widgetGridMarkup}</div>
       </section>
     `
     : `
@@ -241,6 +256,17 @@ const buildPreviewDocument = (
             display: grid;
             gap: 12px;
             grid-template-columns: repeat(${Math.max(2, Math.min(config.recommendationLimit, 4))}, minmax(0, 1fr));
+          }
+          .vortex-empty {
+            grid-column: 1 / -1;
+            padding: 20px;
+            border-radius: calc(var(--vortex-radius) - 4px);
+            border: 1px dashed rgba(255,255,255,.12);
+            background: rgba(255,255,255,.04);
+          }
+          .vortex-empty p {
+            margin: 0;
+            color: rgba(226,232,240,.82);
           }
           .vortex-card {
             padding: 12px;

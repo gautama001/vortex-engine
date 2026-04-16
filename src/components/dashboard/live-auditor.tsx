@@ -320,7 +320,7 @@ export const LiveAuditor = ({
             </div>
             <p className="mt-2 text-sm leading-6 text-slate-200">
               {recommendationAlgorithm === "seleccion-manual"
-                ? "Estos productos alimentan la estrategia activa y se reflejan en la vista previa."
+                ? "Estos productos alimentan la estrategia activa y desplazan a la grilla automatica en la vista previa."
                 : "Podes preparar una lista manual ahora y activarla mas adelante cuando cambies la estrategia."}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -375,6 +375,8 @@ export const LiveAuditor = ({
                   "grid gap-3 rounded-2xl border px-4 py-4 text-left transition",
                   isActive
                     ? "border-cyan-300/40 bg-cyan-300/10"
+                    : isManualSelected
+                      ? "border-cyan-300/20 bg-cyan-400/[0.06]"
                     : "border-white/8 bg-white/[0.03] hover:border-white/14 hover:bg-white/[0.05]",
                 )}
                 key={product.id}
@@ -391,7 +393,7 @@ export const LiveAuditor = ({
                     onClick={() => onSelectProduct(product.id)}
                     size="sm"
                     type="button"
-                    variant={isActive ? "secondary" : "ghost"}
+                    variant={isActive ? "primary" : "secondary"}
                   >
                     {isActive ? "Semilla activa" : "Usar como semilla"}
                   </Button>
@@ -399,9 +401,9 @@ export const LiveAuditor = ({
                     onClick={() => onToggleManualProduct(product.id)}
                     size="sm"
                     type="button"
-                    variant={isManualSelected ? "secondary" : "ghost"}
+                    variant={isManualSelected ? "primary" : "secondary"}
                   >
-                    {isManualSelected ? "Quitar de manual" : "Agregar a manual"}
+                    {isManualSelected ? "Agregado a manual" : "Agregar a manual"}
                   </Button>
                 </div>
               </article>

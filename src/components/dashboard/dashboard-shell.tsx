@@ -187,6 +187,38 @@ const DashboardContent = ({
     return sortedProducts;
   }, [catalogPool, draftConfig.algoritmo, draftConfig.manuales.productIds, selectedProductId]);
 
+  const previewProducts = useMemo(() => {
+    const productsById = new Map(catalogPool.map((product) => [product.id, product] as const));
+    const manualProducts = draftConfig.manuales.productIds
+      .map((productId) => productsById.get(productId) ?? null)
+      .filter((product): product is MerchantPreviewProduct => Boolean(product));
+    const selectedProduct = selectedProductId
+      ? (productsById.get(selectedProductId) ?? null)
+      : null;
+    const previewList: MerchantPreviewProduct[] = [];
+    const seenProductIds = new Set<number>();
+    const pushUnique = (product: MerchantPreviewProduct | null) => {
+      if (!product || seenProductIds.has(product.id)) {
+        return;
+      }
+
+      previewList.push(product);
+      seenProductIds.add(product.id);
+    };
+
+    if (draftConfig.algoritmo === "seleccion-manual") {
+      pushUnique(selectedProduct ?? manualProducts[0] ?? catalogPool[0] ?? null);
+      manualProducts.forEach(pushUnique);
+
+      return previewList;
+    }
+
+    pushUnique(selectedProduct ?? catalogPool[0] ?? null);
+    catalogPool.forEach(pushUnique);
+
+    return previewList;
+  }, [catalogPool, draftConfig.algoritmo, draftConfig.manuales.productIds, selectedProductId]);
+
   const previewApiUrl = useMemo(() => {
     const query = new URLSearchParams({
       store_id: storeId,
@@ -200,14 +232,14 @@ const DashboardContent = ({
   }, [appUrl, selectedProductId, storeId]);
 
   const storefrontUrl = useMemo(() => {
-    const selectedProduct = orderedProducts[0];
+    const selectedProduct = previewProducts[0];
 
     if (!productPageBaseUrl || !selectedProduct?.handle) {
       return productPageBaseUrl;
     }
 
     return `${productPageBaseUrl}/productos/${selectedProduct.handle}`;
-  }, [orderedProducts, productPageBaseUrl]);
+  }, [previewProducts, productPageBaseUrl]);
 
   return (
     <section className="grid gap-7 xl:grid-cols-[390px_minmax(0,1fr)_340px] 2xl:grid-cols-[430px_minmax(0,1fr)_380px]">
@@ -235,7 +267,7 @@ const DashboardContent = ({
       </div>
 
       <div className="grid gap-7">
-        <VisualPreview config={persistedDraft} products={orderedProducts} storefront={storefront} />
+        <VisualPreview config={persistedDraft} products={previewProducts} storefront={storefront} />
         <LiveAuditor
           manualSelectionProductIds={persistedDraft.manualRecommendationProductIds}
           onProductsLoaded={mergeCatalogProducts}

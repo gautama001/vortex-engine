@@ -195,20 +195,21 @@
       ".vortex-widget__button{height:42px;border-radius:999px;border:0;background:#67e8f9;color:#042030;font-weight:700;cursor:pointer;transition:transform .15s ease,opacity .15s ease}" +
       ".vortex-widget__button[disabled]{opacity:.65;cursor:wait}" +
       ".vortex-widget__button:hover{transform:translateY(-1px)}" +
-      ".vortex-quickadd-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(2,6,12,.72);backdrop-filter:blur(10px)}" +
-      ".vortex-quickadd-modal{position:relative;width:min(560px,100%);max-height:min(80vh,720px);overflow:auto;border-radius:28px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg,rgba(7,17,26,.98),rgba(3,8,14,.99));padding:24px;color:#eef6ff;box-shadow:0 40px 100px -40px rgba(34,211,238,.45)}" +
-      ".vortex-quickadd-close{position:absolute;top:16px;right:16px;border:0;background:rgba(255,255,255,.08);color:#fff;width:38px;height:38px;border-radius:999px;font-size:24px;line-height:1;cursor:pointer}" +
+      ".vortex-quickadd-overlay{--vortex-modal-bg:#07111a;--vortex-modal-accent:#67e8f9;--vortex-modal-radius:24px;position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(2,6,12,.72);backdrop-filter:blur(10px)}" +
+      ".vortex-quickadd-modal{position:relative;width:min(560px,100%);max-height:min(80vh,720px);overflow:auto;border-radius:calc(var(--vortex-modal-radius) + 4px);border:1px solid color-mix(in srgb,var(--vortex-modal-accent) 22%, rgba(255,255,255,.08));background:linear-gradient(180deg,var(--vortex-modal-bg),color-mix(in srgb,var(--vortex-modal-bg) 88%, #02060c 12%));padding:24px;color:#eef6ff;box-shadow:0 40px 100px -40px color-mix(in srgb,var(--vortex-modal-accent) 42%, transparent)}" +
+      ".vortex-quickadd-close{position:absolute;top:16px;right:16px;border:1px solid color-mix(in srgb,var(--vortex-modal-accent) 18%, rgba(255,255,255,.06));background:rgba(255,255,255,.08);color:#fff;width:38px;height:38px;border-radius:999px;font-size:24px;line-height:1;cursor:pointer}" +
       ".vortex-quickadd-header{display:grid;grid-template-columns:96px minmax(0,1fr);gap:16px;align-items:start}" +
       ".vortex-quickadd-image{width:96px;height:96px;border-radius:20px;object-fit:cover;background:rgba(255,255,255,.06)}" +
       ".vortex-quickadd-image--placeholder{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02))}" +
       ".vortex-quickadd-copy h4{margin:6px 0 8px;font-size:22px;line-height:1.15;color:#fff}" +
       ".vortex-quickadd-copy p{margin:0;color:#b4c6d9;font-size:14px;line-height:1.6}" +
-      ".vortex-quickadd-eyebrow{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.3);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#cffafe}" +
       ".vortex-quickadd-body{display:grid;gap:16px;margin-top:20px}" +
       ".vortex-quickadd-options{display:grid;gap:14px}" +
       ".vortex-quickadd-field{display:grid;gap:8px}" +
       ".vortex-quickadd-label{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#94a3b8}" +
-      ".vortex-quickadd-select{height:46px;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);padding:0 14px;color:#fff;font:inherit}" +
+      ".vortex-quickadd-select{height:46px;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);padding:0 14px;color:#e2e8f0;font:inherit}" +
+      ".vortex-quickadd-select.is-placeholder{color:#94a3b8}" +
+      ".vortex-quickadd-select option{color:#0f172a;background:#ffffff}" +
       ".vortex-quickadd-submit{width:100%}" +
       "@media (max-width:640px){.vortex-quickadd-modal{padding:20px}.vortex-quickadd-header{grid-template-columns:1fr}.vortex-quickadd-image{width:100%;height:auto;aspect-ratio:1/1}}";
     document.head.appendChild(style);
@@ -245,6 +246,30 @@
     } catch (_error) {
       return "$" + value;
     }
+  }
+
+  function getContrastTextColor(hexColor) {
+    var normalized = String(hexColor || "").replace("#", "");
+
+    if (normalized.length === 3) {
+      normalized = normalized
+        .split("")
+        .map(function (character) {
+          return character + character;
+        })
+        .join("");
+    }
+
+    if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
+      return "#08131f";
+    }
+
+    var red = parseInt(normalized.slice(0, 2), 16);
+    var green = parseInt(normalized.slice(2, 4), 16);
+    var blue = parseInt(normalized.slice(4, 6), 16);
+    var luminance = red * 0.299 + green * 0.587 + blue * 0.114;
+
+    return luminance > 176 ? "#08131f" : "#f8fafc";
   }
 
   function prettyReason(reason) {
@@ -447,47 +472,172 @@
     return "Elegi opciones";
   }
 
-  function addVariantToCart(variantId, triggerButton, fallbackItem) {
-    if (!variantId) {
-      window.location.href = buildProductUrl(fallbackItem);
-      return Promise.resolve();
+  function createHiddenInput(name, value) {
+    var input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = value;
+
+    return input;
+  }
+
+  function buildSyntheticCartForm(snapshot, selection) {
+    if (!snapshot || !snapshot.productId) {
+      return null;
     }
 
-    if (!window.LS || !window.LS.cart || typeof window.LS.cart.addItem !== "function") {
-      window.location.href = buildProductUrl(fallbackItem);
-      return Promise.resolve();
+    var form = document.createElement("form");
+    form.action = resolveStoreUrl() + "/comprar/";
+    form.className = "js-product-form";
+    form.method = "post";
+    form.style.display = "none";
+    form.setAttribute("data-store", "product-form-" + String(snapshot.productId));
+    form.appendChild(createHiddenInput("add_to_cart", String(snapshot.productId)));
+    form.appendChild(createHiddenInput("quantity", "1"));
+
+    selection.forEach(function (value, index) {
+      if (!value) {
+        return;
+      }
+
+      form.appendChild(createHiddenInput("variation[" + index + "]", value));
+    });
+
+    return form;
+  }
+
+  function nativeAddToCart(snapshot, selection) {
+    if (
+      !snapshot ||
+      !snapshot.productId ||
+      !Array.isArray(selection) ||
+      selection.length === 0 ||
+      !window.LS ||
+      typeof window.LS.addToCartEnhanced !== "function" ||
+      typeof window.jQueryNuvem !== "function"
+    ) {
+      return Promise.reject(new Error("Native add to cart unavailable"));
     }
 
+    var form = buildSyntheticCartForm(snapshot, selection);
+
+    if (!form) {
+      return Promise.reject(new Error("Unable to build cart form"));
+    }
+
+    document.body.appendChild(form);
+
+    return new Promise(function (resolve, reject) {
+      var settled = false;
+
+      function cleanup() {
+        if (form.parentNode) {
+          form.parentNode.removeChild(form);
+        }
+      }
+
+      function handleResolve() {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        cleanup();
+        resolve();
+      }
+
+      function handleReject() {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        cleanup();
+        reject(new Error("Native add to cart failed"));
+      }
+
+      try {
+        window.LS.addToCartEnhanced(
+          window.jQueryNuvem(form),
+          "Listo",
+          "Agregando...",
+          "No hay mas stock de este producto.",
+          false,
+          handleResolve,
+          handleReject
+        );
+      } catch (_error) {
+        handleReject();
+      }
+    });
+  }
+
+  function addVariantToCart(input) {
+    var fallbackItem = input && input.fallbackItem ? input.fallbackItem : null;
+    var selection =
+      input && Array.isArray(input.selection) ? input.selection.slice() : [];
+    var snapshot = input && input.snapshot ? input.snapshot : null;
+    var triggerButton = input && input.triggerButton ? input.triggerButton : null;
+    var variantId = input && input.variantId ? input.variantId : null;
     var originalText = triggerButton ? triggerButton.textContent : "";
+    var shouldTryNative = snapshot && selection.length > 0;
+
+    function restoreAfterSuccess() {
+      if (triggerButton) {
+        triggerButton.textContent = "Agregado";
+      }
+
+      closeQuickAddOverlay();
+      scheduleBoot(220);
+
+      window.setTimeout(function () {
+        if (triggerButton) {
+          triggerButton.disabled = false;
+          triggerButton.textContent = originalText;
+        }
+      }, 1200);
+    }
+
+    function restoreAfterFailure() {
+      if (triggerButton) {
+        triggerButton.disabled = false;
+        triggerButton.textContent = "Ver producto";
+      }
+
+      window.location.href = buildProductUrl(fallbackItem);
+    }
+
+    function tryDirectAdd() {
+      if (!variantId || !window.LS || !window.LS.cart || typeof window.LS.cart.addItem !== "function") {
+        return Promise.reject(new Error("Direct add unavailable"));
+      }
+
+      return Promise.resolve(window.LS.cart.addItem(variantId, 1));
+    }
+
+    if (!variantId && !shouldTryNative) {
+      restoreAfterFailure();
+      return Promise.resolve();
+    }
 
     if (triggerButton) {
       triggerButton.disabled = true;
       triggerButton.textContent = "Agregando...";
     }
 
-    return Promise.resolve(window.LS.cart.addItem(variantId, 1))
-      .then(function () {
-        if (triggerButton) {
-          triggerButton.textContent = "Agregado";
+    return (shouldTryNative ? nativeAddToCart(snapshot, selection) : tryDirectAdd())
+      .catch(function () {
+        if (shouldTryNative) {
+          return tryDirectAdd();
         }
 
-        closeQuickAddOverlay();
-        scheduleBoot(220);
-
-        window.setTimeout(function () {
-          if (triggerButton) {
-            triggerButton.disabled = false;
-            triggerButton.textContent = originalText;
-          }
-        }, 1200);
+        throw new Error("Unable to add item");
+      })
+      .then(function () {
+        restoreAfterSuccess();
       })
       .catch(function () {
-        if (triggerButton) {
-          triggerButton.disabled = false;
-          triggerButton.textContent = "Ver producto";
-        }
-
-        window.location.href = buildProductUrl(fallbackItem);
+        restoreAfterFailure();
       });
   }
 
@@ -505,6 +655,12 @@
     var currentVariant = null;
 
     overlay.className = "vortex-quickadd-overlay";
+    overlay.style.setProperty("--vortex-modal-accent", widgetConfig.accentColor);
+    overlay.style.setProperty("--vortex-modal-bg", widgetConfig.backgroundColor);
+    overlay.style.setProperty(
+      "--vortex-modal-radius",
+      String(Math.max(widgetConfig.borderRadius, 18)) + "px"
+    );
     modal.className = "vortex-quickadd-modal";
     overlay.appendChild(modal);
     activeQuickAddOverlay = overlay;
@@ -513,6 +669,8 @@
     closeButton.type = "button";
     closeButton.textContent = "×";
     closeButton.addEventListener("click", closeQuickAddOverlay);
+
+    closeButton.innerHTML = "&times;";
 
     header.className = "vortex-quickadd-header";
     header.innerHTML =
@@ -523,7 +681,7 @@
           (snapshot.name || "Producto") +
           '">'
         : '<div class="vortex-quickadd-image vortex-quickadd-image--placeholder"></div>') +
-      '<div class="vortex-quickadd-copy"><p class="vortex-quickadd-eyebrow">Quick add real</p><h4>' +
+      '<div class="vortex-quickadd-copy"><h4>' +
       (snapshot.name || item.name || "Producto") +
       "</h4><p>Elegi las variantes antes de agregar al carrito.</p></div>";
 
@@ -532,6 +690,7 @@
 
     submitButton.className = "vortex-widget__button vortex-quickadd-submit";
     submitButton.style.background = widgetConfig.accentColor;
+    submitButton.style.color = getContrastTextColor(widgetConfig.accentColor);
     submitButton.textContent = widgetConfig.quickAddLabel;
     submitButton.type = "button";
 
@@ -543,6 +702,7 @@
         var field = document.createElement("label");
         var caption = document.createElement("span");
         var select = document.createElement("select");
+        var placeholderOption = document.createElement("option");
 
         field.className = "vortex-quickadd-field";
         caption.className = "vortex-quickadd-label";
@@ -555,14 +715,26 @@
           "Elegir " +
           (option.name || "opcion").toLowerCase() +
           "</option>";
+        select.innerHTML = "";
+        placeholderOption.value = "";
+        placeholderOption.textContent =
+          "Elegir " + (option.name || "opcion").toLowerCase();
+        placeholderOption.style.background = "#ffffff";
+        placeholderOption.style.color = "#0f172a";
+        select.appendChild(placeholderOption);
 
         optionValues.forEach(function (value) {
           var optionNode = document.createElement("option");
           optionNode.value = value;
           optionNode.textContent = value;
           optionNode.selected = selection[optionIndex] === value;
+          optionNode.style.background = "#ffffff";
+          optionNode.style.color = "#0f172a";
           select.appendChild(optionNode);
         });
+
+        select.value = selection[optionIndex] || "";
+        select.classList.toggle("is-placeholder", !selection[optionIndex]);
 
         select.addEventListener("change", function (event) {
           var nextValue = event.target.value || "";
@@ -594,6 +766,11 @@
         submitButton.textContent = getSelectionPrompt(snapshot);
         submitButton.disabled = true;
       }
+
+      if (currentVariant && typeof currentVariant.price === "number") {
+        submitButton.textContent =
+          widgetConfig.quickAddLabel + " - " + formatMoney(currentVariant.price);
+      }
     }
 
     submitButton.addEventListener("click", function () {
@@ -601,7 +778,13 @@
         return;
       }
 
-      addVariantToCart(currentVariant.id, submitButton, item);
+      addVariantToCart({
+        fallbackItem: item,
+        selection: selection,
+        snapshot: snapshot,
+        triggerButton: submitButton,
+        variantId: currentVariant.id,
+      });
     });
 
     overlay.addEventListener("click", function (event) {
@@ -624,7 +807,11 @@
       typeof item.variantCount === "number" && item.variantCount > 0 ? item.variantCount : 0;
 
     if (variantCount <= 1 && item && item.variantId) {
-      addVariantToCart(item.variantId, button, item);
+      addVariantToCart({
+        fallbackItem: item,
+        triggerButton: button,
+        variantId: item.variantId,
+      });
       return;
     }
 
@@ -645,7 +832,13 @@
           });
 
           if (onlyVariant) {
-            return addVariantToCart(onlyVariant.id, button, item);
+            return addVariantToCart({
+              fallbackItem: item,
+              selection: getVariantValues(onlyVariant),
+              snapshot: snapshot,
+              triggerButton: button,
+              variantId: onlyVariant.id,
+            });
           }
         }
 

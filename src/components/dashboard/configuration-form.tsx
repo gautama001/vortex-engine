@@ -48,6 +48,7 @@ const parseJsonSafely = <T,>(rawValue: string): T | null => {
 };
 
 const sectionTitleClass = "text-xs uppercase tracking-[0.28em] text-slate-500";
+const HEX_COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
 const normalizeHexInput = (value: string): string => {
   if (!value) {
@@ -55,6 +56,10 @@ const normalizeHexInput = (value: string): string => {
   }
 
   return value.startsWith("#") ? value.toUpperCase() : `#${value.toUpperCase()}`;
+};
+
+const isValidHexColor = (value: string): boolean => {
+  return HEX_COLOR_PATTERN.test(normalizeHexInput(value));
 };
 
 const PlacementToggle = ({
@@ -96,6 +101,8 @@ export const ConfigurationForm = ({
   savedConfig,
   storeId,
 }: ConfigurationFormProps) => {
+  const [accentColorDraft, setAccentColorDraft] = useState(savedConfig.accentColor);
+  const [backgroundColorDraft, setBackgroundColorDraft] = useState(savedConfig.backgroundColor);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>(null);
   const [isSaving, setIsSaving] = useState(false);
   const {
@@ -134,6 +141,11 @@ export const ConfigurationForm = ({
     reset(savedConfig);
     onConfigChange(savedConfig);
   }, [onConfigChange, reset, savedConfig]);
+
+  useEffect(() => {
+    setBackgroundColorDraft(savedConfig.backgroundColor);
+    setAccentColorDraft(savedConfig.accentColor);
+  }, [savedConfig.accentColor, savedConfig.backgroundColor]);
 
   useEffect(() => {
     setValue("manualRecommendationProductIds", manualSelectionProductIds, {
@@ -206,8 +218,38 @@ export const ConfigurationForm = ({
 
   const discardChanges = () => {
     reset(savedConfig);
+    setBackgroundColorDraft(savedConfig.backgroundColor);
+    setAccentColorDraft(savedConfig.accentColor);
     setSaveStatus(null);
     onConfigChange(savedConfig);
+  };
+
+  const applyColorDraft = (field: "accentColor" | "backgroundColor") => {
+    const nextValue =
+      field === "backgroundColor" ? backgroundColorDraft : accentColorDraft;
+    const normalizedValue = normalizeHexInput(nextValue);
+
+    if (!isValidHexColor(normalizedValue)) {
+      setSaveStatus({
+        kind: "error",
+        message: "Usa colores hex validos, por ejemplo #0A0F1A o #58E2F3.",
+      });
+      return;
+    }
+
+    setSaveStatus(null);
+    setValue(field, normalizedValue, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+
+    if (field === "backgroundColor") {
+      setBackgroundColorDraft(normalizedValue);
+      return;
+    }
+
+    setAccentColorDraft(normalizedValue);
   };
 
   return (
@@ -234,38 +276,72 @@ export const ConfigurationForm = ({
         <div className="grid gap-4">
           <label className="grid gap-2">
             <span className="text-sm text-slate-300">Color de fondo</span>
+            <input
+              type="hidden"
+              {...register("backgroundColor", {
+                pattern: HEX_COLOR_PATTERN,
+              })}
+            />
             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2">
               <input
                 className="h-10 w-10 cursor-pointer rounded-xl border border-white/10 bg-transparent"
                 type="color"
-                {...register("backgroundColor")}
+                onChange={(event) => setBackgroundColorDraft(event.target.value.toUpperCase())}
+                value={backgroundColorDraft}
               />
               <input
                 className="h-10 flex-1 rounded-xl border border-white/10 bg-slate-950/50 px-3 text-sm text-white outline-none"
                 type="text"
-                {...register("backgroundColor", {
-                  pattern: /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/,
-                })}
+                onChange={(event) => setBackgroundColorDraft(event.target.value.toUpperCase())}
+                value={backgroundColorDraft}
               />
+              <Button
+                onClick={() => applyColorDraft("backgroundColor")}
+                size="sm"
+                type="button"
+                variant="secondary"
+              >
+                Aplicar color
+              </Button>
             </div>
+            <span className="text-xs text-slate-500">
+              Si usas la pipeta del selector, confirma el cambio con "Aplicar color".
+            </span>
           </label>
 
           <label className="grid gap-2">
             <span className="text-sm text-slate-300">Color de acento</span>
+            <input
+              type="hidden"
+              {...register("accentColor", {
+                pattern: HEX_COLOR_PATTERN,
+              })}
+            />
             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2">
               <input
                 className="h-10 w-10 cursor-pointer rounded-xl border border-white/10 bg-transparent"
                 type="color"
-                {...register("accentColor")}
+                onChange={(event) => setAccentColorDraft(event.target.value.toUpperCase())}
+                value={accentColorDraft}
               />
               <input
                 className="h-10 flex-1 rounded-xl border border-white/10 bg-slate-950/50 px-3 text-sm text-white outline-none"
                 type="text"
-                {...register("accentColor", {
-                  pattern: /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/,
-                })}
+                onChange={(event) => setAccentColorDraft(event.target.value.toUpperCase())}
+                value={accentColorDraft}
               />
+              <Button
+                onClick={() => applyColorDraft("accentColor")}
+                size="sm"
+                type="button"
+                variant="secondary"
+              >
+                Aplicar color
+              </Button>
             </div>
+            <span className="text-xs text-slate-500">
+              Si usas la pipeta del selector, confirma el cambio con "Aplicar color".
+            </span>
           </label>
         </div>
 
