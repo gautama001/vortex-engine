@@ -109,6 +109,7 @@ export const ConfigurationForm = ({
     control,
     formState: { errors },
     handleSubmit,
+    register: registerField,
     register,
     reset,
     setValue,
@@ -127,6 +128,10 @@ export const ConfigurationForm = ({
         watchedValues.backgroundColor ?? savedConfig.backgroundColor,
       ),
       borderRadius: Number(watchedValues.borderRadius ?? savedConfig.borderRadius),
+      manualRecommendationProductIds:
+        watchedValues.manualRecommendationProductIds ??
+        manualSelectionProductIds ??
+        savedConfig.manualRecommendationProductIds,
       recommendationLimit: Number(
         watchedValues.recommendationLimit ?? savedConfig.recommendationLimit,
       ),
@@ -136,6 +141,10 @@ export const ConfigurationForm = ({
       hideOutOfStock: watchedValues.hideOutOfStock ?? savedConfig.hideOutOfStock,
     };
   }, [savedConfig, watchedValues]);
+
+  useEffect(() => {
+    registerField("manualRecommendationProductIds");
+  }, [registerField]);
 
   useEffect(() => {
     reset(savedConfig);

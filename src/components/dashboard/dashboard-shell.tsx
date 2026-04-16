@@ -141,16 +141,34 @@ const DashboardContent = ({
 
   const toggleManualProduct = useCallback(
     (productId: number) => {
+      const currentManualIds = draftConfig.manuales.productIds;
+      const isManualSelected = currentManualIds.includes(productId);
+      const nextManualIds = isManualSelected
+        ? currentManualIds.filter((currentId) => currentId !== productId)
+        : [...currentManualIds, productId];
+
       updateDraftConfig((currentConfig) => ({
         ...currentConfig,
         manuales: {
-          productIds: currentConfig.manuales.productIds.includes(productId)
-            ? currentConfig.manuales.productIds.filter((currentId) => currentId !== productId)
-            : [...currentConfig.manuales.productIds, productId],
+          productIds: nextManualIds,
         },
       }));
+
+      if (draftConfig.algoritmo !== "seleccion-manual") {
+        return;
+      }
+
+      if (isManualSelected) {
+        if (selectedProductId === productId) {
+          selectProduct(nextManualIds[0] ?? null);
+        }
+
+        return;
+      }
+
+      selectProduct(productId);
     },
-    [updateDraftConfig],
+    [draftConfig.algoritmo, draftConfig.manuales.productIds, selectProduct, selectedProductId, updateDraftConfig],
   );
 
   const orderedProducts = useMemo(() => {
@@ -207,7 +225,12 @@ const DashboardContent = ({
     };
 
     if (draftConfig.algoritmo === "seleccion-manual") {
-      pushUnique(selectedProduct ?? manualProducts[0] ?? catalogPool[0] ?? null);
+      const prioritizedManualProduct =
+        manualProducts.find((product) => product.id === selectedProductId) ??
+        manualProducts[0] ??
+        null;
+
+      pushUnique(prioritizedManualProduct);
       manualProducts.forEach(pushUnique);
 
       return previewList;
@@ -242,7 +265,7 @@ const DashboardContent = ({
   }, [previewProducts, productPageBaseUrl]);
 
   return (
-    <section className="grid gap-7 xl:grid-cols-[390px_minmax(0,1fr)_340px] 2xl:grid-cols-[430px_minmax(0,1fr)_380px]">
+    <section className="grid gap-8 xl:grid-cols-[360px_minmax(0,1fr)_280px] 2xl:grid-cols-[390px_minmax(820px,1fr)_300px]">
       <div className="grid gap-7">
         <Card className="border-white/8 bg-white/[0.03]">
           <CardHeader>

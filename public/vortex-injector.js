@@ -30,6 +30,7 @@
   var bootTimer = null;
   var productOptionCache = {};
   var activeQuickAddOverlay = null;
+  var activeToastTimer = null;
 
   function getStoreId() {
     return (
@@ -211,8 +212,64 @@
       ".vortex-quickadd-select.is-placeholder{color:#94a3b8}" +
       ".vortex-quickadd-select option{color:#0f172a;background:#ffffff}" +
       ".vortex-quickadd-submit{width:100%}" +
+      ".vortex-widget-toast{position:fixed;right:22px;bottom:22px;z-index:2147483647;display:flex;align-items:center;gap:10px;min-width:min(360px,calc(100vw - 24px));max-width:min(420px,calc(100vw - 24px));padding:14px 16px;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:rgba(4,10,18,.94);color:#f8fafc;box-shadow:0 30px 80px -45px rgba(15,23,42,.85);font-family:IBM Plex Sans,Segoe UI,Arial,sans-serif;opacity:0;transform:translateY(16px);pointer-events:none;transition:opacity .2s ease,transform .2s ease}" +
+      ".vortex-widget-toast.is-visible{opacity:1;transform:translateY(0)}" +
+      ".vortex-widget-toast__icon{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:999px;font-size:0;font-weight:700}" +
+      ".vortex-widget-toast__icon::before{content:'+';font-size:14px;line-height:1}" +
+      ".vortex-widget-toast__body{display:grid;gap:2px}" +
+      ".vortex-widget-toast__title{font-size:13px;font-weight:700;color:#f8fafc}" +
+      ".vortex-widget-toast__copy{font-size:12px;line-height:1.5;color:#cbd5e1}" +
       "@media (max-width:640px){.vortex-quickadd-modal{padding:20px}.vortex-quickadd-header{grid-template-columns:1fr}.vortex-quickadd-image{width:100%;height:auto;aspect-ratio:1/1}}";
     document.head.appendChild(style);
+  }
+
+  function showCartFeedback(message, accentColor) {
+    ensureStyles();
+
+    var existingToast = document.getElementById("vortex-widget-toast");
+
+    if (existingToast) {
+      existingToast.remove();
+    }
+
+    if (activeToastTimer) {
+      window.clearTimeout(activeToastTimer);
+      activeToastTimer = null;
+    }
+
+    var toast = document.createElement("div");
+    var iconBackground = String(accentColor || "#67e8f9");
+    var iconColor = getContrastTextColor(iconBackground);
+
+    toast.className = "vortex-widget-toast";
+    toast.id = "vortex-widget-toast";
+    toast.innerHTML =
+      '<span class="vortex-widget-toast__icon" style="background:' +
+      iconBackground +
+      ";color:" +
+      iconColor +
+      ';">✓</span>' +
+      '<div class="vortex-widget-toast__body">' +
+      '<span class="vortex-widget-toast__title">Agregado al carrito</span>' +
+      '<span class="vortex-widget-toast__copy">' +
+      (message || "El producto ya fue agregado correctamente.") +
+      "</span></div>";
+
+    document.body.appendChild(toast);
+
+    window.requestAnimationFrame(function () {
+      toast.classList.add("is-visible");
+    });
+
+    activeToastTimer = window.setTimeout(function () {
+      toast.classList.remove("is-visible");
+
+      window.setTimeout(function () {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 220);
+    }, 2200);
   }
 
   function buildProductUrl(item) {
@@ -579,6 +636,7 @@
     var snapshot = input && input.snapshot ? input.snapshot : null;
     var triggerButton = input && input.triggerButton ? input.triggerButton : null;
     var variantId = input && input.variantId ? input.variantId : null;
+    var accentColor = input && input.accentColor ? input.accentColor : null;
     var originalText = triggerButton ? triggerButton.textContent : "";
     var shouldTryNative = snapshot && selection.length > 0;
 
@@ -587,6 +645,10 @@
         triggerButton.textContent = "Agregado";
       }
 
+      showCartFeedback(
+        (fallbackItem && fallbackItem.name ? fallbackItem.name + " agregado correctamente." : "El producto ya fue agregado correctamente."),
+        accentColor || (fallbackItem && fallbackItem.accentColor ? fallbackItem.accentColor : null)
+      );
       closeQuickAddOverlay();
       scheduleBoot(220);
 
@@ -784,6 +846,7 @@
         snapshot: snapshot,
         triggerButton: submitButton,
         variantId: currentVariant.id,
+        accentColor: widgetConfig.accentColor,
       });
     });
 
@@ -811,6 +874,7 @@
         fallbackItem: item,
         triggerButton: button,
         variantId: item.variantId,
+        accentColor: widgetConfig.accentColor,
       });
       return;
     }
@@ -838,6 +902,7 @@
               snapshot: snapshot,
               triggerButton: button,
               variantId: onlyVariant.id,
+              accentColor: widgetConfig.accentColor,
             });
           }
         }

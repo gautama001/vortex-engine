@@ -197,7 +197,7 @@ export default async function AppDashboardPage({
     : null;
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[1760px] px-6 py-8 sm:px-8 lg:px-10 2xl:px-14">
+    <main className="mx-auto min-h-screen w-full max-w-[1920px] px-6 py-8 sm:px-8 lg:px-10 2xl:px-16">
       <div className="grid gap-8">
         <ProfitFirstSummary {...profitSummary} />
 

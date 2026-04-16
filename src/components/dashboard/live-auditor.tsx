@@ -323,6 +323,11 @@ export const LiveAuditor = ({
                 ? "Estos productos alimentan la estrategia activa y desplazan a la grilla automatica en la vista previa."
                 : "Podes preparar una lista manual ahora y activarla mas adelante cuando cambies la estrategia."}
             </p>
+            <p className="mt-3 text-xs uppercase tracking-[0.18em] text-cyan-100/80">
+              {manualSelectedProducts.length > 0
+                ? `${manualSelectedProducts.length} producto${manualSelectedProducts.length === 1 ? "" : "s"} en seleccion manual`
+                : "Todavia no agregaste productos manuales"}
+            </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {manualSelectedProducts.length > 0 ? (
                 manualSelectedProducts.map((product) => (
@@ -403,7 +408,7 @@ export const LiveAuditor = ({
                     type="button"
                     variant={isManualSelected ? "primary" : "secondary"}
                   >
-                    {isManualSelected ? "Agregado a manual" : "Agregar a manual"}
+                    {isManualSelected ? "Quitar de manual" : "Agregar a manual"}
                   </Button>
                 </div>
               </article>
