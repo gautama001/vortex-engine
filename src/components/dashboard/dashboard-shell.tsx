@@ -255,7 +255,7 @@ const DashboardContent = ({
   }, [previewProducts, productPageBaseUrl]);
 
   return (
-    <section className="grid gap-8 xl:grid-cols-[minmax(320px,0.9fr)_minmax(0,1.1fr)] min-[1950px]:grid-cols-[minmax(340px,0.92fr)_minmax(0,1.16fr)_minmax(320px,0.72fr)]">
+    <section className="grid gap-8 xl:grid-cols-[minmax(280px,0.76fr)_minmax(0,1.24fr)] min-[1950px]:grid-cols-[minmax(280px,0.68fr)_minmax(0,1.46fr)_minmax(300px,0.56fr)]">
       <div className="grid gap-7 self-start">
         <Card className="border-white/8 bg-white/[0.03]">
           <CardHeader>

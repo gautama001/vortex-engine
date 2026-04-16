@@ -338,6 +338,18 @@ const buildPreviewDocument = (
             gap: 12px;
             grid-template-columns: repeat(var(--vortex-columns-desktop), minmax(0, 1fr));
           }
+          .frame[data-viewport="desktop"] .product {
+            grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+          }
+          .frame[data-viewport="desktop"] .vortex-grid {
+            grid-template-columns: repeat(var(--vortex-columns-desktop), minmax(0, 1fr));
+          }
+          .frame[data-viewport="mobile"] .product {
+            grid-template-columns: 1fr;
+          }
+          .frame[data-viewport="mobile"] .vortex-grid {
+            grid-template-columns: repeat(var(--vortex-columns-mobile), minmax(0, 1fr));
+          }
           .vortex-empty {
             grid-column: 1 / -1;
             padding: 20px;
@@ -418,7 +430,7 @@ const buildPreviewDocument = (
             font-weight: 700;
             font-family: var(--vortex-font);
           }
-          @media (max-width: 900px) {
+          @media (max-width: 720px) {
             .product {
               grid-template-columns: 1fr;
             }
@@ -500,7 +512,7 @@ export const VisualPreview = ({ config, products, storefront }: VisualPreviewPro
         </div>
       </CardHeader>
       <CardContent className="pb-6">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.34fr)_300px]">
           <div className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/50 p-3 shadow-[0_30px_80px_-50px_rgba(88,226,243,0.35)]">
             <div className="mb-3 flex items-center justify-between gap-3 px-1">
               <div>
@@ -514,7 +526,7 @@ export const VisualPreview = ({ config, products, storefront }: VisualPreviewPro
               </div>
             </div>
             <iframe
-              className="h-[720px] w-full rounded-[22px] bg-white xl:h-[800px] min-[1950px]:h-[920px]"
+              className="h-[720px] w-full rounded-[22px] bg-white xl:h-[820px] min-[1950px]:h-[940px]"
               sandbox="allow-same-origin"
               srcDoc={previewDocument}
               title="Vortex storefront preview desktop"
@@ -533,7 +545,7 @@ export const VisualPreview = ({ config, products, storefront }: VisualPreviewPro
                 Mobile
               </div>
             </div>
-            <div className="mx-auto w-full max-w-[340px] overflow-hidden rounded-[30px] border border-white/10 bg-[#02050a] p-2">
+            <div className="mx-auto w-full max-w-[300px] overflow-hidden rounded-[30px] border border-white/10 bg-[#02050a] p-2">
               <iframe
                 className="h-[760px] w-full rounded-[24px] bg-white"
                 sandbox="allow-same-origin"
