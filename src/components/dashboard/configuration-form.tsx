@@ -15,6 +15,7 @@ import { useForm, useWatch } from "react-hook-form";
 
 import { StrategySelector } from "@/components/dashboard/strategy-selector";
 import {
+  DISCOUNT_PERCENTAGE_OPTIONS,
   FONT_FAMILY_OPTIONS,
   REGLAS_DE_INVENTARIO,
   type MerchantWidgetConfig,
@@ -133,6 +134,9 @@ export const ConfigurationForm = ({
         watchedValues.backgroundColor ?? savedConfig.backgroundColor,
       ),
       borderRadius: Number(watchedValues.borderRadius ?? savedConfig.borderRadius),
+      discountPercentage: Number(
+        watchedValues.discountPercentage ?? savedConfig.discountPercentage,
+      ) as MerchantWidgetConfig["discountPercentage"],
       fontColor: normalizeHexInput(watchedValues.fontColor ?? savedConfig.fontColor),
       fontFamily: watchedValues.fontFamily ?? savedConfig.fontFamily,
       manualRecommendationProductIds:
@@ -506,6 +510,25 @@ export const ConfigurationForm = ({
               />
             </label>
           </div>
+
+          <label className="grid gap-2">
+            <span className="text-sm text-slate-300">Descuento visual</span>
+            <select
+              className="h-12 rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm text-white outline-none"
+              {...register("discountPercentage", {
+                valueAsNumber: true,
+              })}
+            >
+              {DISCOUNT_PERCENTAGE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option === 0 ? "Sin descuento" : `${option}% OFF`}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-slate-500">
+              Visual merchandising para la card. No altera todavia el precio transaccional del checkout.
+            </span>
+          </label>
         </div>
       </section>
 

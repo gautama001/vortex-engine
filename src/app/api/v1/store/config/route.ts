@@ -11,8 +11,10 @@ import {
   type StoreWidgetSettings,
 } from "@/services/store-service";
 import {
+  DISCOUNT_PERCENTAGE_OPTIONS,
   ESTRATEGIAS,
   FONT_FAMILY_OPTIONS,
+  type DiscountPercentageValue,
   type FontFamilyValue,
   type StrategyValue,
 } from "@/components/dashboard/types";
@@ -59,6 +61,9 @@ const VALID_STRATEGIES = new Set<StrategyValue>(ESTRATEGIAS.map((item) => item.v
 const VALID_FONT_FAMILIES = new Set<FontFamilyValue>(
   FONT_FAMILY_OPTIONS.map((item) => item.valor),
 );
+const VALID_DISCOUNT_PERCENTAGES = new Set<DiscountPercentageValue>(
+  DISCOUNT_PERCENTAGE_OPTIONS,
+);
 
 const normalizeStrategy = (value: unknown, fallback: StrategyValue): StrategyValue => {
   return typeof value === "string" && VALID_STRATEGIES.has(value as StrategyValue)
@@ -69,6 +74,18 @@ const normalizeStrategy = (value: unknown, fallback: StrategyValue): StrategyVal
 const normalizeFontFamily = (value: unknown, fallback: FontFamilyValue): FontFamilyValue => {
   return typeof value === "string" && VALID_FONT_FAMILIES.has(value as FontFamilyValue)
     ? (value as FontFamilyValue)
+    : fallback;
+};
+
+const normalizeDiscountPercentage = (
+  value: unknown,
+  fallback: DiscountPercentageValue,
+): DiscountPercentageValue => {
+  const normalized =
+    typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+
+  return VALID_DISCOUNT_PERCENTAGES.has(normalized as DiscountPercentageValue)
+    ? (normalized as DiscountPercentageValue)
     : fallback;
 };
 
@@ -95,6 +112,10 @@ const normalizeStoreConfigPayload = (payload: unknown): Partial<StoreWidgetSetti
     cartPageEnabled: normalizeBoolean(
       config.cartPageEnabled,
       DEFAULT_STORE_WIDGET_SETTINGS.cartPageEnabled,
+    ),
+    discountPercentage: normalizeDiscountPercentage(
+      config.discountPercentage,
+      DEFAULT_STORE_WIDGET_SETTINGS.discountPercentage,
     ),
     fontColor: normalizeColor(config.fontColor, DEFAULT_STORE_WIDGET_SETTINGS.fontColor),
     fontFamily: normalizeFontFamily(config.fontFamily, DEFAULT_STORE_WIDGET_SETTINGS.fontFamily),
@@ -213,6 +234,7 @@ const handleStoreConfigUpdate = async (request: Request) => {
           backgroundColor: updatedStore.backgroundColor,
           borderRadius: updatedStore.borderRadius,
           cartPageEnabled: updatedStore.cartPageEnabled,
+          discountPercentage: updatedStore.discountPercentage,
           fontColor: updatedStore.fontColor,
           fontFamily: updatedStore.fontFamily,
           hideOutOfStock: updatedStore.hideOutOfStock,

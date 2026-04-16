@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ensureStorePersistence } from "@/lib/store-persistence";
 import { clamp } from "@/lib/utils";
 import { FONT_FAMILY_OPTIONS, type FontFamilyValue, type StrategyValue } from "@/components/dashboard/types";
+import type { DiscountPercentageValue } from "@/components/dashboard/types";
 
 type UpsertStoreInstallationInput = {
   accessToken: string;
@@ -41,6 +42,7 @@ export type StoreRecord = Omit<PrismaStore, "manualRecommendationProductIds"> & 
   backgroundColor: string;
   borderRadius: number;
   cartPageEnabled: boolean;
+  discountPercentage: DiscountPercentageValue;
   fontColor: string;
   fontFamily: FontFamilyValue;
   hideOutOfStock: boolean;
@@ -60,6 +62,7 @@ export type StoreWidgetSettings = {
   backgroundColor: string;
   borderRadius: number;
   cartPageEnabled: boolean;
+  discountPercentage: DiscountPercentageValue;
   fontColor: string;
   fontFamily: FontFamilyValue;
   hideOutOfStock: boolean;
@@ -79,6 +82,7 @@ export const DEFAULT_STORE_WIDGET_SETTINGS: StoreWidgetSettings = {
   backgroundColor: "#0A0F1A",
   borderRadius: 24,
   cartPageEnabled: true,
+  discountPercentage: 0,
   fontColor: "#E6EDF6",
   fontFamily: "plex-sans",
   hideOutOfStock: true,
@@ -105,6 +109,14 @@ const STRATEGY_VALUES = new Set<StrategyValue>([
 const FONT_FAMILY_VALUES = new Set<FontFamilyValue>(
   FONT_FAMILY_OPTIONS.map((option) => option.valor),
 );
+const DISCOUNT_PERCENTAGE_VALUES = new Set<DiscountPercentageValue>([
+  0,
+  10,
+  20,
+  30,
+  40,
+  50,
+]);
 
 const normalizeColor = (value: string | null | undefined, fallback: string): string => {
   const normalized = typeof value === "string" ? value.trim() : "";
@@ -134,7 +146,20 @@ const normalizeFontFamily = (
     : fallback;
 };
 
+const normalizeDiscountPercentage = (
+  value: number | string | null | undefined,
+  fallback: DiscountPercentageValue,
+): DiscountPercentageValue => {
+  const normalized =
+    typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+
+  return DISCOUNT_PERCENTAGE_VALUES.has(normalized as DiscountPercentageValue)
+    ? (normalized as DiscountPercentageValue)
+    : fallback;
+};
+
 type ManualMerchandisingState = {
+  discountPercentage: DiscountPercentageValue;
   fontColor: string;
   fontFamily: FontFamilyValue;
   productIds: number[];
@@ -153,6 +178,7 @@ const parseManualMerchandisingState = (
 ): ManualMerchandisingState => {
   if (!value) {
     return {
+      discountPercentage: DEFAULT_STORE_WIDGET_SETTINGS.discountPercentage,
       fontColor: DEFAULT_STORE_WIDGET_SETTINGS.fontColor,
       fontFamily: DEFAULT_STORE_WIDGET_SETTINGS.fontFamily,
       productIds: [],
@@ -164,6 +190,7 @@ const parseManualMerchandisingState = (
 
     if (Array.isArray(parsed)) {
       return {
+        discountPercentage: DEFAULT_STORE_WIDGET_SETTINGS.discountPercentage,
         fontColor: DEFAULT_STORE_WIDGET_SETTINGS.fontColor,
         fontFamily: DEFAULT_STORE_WIDGET_SETTINGS.fontFamily,
         productIds: parseProductIds(parsed),
@@ -172,6 +199,7 @@ const parseManualMerchandisingState = (
 
     if (!parsed || typeof parsed !== "object") {
       return {
+        discountPercentage: DEFAULT_STORE_WIDGET_SETTINGS.discountPercentage,
         fontColor: DEFAULT_STORE_WIDGET_SETTINGS.fontColor,
         fontFamily: DEFAULT_STORE_WIDGET_SETTINGS.fontFamily,
         productIds: [],
@@ -179,6 +207,7 @@ const parseManualMerchandisingState = (
     }
 
     const blob = parsed as {
+      discountPercentage?: number | string;
       fontColor?: string;
       fontFamily?: string;
       ids?: unknown;
@@ -186,12 +215,17 @@ const parseManualMerchandisingState = (
     };
 
     return {
+      discountPercentage: normalizeDiscountPercentage(
+        blob.discountPercentage,
+        DEFAULT_STORE_WIDGET_SETTINGS.discountPercentage,
+      ),
       fontColor: normalizeColor(blob.fontColor, DEFAULT_STORE_WIDGET_SETTINGS.fontColor),
       fontFamily: normalizeFontFamily(blob.fontFamily, DEFAULT_STORE_WIDGET_SETTINGS.fontFamily),
       productIds: parseProductIds(blob.productIds ?? blob.ids),
     };
   } catch {
     return {
+      discountPercentage: DEFAULT_STORE_WIDGET_SETTINGS.discountPercentage,
       fontColor: DEFAULT_STORE_WIDGET_SETTINGS.fontColor,
       fontFamily: DEFAULT_STORE_WIDGET_SETTINGS.fontFamily,
       productIds: [],
@@ -201,6 +235,10 @@ const parseManualMerchandisingState = (
 
 const serializeManualMerchandisingState = (value: ManualMerchandisingState): string => {
   return JSON.stringify({
+    discountPercentage: normalizeDiscountPercentage(
+      value.discountPercentage,
+      DEFAULT_STORE_WIDGET_SETTINGS.discountPercentage,
+    ),
     fontColor: normalizeColor(value.fontColor, DEFAULT_STORE_WIDGET_SETTINGS.fontColor),
     fontFamily: normalizeFontFamily(value.fontFamily, DEFAULT_STORE_WIDGET_SETTINGS.fontFamily),
     productIds: parseProductIds(value.productIds).slice(0, 24),
@@ -225,6 +263,7 @@ const mapStoreRow = (row: StoreRow): StoreRecord => {
       32,
     ),
     cartPageEnabled: row.cart_page_enabled ?? DEFAULT_STORE_WIDGET_SETTINGS.cartPageEnabled,
+    discountPercentage: manualMerchandisingState.discountPercentage,
     createdAt: row.created_at,
     fontColor: manualMerchandisingState.fontColor,
     fontFamily: manualMerchandisingState.fontFamily,
@@ -344,6 +383,10 @@ export const getStoreWidgetSettings = (store: StoreRecord): StoreWidgetSettings 
     ),
     borderRadius: clamp(store.borderRadius, 8, 32),
     cartPageEnabled: store.cartPageEnabled,
+    discountPercentage: normalizeDiscountPercentage(
+      store.discountPercentage,
+      DEFAULT_STORE_WIDGET_SETTINGS.discountPercentage,
+    ),
     fontColor: normalizeColor(store.fontColor, DEFAULT_STORE_WIDGET_SETTINGS.fontColor),
     fontFamily: normalizeFontFamily(store.fontFamily, DEFAULT_STORE_WIDGET_SETTINGS.fontFamily),
     hideOutOfStock: store.hideOutOfStock,
@@ -479,6 +522,10 @@ export const updateStoreWidgetSettings = async (
       )},
       "hide_out_of_stock" = ${input.hideOutOfStock ?? existingStore.hideOutOfStock},
       "manual_recommendation_product_ids" = ${serializeManualMerchandisingState({
+        discountPercentage: normalizeDiscountPercentage(
+          input.discountPercentage,
+          existingStore.discountPercentage,
+        ),
         fontColor: normalizeColor(input.fontColor, existingStore.fontColor),
         fontFamily: normalizeFontFamily(input.fontFamily, existingStore.fontFamily),
         productIds: input.manualRecommendationProductIds ?? existingStore.manualRecommendationProductIds,

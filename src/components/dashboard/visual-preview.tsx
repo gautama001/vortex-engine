@@ -64,6 +64,21 @@ const formatMoney = (value: number | null, currencyCode: string | null): string 
   }
 };
 
+const getDiscountedPrice = (
+  value: number | null,
+  discountPercentage: MerchantWidgetConfig["discountPercentage"],
+): number | null => {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return null;
+  }
+
+  if (!discountPercentage) {
+    return value;
+  }
+
+  return Math.max(0, value * (1 - discountPercentage / 100));
+};
+
 const escapeHtml = (value: string): string => {
   return value
     .replaceAll("&", "&amp;")
@@ -93,15 +108,18 @@ const buildPreviewDocument = (
       : "Todavia no hay suficientes recomendaciones para renderizar la vista previa.";
   const fontStack = resolveFontStack(config.fontFamily);
   const actionTextColor = getContrastTextColor(config.accentColor);
-  const recommendationTag =
-    config.recommendationAlgorithm === "seleccion-manual"
-      ? "curado manual"
-      : config.recommendationAlgorithm === "comprados-juntos"
-        ? "fbt"
-        : "relacionado";
 
   const widgetCards = recommendedProducts
     .map((product) => {
+      const originalPriceLabel = formatMoney(product.price, currencyCode);
+      const discountedPriceLabel = formatMoney(
+        getDiscountedPrice(product.price, config.discountPercentage),
+        currencyCode,
+      );
+      const discountLabel = config.discountPercentage
+        ? `${config.discountPercentage}% OFF`
+        : "";
+
       return `
         <article class="vortex-card">
           ${
@@ -111,9 +129,22 @@ const buildPreviewDocument = (
           }
           <div class="vortex-meta">
             <p class="vortex-name">${escapeHtml(product.name)}</p>
-            <div class="vortex-row">
-              <span>${escapeHtml(formatMoney(product.price, currencyCode))}</span>
-              <span class="vortex-tag">${escapeHtml(recommendationTag)}</span>
+            <div class="vortex-row vortex-row--pricing">
+              ${
+                config.discountPercentage
+                  ? `<span class="vortex-price vortex-price--original">${escapeHtml(originalPriceLabel)}</span>`
+                  : `<span class="vortex-price">${escapeHtml(originalPriceLabel)}</span>`
+              }
+              ${
+                config.discountPercentage
+                  ? `<span class="vortex-price vortex-price--current">${escapeHtml(discountedPriceLabel)}</span>`
+                  : ""
+              }
+              ${
+                discountLabel
+                  ? `<span class="vortex-tag">${escapeHtml(discountLabel)}</span>`
+                  : ""
+              }
             </div>
           </div>
           <button class="vortex-button">${escapeHtml(config.quickAddLabel)}</button>
@@ -319,12 +350,14 @@ const buildPreviewDocument = (
             border-radius: var(--vortex-radius);
             background: rgba(255,255,255,.05);
             border: 1px solid rgba(255,255,255,.08);
+            min-height: 100%;
           }
           .vortex-image {
             width: 100%;
-            aspect-ratio: 1 / 1;
+            aspect-ratio: 0.77 / 1;
             border-radius: calc(var(--vortex-radius) - 8px);
             object-fit: cover;
+            object-position: center top;
             background: rgba(255,255,255,.06);
           }
           .vortex-image--placeholder {
@@ -342,15 +375,33 @@ const buildPreviewDocument = (
           .vortex-row {
             display: flex;
             align-items: center;
-            justify-content: space-between;
             gap: 10px;
             margin-top: 8px;
             font-size: 12px;
             color: color-mix(in srgb, var(--vortex-text) 72%, transparent);
+            flex-wrap: wrap;
+          }
+          .vortex-row--pricing {
+            justify-content: space-between;
+            gap: 8px 14px;
+          }
+          .vortex-price {
+            color: color-mix(in srgb, var(--vortex-text) 82%, transparent);
+            font-variant-numeric: tabular-nums;
+          }
+          .vortex-price--original {
+            text-decoration: line-through;
+            opacity: .72;
+          }
+          .vortex-price--current {
+            color: var(--vortex-text);
+            font-weight: 700;
           }
           .vortex-tag {
-            color: color-mix(in srgb, var(--vortex-text) 58%, var(--vortex-accent) 42%);
-            text-transform: lowercase;
+            margin-left: auto;
+            color: color-mix(in srgb, var(--vortex-text) 12%, var(--vortex-accent) 88%);
+            font-weight: 700;
+            text-transform: uppercase;
           }
           .vortex-button {
             width: 100%;
@@ -369,6 +420,9 @@ const buildPreviewDocument = (
             }
             .vortex-grid {
               grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .vortex-image {
+              aspect-ratio: 0.72 / 1;
             }
           }
         </style>

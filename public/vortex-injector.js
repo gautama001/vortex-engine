@@ -188,15 +188,19 @@
       ".vortex-widget__title{margin:14px 0 8px;font-size:24px;line-height:1.1;color:var(--vortex-text,#eef6ff)}" +
       ".vortex-widget__copy{margin:0 0 18px;color:color-mix(in srgb,var(--vortex-text,#eef6ff) 76%, transparent);font-size:14px;line-height:1.6}" +
       ".vortex-widget__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}" +
-      ".vortex-widget__card{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}" +
-      ".vortex-widget__image{width:100%;aspect-ratio:1/1;border-radius:16px;object-fit:cover;background:rgba(255,255,255,.05)}" +
+      ".vortex-widget__card{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);min-height:100%}" +
+      ".vortex-widget__image{width:100%;aspect-ratio:.76/1;border-radius:16px;object-fit:cover;object-position:center top;background:rgba(255,255,255,.05)}" +
       ".vortex-widget__image--placeholder{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02))}" +
       ".vortex-widget__name{margin:0;font-size:15px;line-height:1.4;color:var(--vortex-text,#eef6ff)}" +
-      ".vortex-widget__meta{display:flex;align-items:center;justify-content:space-between;gap:12px;color:color-mix(in srgb,var(--vortex-text,#eef6ff) 72%, transparent);font-size:13px}" +
+      ".vortex-widget__meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:color-mix(in srgb,var(--vortex-text,#eef6ff) 72%, transparent);font-size:13px}" +
+      ".vortex-widget__meta--pricing{justify-content:space-between;gap:8px 14px}" +
+      ".vortex-widget__price{color:color-mix(in srgb,var(--vortex-text,#eef6ff) 82%, transparent);font-variant-numeric:tabular-nums}" +
+      ".vortex-widget__price--original{text-decoration:line-through;opacity:.72}" +
+      ".vortex-widget__price--current{color:var(--vortex-text,#eef6ff);font-weight:700}" +
       ".vortex-widget__button{height:42px;border-radius:999px;border:0;background:var(--vortex-accent,#67e8f9);color:var(--vortex-action-text,#042030);font-weight:700;font-family:var(--vortex-font,\"IBM Plex Sans\",\"Segoe UI\",Arial,sans-serif);cursor:pointer;transition:transform .15s ease,opacity .15s ease}" +
       ".vortex-widget__button[disabled]{opacity:.65;cursor:wait}" +
       ".vortex-widget__button:hover{transform:translateY(-1px)}" +
-      ".vortex-widget__tag{color:color-mix(in srgb,var(--vortex-text,#eef6ff) 58%, var(--vortex-accent,#67e8f9) 42%);text-transform:lowercase}" +
+      ".vortex-widget__tag{margin-left:auto;color:color-mix(in srgb,var(--vortex-text,#eef6ff) 12%, var(--vortex-accent,#67e8f9) 88%);font-weight:700;text-transform:uppercase}" +
       ".vortex-quickadd-overlay{--vortex-modal-bg:#07111a;--vortex-modal-accent:#67e8f9;--vortex-modal-radius:24px;--vortex-modal-text:#eef6ff;--vortex-modal-font:\"IBM Plex Sans\",\"Segoe UI\",Arial,sans-serif;position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(2,6,12,.72);backdrop-filter:blur(10px)}" +
       ".vortex-quickadd-modal{position:relative;width:min(560px,100%);max-height:min(80vh,720px);overflow:auto;border-radius:calc(var(--vortex-modal-radius) + 4px);border:1px solid color-mix(in srgb,var(--vortex-modal-accent) 22%, rgba(255,255,255,.08));background:linear-gradient(180deg,var(--vortex-modal-bg),color-mix(in srgb,var(--vortex-modal-bg) 88%, #02060c 12%));padding:24px;color:var(--vortex-modal-text,#eef6ff);font-family:var(--vortex-modal-font,\"IBM Plex Sans\",\"Segoe UI\",Arial,sans-serif);box-shadow:0 40px 100px -40px color-mix(in srgb,var(--vortex-modal-accent) 42%, transparent)}" +
       ".vortex-quickadd-close{position:absolute;top:16px;right:16px;border:1px solid color-mix(in srgb,var(--vortex-modal-accent) 18%, rgba(255,255,255,.06));background:rgba(255,255,255,.08);color:#fff;width:38px;height:38px;border-radius:999px;font-size:24px;line-height:1;cursor:pointer}" +
@@ -220,7 +224,7 @@
       ".vortex-widget-toast__body{display:grid;gap:2px}" +
       ".vortex-widget-toast__title{font-size:13px;font-weight:700;color:#f8fafc}" +
       ".vortex-widget-toast__copy{font-size:12px;line-height:1.5;color:#cbd5e1}" +
-      "@media (max-width:640px){.vortex-quickadd-modal{padding:20px}.vortex-quickadd-header{grid-template-columns:1fr}.vortex-quickadd-image{width:100%;height:auto;aspect-ratio:1/1}}";
+      "@media (max-width:640px){.vortex-quickadd-modal{padding:20px}.vortex-quickadd-header{grid-template-columns:1fr}.vortex-quickadd-image{width:100%;height:auto;aspect-ratio:1/1}.vortex-widget__image{aspect-ratio:.72/1}}";
     document.head.appendChild(style);
   }
 
@@ -304,6 +308,18 @@
     } catch (_error) {
       return "$" + value;
     }
+  }
+
+  function getDiscountedPrice(value, discountPercentage) {
+    if (typeof value !== "number" || Number.isNaN(value)) {
+      return null;
+    }
+
+    if (!discountPercentage) {
+      return value;
+    }
+
+    return Math.max(0, value * (1 - discountPercentage / 100));
   }
 
   function getContrastTextColor(hexColor) {
@@ -957,6 +973,11 @@
           ? widget.borderRadius
           : 24,
       cartPageEnabled: widget.cartPageEnabled !== false,
+      discountPercentage:
+        typeof widget.discountPercentage === "number" &&
+        !Number.isNaN(widget.discountPercentage)
+          ? widget.discountPercentage
+          : 0,
       fontColor:
         typeof widget.fontColor === "string" && widget.fontColor
           ? widget.fontColor
@@ -1018,6 +1039,7 @@
       widgetConfig.accentColor,
       widgetConfig.backgroundColor,
       widgetConfig.borderRadius,
+      widgetConfig.discountPercentage,
       widgetConfig.fontColor,
       widgetConfig.fontFamily,
     ].join("::");
@@ -1124,7 +1146,19 @@
       card.className = "vortex-widget__card";
       card.style.borderRadius = widgetConfig.borderRadius + "px";
       var imageUrl = item.imageUrl || "";
-      var priceLabel = item.price ? formatMoney(item.price) : "Ver detalle";
+      var priceLabel =
+        typeof item.price === "number" && !Number.isNaN(item.price)
+          ? formatMoney(item.price)
+          : "Ver detalle";
+      var discountedPrice = getDiscountedPrice(
+        item.price,
+        widgetConfig.discountPercentage
+      );
+      var discountedPriceLabel =
+        typeof discountedPrice === "number" ? formatMoney(discountedPrice) : "Ver detalle";
+      var discountLabel = widgetConfig.discountPercentage
+        ? widgetConfig.discountPercentage + "% OFF"
+        : "";
       var productUrl = buildProductUrl(item);
 
       card.innerHTML =
@@ -1142,11 +1176,21 @@
         '"><h4 class="vortex-widget__name">' +
         item.name +
         '</h4></a></div>' +
-        '<div class="vortex-widget__meta"><span>' +
-        priceLabel +
-        "</span><span>" +
-        prettyReason(item.reason) +
-        "</span></div>" +
+        '<div class="vortex-widget__meta vortex-widget__meta--pricing">' +
+        (widgetConfig.discountPercentage
+          ? '<span class="vortex-widget__price vortex-widget__price--original">' +
+            priceLabel +
+            "</span>"
+          : '<span class="vortex-widget__price">' + priceLabel + "</span>") +
+        (widgetConfig.discountPercentage
+          ? '<span class="vortex-widget__price vortex-widget__price--current">' +
+            discountedPriceLabel +
+            "</span>"
+          : "") +
+        (discountLabel
+          ? '<span class="vortex-widget__tag">' + discountLabel + "</span>"
+          : "") +
+        "</div>" +
         '<button class="vortex-widget__button" type="button" style="background:' +
         widgetConfig.accentColor +
         ";color:" +

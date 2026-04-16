@@ -54,6 +54,11 @@ export const FONT_FAMILY_OPTIONS = [
   },
 ] as const;
 
+export const DISCOUNT_PERCENTAGE_OPTIONS = [0, 10, 20, 30, 40, 50] as const;
+
+export type DiscountPercentageValue =
+  (typeof DISCOUNT_PERCENTAGE_OPTIONS)[number];
+
 export type FontFamilyValue = (typeof FONT_FAMILY_OPTIONS)[number]["valor"];
 
 export type PersistedWidgetConfig = {
@@ -61,6 +66,7 @@ export type PersistedWidgetConfig = {
   backgroundColor: string;
   borderRadius: number;
   cartPageEnabled: boolean;
+  discountPercentage: DiscountPercentageValue;
   fontColor: string;
   fontFamily: FontFamilyValue;
   hideOutOfStock: boolean;
@@ -83,6 +89,7 @@ export type WidgetConfig = {
     accentColor: string;
     backgroundColor: string;
     borderRadius: number;
+    discountPercentage: DiscountPercentageValue;
     fontColor: string;
     fontFamily: FontFamilyValue;
     subtitulo: string;
@@ -136,6 +143,7 @@ export const widgetConfigFromPersisted = (config: PersistedWidgetConfig): Widget
       accentColor: config.accentColor,
       backgroundColor: config.backgroundColor,
       borderRadius: config.borderRadius,
+      discountPercentage: config.discountPercentage,
       fontColor: config.fontColor,
       fontFamily: config.fontFamily,
       subtitulo: config.widgetSubtitle,
@@ -164,6 +172,7 @@ export const widgetConfigToPersisted = (config: WidgetConfig): PersistedWidgetCo
     backgroundColor: config.estetica.backgroundColor,
     borderRadius: config.estetica.borderRadius,
     cartPageEnabled: config.posicionamiento.mostrarEnCarrito,
+    discountPercentage: config.estetica.discountPercentage,
     fontColor: config.estetica.fontColor,
     fontFamily: config.estetica.fontFamily,
     hideOutOfStock: config.filtros.ocultarSinStock,
