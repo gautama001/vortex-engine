@@ -181,7 +181,27 @@ const buildPreviewDocument = (
     `;
   const productWidgetMarkup = isMobileViewport
     ? ""
-    : `<div class="product-widget-row">${widgetState}</div>`;
+    : `<div id="vortex-preview-widget" class="product-widget-row">${widgetState}</div>`;
+  const previewFocusScript = isMobileViewport
+    ? ""
+    : `
+        <script>
+          (function () {
+            function focusWidget() {
+              var widget = document.getElementById("vortex-preview-widget");
+              if (!widget) return;
+              var top = Math.max(widget.offsetTop - 42, 0);
+              window.scrollTo(0, top);
+            }
+
+            window.addEventListener("load", function () {
+              requestAnimationFrame(function () {
+                requestAnimationFrame(focusWidget);
+              });
+            });
+          })();
+        </script>
+      `;
 
   return `
     <!doctype html>
@@ -509,6 +529,7 @@ const buildPreviewDocument = (
             ${productWidgetMarkup}
           </div>
         </div>
+        ${previewFocusScript}
       </body>
     </html>
   `;
