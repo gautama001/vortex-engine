@@ -478,17 +478,40 @@ const buildPreviewDocument = (
             font-weight: 700;
             font-family: var(--vortex-font);
           }
+          @media (max-width: 920px) {
+            .frame[data-viewport="desktop"] .product {
+              grid-template-columns: minmax(0, 0.76fr) minmax(0, 1.04fr);
+              gap: 16px;
+              padding: 16px;
+            }
+            .frame[data-viewport="desktop"] .product-widget-row {
+              padding: 0 16px 16px;
+            }
+            .frame[data-viewport="desktop"] .product-copy h2 {
+              font-size: 24px;
+            }
+            .frame[data-viewport="desktop"] .product-copy p {
+              max-width: 38ch;
+              font-size: 13px;
+            }
+            .frame[data-viewport="desktop"] .price {
+              font-size: 28px;
+            }
+            .frame[data-viewport="desktop"] .vortex-widget h3 {
+              font-size: 24px;
+            }
+          }
           @media (max-width: 720px) {
-            .product {
+            .frame[data-viewport="mobile"] .product {
               grid-template-columns: 1fr;
             }
-            .product-widget-row {
+            .frame[data-viewport="mobile"] .product-widget-row {
               display: none;
             }
-            .vortex-grid {
+            .frame[data-viewport="mobile"] .vortex-grid {
               grid-template-columns: repeat(var(--vortex-columns-mobile), minmax(0, 1fr));
             }
-            .vortex-image {
+            .frame[data-viewport="mobile"] .vortex-image {
               aspect-ratio: 0.74 / 1.24;
             }
           }
