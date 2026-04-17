@@ -141,20 +141,16 @@ const DashboardContent = ({
 
   const toggleManualProduct = useCallback(
     (productId: number) => {
-      const currentManualIds = draftConfig.manuales.productIds;
-      const isManualSelected = currentManualIds.includes(productId);
-      const nextManualIds = isManualSelected
-        ? currentManualIds.filter((currentId) => currentId !== productId)
-        : [...currentManualIds, productId];
-
       updateDraftConfig((currentConfig) => ({
         ...currentConfig,
         manuales: {
-          productIds: nextManualIds,
+          productIds: currentConfig.manuales.productIds.includes(productId)
+            ? currentConfig.manuales.productIds.filter((currentId) => currentId !== productId)
+            : [...currentConfig.manuales.productIds, productId],
         },
       }));
     },
-    [draftConfig.manuales.productIds, updateDraftConfig],
+    [updateDraftConfig],
   );
 
   const orderedProducts = useMemo(() => {

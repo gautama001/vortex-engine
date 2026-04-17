@@ -149,8 +149,8 @@ export const ConfigurationForm = ({
       fontColor: normalizeHexInput(watchedValues.fontColor ?? savedConfig.fontColor),
       fontFamily: watchedValues.fontFamily ?? savedConfig.fontFamily,
       manualRecommendationProductIds:
-        watchedValues.manualRecommendationProductIds ??
         manualSelectionProductIds ??
+        watchedValues.manualRecommendationProductIds ??
         savedConfig.manualRecommendationProductIds,
       mobileColumns: Number(
         watchedValues.mobileColumns ?? savedConfig.mobileColumns,
