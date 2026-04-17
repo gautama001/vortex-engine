@@ -9,7 +9,7 @@ import {
 } from "@/lib/security";
 
 export const config = {
-  matcher: ["/app/:path*"],
+  matcher: ["/app/:path*", "/api/auth/:path*", "/oauth/tiendanube/:path*"],
 };
 
 const cookieSameSite = process.env.NODE_ENV === "production" ? "none" : "lax";
@@ -44,6 +44,38 @@ const buildCleanAppUrl = (request: NextRequest): URL => {
 
 export async function middleware(request: NextRequest) {
   try {
+    const pathname = request.nextUrl.pathname;
+
+    if (pathname === "/api/auth/Install" || pathname === "/api/auth/install/") {
+      const normalizedUrl = request.nextUrl.clone();
+      normalizedUrl.pathname = "/api/auth/install";
+      return NextResponse.redirect(normalizedUrl);
+    }
+
+    if (pathname === "/api/auth/Callback" || pathname === "/api/auth/callback/") {
+      const normalizedUrl = request.nextUrl.clone();
+      normalizedUrl.pathname = "/api/auth/callback";
+      return NextResponse.redirect(normalizedUrl);
+    }
+
+    if (
+      pathname === "/oauth/Tiendanube/install" ||
+      pathname === "/oauth/tiendanube/install/"
+    ) {
+      const normalizedUrl = request.nextUrl.clone();
+      normalizedUrl.pathname = "/oauth/tiendanube/install";
+      return NextResponse.redirect(normalizedUrl);
+    }
+
+    if (
+      pathname === "/oauth/Tiendanube/callback" ||
+      pathname === "/oauth/tiendanube/callback/"
+    ) {
+      const normalizedUrl = request.nextUrl.clone();
+      normalizedUrl.pathname = "/oauth/tiendanube/callback";
+      return NextResponse.redirect(normalizedUrl);
+    }
+
     const clientSecret = process.env.TIENDANUBE_CLIENT_SECRET;
 
     if (!clientSecret) {
