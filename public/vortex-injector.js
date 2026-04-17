@@ -89,6 +89,26 @@
     );
   }
 
+  function findWithin(element, selectors) {
+    if (!element) {
+      return null;
+    }
+
+    for (var i = 0; i < selectors.length; i += 1) {
+      var candidate = element.querySelector(selectors[i]);
+
+      if (candidate && isVisibleElement(candidate)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  function findProductFormElement() {
+    return document.querySelector('[data-store^="product-form-"]');
+  }
+
   function findProductDesktopAnchor() {
     var selectors = [
       '[data-store="product-detail"]',
@@ -102,6 +122,36 @@
 
       if (element && isVisibleElement(element)) {
         return element;
+      }
+    }
+
+    var productForm = findProductFormElement();
+
+    if (productForm) {
+      var mediaSelectors = [
+        '[data-store^="product-image"]',
+        '[data-store="product-gallery"]',
+        '[data-component="product-gallery"]',
+        ".js-product-gallery",
+        ".js-product-image",
+        ".product-gallery",
+        ".swiper-container",
+        "img",
+      ];
+      var current = productForm.parentElement;
+
+      while (current && current !== document.body) {
+        var hasMedia = findWithin(current, mediaSelectors);
+        var rect = current.getBoundingClientRect();
+
+        if (
+          hasMedia &&
+          rect.width >= Math.max(productForm.getBoundingClientRect().width * 1.2, 640)
+        ) {
+          return current;
+        }
+
+        current = current.parentElement;
       }
     }
 

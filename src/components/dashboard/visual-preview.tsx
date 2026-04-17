@@ -345,7 +345,26 @@ const buildPreviewDocument = (
             grid-template-columns: repeat(var(--vortex-columns-desktop), minmax(0, 1fr));
           }
           .frame[data-viewport="desktop"] .product {
-            grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+            grid-template-columns: minmax(0, 0.84fr) minmax(0, 0.96fr);
+            align-items: start;
+          }
+          .frame[data-viewport="desktop"] .product-image {
+            min-height: 230px;
+            max-height: 360px;
+          }
+          .frame[data-viewport="desktop"] .product-copy {
+            display: grid;
+            align-content: start;
+            gap: 10px;
+          }
+          .frame[data-viewport="desktop"] .product-copy p {
+            max-width: 46ch;
+          }
+          .frame[data-viewport="desktop"] .product-row {
+            display: grid;
+            justify-items: start;
+            gap: 10px;
+            margin-top: 6px;
           }
           .frame[data-viewport="desktop"] .vortex-grid {
             grid-template-columns: repeat(var(--vortex-columns-desktop), minmax(0, 1fr));
@@ -525,7 +544,7 @@ export const VisualPreview = ({ config, products, storefront }: VisualPreviewPro
         </div>
       </CardHeader>
       <CardContent className="pb-6">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.44fr)_340px] 2xl:grid-cols-[minmax(0,1.5fr)_360px]">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.18fr)_380px] 2xl:grid-cols-[minmax(0,1.24fr)_420px]">
           <div className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/50 p-3 shadow-[0_30px_80px_-50px_rgba(88,226,243,0.35)]">
             <div className="mb-3 flex items-center justify-between gap-3 px-1">
               <div>
@@ -558,9 +577,9 @@ export const VisualPreview = ({ config, products, storefront }: VisualPreviewPro
                 Mobile
               </div>
             </div>
-            <div className="mx-auto w-full max-w-[340px] overflow-hidden rounded-[30px] border border-white/10 bg-[#02050a] p-2 2xl:max-w-[360px]">
+            <div className="mx-auto w-full max-w-[380px] overflow-hidden rounded-[30px] border border-white/10 bg-[#02050a] p-2 2xl:max-w-[420px]">
               <iframe
-                className="h-[760px] w-full rounded-[24px] bg-white 2xl:h-[800px]"
+                className="h-[760px] w-full rounded-[24px] bg-white 2xl:h-[820px]"
                 sandbox="allow-same-origin"
                 srcDoc={mobilePreviewDocument}
                 title="Vortex storefront preview mobile"
