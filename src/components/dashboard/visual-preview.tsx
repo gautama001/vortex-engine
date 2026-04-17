@@ -179,6 +179,9 @@ const buildPreviewDocument = (
         <p>Activa el widget para ver la inyeccion dentro del storefront.</p>
       </section>
     `;
+  const productWidgetMarkup = isMobileViewport
+    ? widgetState
+    : `<div class="product-widget-row">${widgetState}</div>`;
 
   return `
     <!doctype html>
@@ -246,6 +249,9 @@ const buildPreviewDocument = (
             gap: 22px;
             padding: 22px;
             grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+          }
+          .product-widget-row {
+            padding: 0 22px 22px;
           }
           .product-image {
             width: 100%;
@@ -347,6 +353,9 @@ const buildPreviewDocument = (
           .frame[data-viewport="mobile"] .product {
             grid-template-columns: 1fr;
           }
+          .frame[data-viewport="mobile"] .product-widget-row {
+            display: none;
+          }
           .frame[data-viewport="mobile"] .vortex-grid {
             grid-template-columns: repeat(var(--vortex-columns-mobile), minmax(0, 1fr));
           }
@@ -434,6 +443,9 @@ const buildPreviewDocument = (
             .product {
               grid-template-columns: 1fr;
             }
+            .product-widget-row {
+              display: none;
+            }
             .vortex-grid {
               grid-template-columns: repeat(var(--vortex-columns-mobile), minmax(0, 1fr));
             }
@@ -472,9 +484,10 @@ const buildPreviewDocument = (
                   )}</span>
                   <button class="ghost-btn">Agregar al carrito</button>
                 </div>
-                ${widgetState}
+                ${isMobileViewport ? widgetState : ""}
               </div>
             </div>
+            ${productWidgetMarkup}
           </div>
         </div>
       </body>

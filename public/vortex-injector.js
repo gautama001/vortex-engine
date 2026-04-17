@@ -82,6 +82,32 @@
     );
   }
 
+  function isDesktopProductViewport() {
+    return (
+      window.matchMedia &&
+      window.matchMedia("(min-width: 1024px)").matches
+    );
+  }
+
+  function findProductDesktopAnchor() {
+    var selectors = [
+      '[data-store="product-detail"]',
+      '[data-component="product-page"]',
+      ".js-product-detail",
+      "main [data-store=\"product-detail\"]",
+    ];
+
+    for (var i = 0; i < selectors.length; i += 1) {
+      var element = document.querySelector(selectors[i]);
+
+      if (element && isVisibleElement(element)) {
+        return element;
+      }
+    }
+
+    return null;
+  }
+
   function findProductAnchor() {
     var selectors = [
       '[data-store^="product-form-"]',
@@ -164,8 +190,12 @@
     }
 
     if (window.LS && window.LS.product && window.LS.product.id) {
+      var productAnchor = isDesktopProductViewport()
+        ? findProductDesktopAnchor() || findProductAnchor()
+        : findProductAnchor();
+
       return {
-        anchor: findProductAnchor(),
+        anchor: productAnchor,
         page: "product",
         productId: String(window.LS.product.id),
         widgetId: "vortex-widget-product",
