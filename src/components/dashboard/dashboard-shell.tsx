@@ -16,6 +16,7 @@ import type {
   MerchantPreviewProduct,
   MerchantStorefrontContext,
   PersistedWidgetConfig,
+  DiscountPercentageValue,
 } from "@/components/dashboard/types";
 import {
   widgetConfigFromPersisted,
@@ -89,7 +90,9 @@ const DashboardContent = ({
   }, [storefrontProducts]);
 
   useEffect(() => {
-    const missingManualIds = persistedDraft.manualRecommendationProductIds.filter(
+    const missingManualIds = persistedDraft.manualRecommendations
+      .map((entry) => entry.productId)
+      .filter(
       (productId) => !catalogPool.some((product) => product.id === productId),
     );
 
@@ -123,7 +126,7 @@ const DashboardContent = ({
     return () => {
       cancelled = true;
     };
-  }, [catalogPool, mergeCatalogProducts, persistedDraft.manualRecommendationProductIds]);
+  }, [catalogPool, mergeCatalogProducts, persistedDraft.manualRecommendations]);
 
   const handleConfigChange = useCallback(
     (config: PersistedWidgetConfig) => {
@@ -139,14 +142,77 @@ const DashboardContent = ({
     [commitConfig],
   );
 
-  const toggleManualProduct = useCallback(
+  const addManualProduct = useCallback(
     (productId: number) => {
       updateDraftConfig((currentConfig) => ({
         ...currentConfig,
         manuales: {
+          ...currentConfig.manuales,
           productIds: currentConfig.manuales.productIds.includes(productId)
-            ? currentConfig.manuales.productIds.filter((currentId) => currentId !== productId)
+            ? currentConfig.manuales.productIds
             : [...currentConfig.manuales.productIds, productId],
+          recommendations: currentConfig.manuales.recommendations.some(
+            (entry) => entry.productId === productId,
+          )
+            ? currentConfig.manuales.recommendations
+            : [
+                ...currentConfig.manuales.recommendations,
+                {
+                  discountPercentage: currentConfig.estetica.discountPercentage,
+                  productId,
+                },
+              ],
+        },
+      }));
+    },
+    [updateDraftConfig],
+  );
+
+  const removeManualProduct = useCallback(
+    (productId: number) => {
+      updateDraftConfig((currentConfig) => ({
+        ...currentConfig,
+        manuales: {
+          ...currentConfig.manuales,
+          productIds: currentConfig.manuales.productIds.filter(
+            (currentId) => currentId !== productId,
+          ),
+          recommendations: currentConfig.manuales.recommendations.filter(
+            (entry) => entry.productId !== productId,
+          ),
+        },
+      }));
+    },
+    [updateDraftConfig],
+  );
+
+  const setManualProductDiscount = useCallback(
+    (productId: number, discountPercentage: DiscountPercentageValue) => {
+      updateDraftConfig((currentConfig) => ({
+        ...currentConfig,
+        manuales: {
+          ...currentConfig.manuales,
+          productIds: currentConfig.manuales.productIds.includes(productId)
+            ? currentConfig.manuales.productIds
+            : [...currentConfig.manuales.productIds, productId],
+          recommendations: currentConfig.manuales.recommendations.some(
+            (entry) => entry.productId === productId,
+          )
+            ? currentConfig.manuales.recommendations.map((entry) =>
+                entry.productId === productId
+                  ? {
+                      ...entry,
+                      discountPercentage,
+                    }
+                  : entry,
+              )
+            : [
+                ...currentConfig.manuales.recommendations,
+                {
+                  discountPercentage,
+                  productId,
+                },
+              ],
         },
       }));
     },
@@ -265,6 +331,7 @@ const DashboardContent = ({
           </CardHeader>
           <CardContent>
           <ConfigurationForm
+              manualRecommendations={persistedDraft.manualRecommendations}
               manualSelectionProductIds={persistedDraft.manualRecommendationProductIds}
               onConfigChange={handleConfigChange}
               onSaved={handleConfigSaved}
@@ -278,10 +345,13 @@ const DashboardContent = ({
       <div className="grid gap-7 self-start">
         <VisualPreview config={persistedDraft} products={previewProducts} storefront={storefront} />
         <LiveAuditor
+          manualRecommendations={persistedDraft.manualRecommendations}
           manualSelectionProductIds={persistedDraft.manualRecommendationProductIds}
+          onAddManualProduct={addManualProduct}
           onProductsLoaded={mergeCatalogProducts}
+          onRemoveManualProduct={removeManualProduct}
           onSelectProduct={selectProduct}
-          onToggleManualProduct={toggleManualProduct}
+          onSetManualProductDiscount={setManualProductDiscount}
           previewApiUrl={previewApiUrl}
           products={catalogPool}
           recommendationAlgorithm={persistedDraft.recommendationAlgorithm}

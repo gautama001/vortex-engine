@@ -65,6 +65,11 @@ export type MobileColumnValue = (typeof MOBILE_COLUMN_OPTIONS)[number];
 
 export type FontFamilyValue = (typeof FONT_FAMILY_OPTIONS)[number]["valor"];
 
+export type ManualRecommendationEntry = {
+  discountPercentage: DiscountPercentageValue;
+  productId: number;
+};
+
 export type PersistedWidgetConfig = {
   accentColor: string;
   backgroundColor: string;
@@ -75,6 +80,7 @@ export type PersistedWidgetConfig = {
   fontColor: string;
   fontFamily: FontFamilyValue;
   hideOutOfStock: boolean;
+  manualRecommendations: ManualRecommendationEntry[];
   manualRecommendationProductIds: number[];
   mobileColumns: MobileColumnValue;
   productPageEnabled: boolean;
@@ -109,6 +115,7 @@ export type WidgetConfig = {
     soloConImagen: boolean;
   };
   manuales: {
+    recommendations: ManualRecommendationEntry[];
     productIds: number[];
   };
   posicionamiento: {
@@ -165,6 +172,7 @@ export const widgetConfigFromPersisted = (config: PersistedWidgetConfig): Widget
       soloConImagen: config.requireImage,
     },
     manuales: {
+      recommendations: config.manualRecommendations,
       productIds: config.manualRecommendationProductIds,
     },
     posicionamiento: {
@@ -187,6 +195,7 @@ export const widgetConfigToPersisted = (config: WidgetConfig): PersistedWidgetCo
     fontColor: config.estetica.fontColor,
     fontFamily: config.estetica.fontFamily,
     hideOutOfStock: config.filtros.ocultarSinStock,
+    manualRecommendations: config.manuales.recommendations,
     manualRecommendationProductIds: config.manuales.productIds,
     mobileColumns: config.estetica.mobileColumns,
     productPageEnabled: config.posicionamiento.mostrarEnProducto,

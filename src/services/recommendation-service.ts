@@ -8,6 +8,10 @@ import {
   type TiendaNubeProduct,
   type TiendaNubeProductVariant,
 } from "@/lib/tiendanube/types";
+import type {
+  DiscountPercentageValue,
+  ManualRecommendationEntry,
+} from "@/components/dashboard/types";
 import { getActiveStoreOrThrow, getStoreWidgetSettings, type StoreWidgetSettings } from "@/services/store-service";
 
 type RecommendationReason =
@@ -24,6 +28,7 @@ type RecommendationStrategy =
 
 type RecommendationItem = {
   categoryIds: number[];
+  discountPercentage?: DiscountPercentageValue;
   handle: string | null;
   imageUrl: string | null;
   name: string;
@@ -129,6 +134,7 @@ const mapProductToRecommendation = (
   product: TiendaNubeProduct,
   reason: RecommendationReason,
   score: number,
+  discountPercentage?: DiscountPercentageValue,
 ): RecommendationItem => {
   const normalizedVariants = (product.variants ?? []).filter((variant) => Number.isFinite(variant.id));
   const availableVariants = normalizedVariants.filter(isVariantAvailable);
@@ -139,6 +145,7 @@ const mapProductToRecommendation = (
 
   return {
     categoryIds: extractCategoryIds(product),
+    discountPercentage,
     handle: pickLocalizedValue(product.handle) || null,
     imageUrl: product.images?.[0]?.src ?? null,
     name: pickLocalizedValue(product.name),
@@ -350,21 +357,37 @@ const fetchFBTRecommendations = async (
 
 const fetchManualRecommendations = async (
   client: TiendaNubeClient,
-  productIds: number[],
+  manualRecommendations: ManualRecommendationEntry[],
   limit: number,
   excludedProductIds: number[],
 ): Promise<RecommendationItem[]> => {
-  const filteredIds = productIds
-    .filter((productId) => Number.isFinite(productId) && !excludedProductIds.includes(productId))
+  const filteredEntries = manualRecommendations
+    .filter(
+      (entry) =>
+        Number.isFinite(entry.productId) && !excludedProductIds.includes(entry.productId),
+    )
     .slice(0, limit);
-  const products = await fetchProductsByIds(client, filteredIds);
+  const products = await fetchProductsByIds(
+    client,
+    filteredEntries.map((entry) => entry.productId),
+  );
   const indexByProductId = new Map<number, number>(
-    filteredIds.map((productId, index) => [productId, index] as const),
+    filteredEntries.map((entry, index) => [entry.productId, index] as const),
+  );
+  const discountByProductId = new Map<number, DiscountPercentageValue>(
+    filteredEntries.map((entry) => [entry.productId, entry.discountPercentage] as const),
   );
 
   return products
     .sort((left, right) => (indexByProductId.get(left.id) ?? 0) - (indexByProductId.get(right.id) ?? 0))
-    .map((product, index) => mapProductToRecommendation(product, "manual-pick", limit - index));
+    .map((product, index) =>
+      mapProductToRecommendation(
+        product,
+        "manual-pick",
+        limit - index,
+        discountByProductId.get(product.id),
+      ),
+    );
 };
 
 export const getRecommendations = async (input: {
@@ -409,7 +432,7 @@ export const getRecommendations = async (input: {
   if (widget.recommendationAlgorithm === "seleccion-manual") {
     const manualProducts = await fetchManualRecommendations(
       client,
-      widget.manualRecommendationProductIds,
+      widget.manualRecommendations,
       limit,
       [seedProduct.id],
     );

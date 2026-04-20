@@ -4,9 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LoaderCircle, Search, Sparkles, WandSparkles } from "lucide-react";
 
 import type {
+  DiscountPercentageValue,
+  ManualRecommendationEntry,
   MerchantPreviewProduct,
   StrategyValue,
 } from "@/components/dashboard/types";
+import { DISCOUNT_PERCENTAGE_OPTIONS } from "@/components/dashboard/types";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,10 +21,16 @@ import {
 import { cn } from "@/lib/utils";
 
 type LiveAuditorProps = {
+  manualRecommendations: ManualRecommendationEntry[];
   manualSelectionProductIds: number[];
+  onAddManualProduct: (productId: number) => void;
   onProductsLoaded: (products: MerchantPreviewProduct[]) => void;
+  onRemoveManualProduct: (productId: number) => void;
   onSelectProduct: (productId: number) => void;
-  onToggleManualProduct: (productId: number) => void;
+  onSetManualProductDiscount: (
+    productId: number,
+    discountPercentage: DiscountPercentageValue,
+  ) => void;
   previewApiUrl: string;
   products: MerchantPreviewProduct[];
   recommendationAlgorithm: StrategyValue;
@@ -36,6 +45,10 @@ type ProductSearchPayload = {
 };
 
 const PAGE_SIZE = 8;
+const darkOptionStyle = {
+  backgroundColor: "#0b1220",
+  color: "#e5eef5",
+};
 
 const parseJsonSafely = <T,>(rawValue: string): T | null => {
   try {
@@ -80,10 +93,13 @@ const fetchProductBatch = async (input: {
 };
 
 export const LiveAuditor = ({
+  manualRecommendations,
   manualSelectionProductIds,
+  onAddManualProduct,
   onProductsLoaded,
+  onRemoveManualProduct,
   onSelectProduct,
-  onToggleManualProduct,
+  onSetManualProductDiscount,
   previewApiUrl,
   products,
   recommendationAlgorithm,
@@ -230,6 +246,14 @@ export const LiveAuditor = ({
       .filter((product): product is MerchantPreviewProduct => Boolean(product));
   }, [manualSelectionProductIds, productPool]);
 
+  const manualRecommendationMap = useMemo(
+    () =>
+      new Map(
+        manualRecommendations.map((entry) => [entry.productId, entry] as const),
+      ),
+    [manualRecommendations],
+  );
+
   const handleLoadMore = useCallback(async () => {
     if (isLoadingMore) {
       return;
@@ -338,7 +362,7 @@ export const LiveAuditor = ({
                     {product.name}
                     <button
                       className="text-cyan-200 transition hover:text-white"
-                      onClick={() => onToggleManualProduct(product.id)}
+                      onClick={() => onRemoveManualProduct(product.id)}
                       type="button"
                     >
                       Quitar
@@ -373,6 +397,7 @@ export const LiveAuditor = ({
           {visibleProducts.map((product) => {
             const isActive = product.id === selectedProductId;
             const isManualSelected = manualSelectionProductIds.includes(product.id);
+            const manualEntry = manualRecommendationMap.get(product.id);
 
             return (
               <article
@@ -403,7 +428,11 @@ export const LiveAuditor = ({
                     {isActive ? "Semilla activa" : "Usar como semilla"}
                   </Button>
                   <Button
-                    onClick={() => onToggleManualProduct(product.id)}
+                    onClick={() =>
+                      isManualSelected
+                        ? onRemoveManualProduct(product.id)
+                        : onAddManualProduct(product.id)
+                    }
                     size="sm"
                     type="button"
                     variant={isManualSelected ? "primary" : "secondary"}
@@ -411,6 +440,31 @@ export const LiveAuditor = ({
                     {isManualSelected ? "Quitar de manual" : "Agregar a manual"}
                   </Button>
                 </div>
+
+                {isManualSelected ? (
+                  <label className="grid gap-2">
+                    <span className="text-[11px] uppercase tracking-[0.2em] text-slate-500">
+                      Descuento manual
+                    </span>
+                    <select
+                      className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-300/40"
+                      onChange={(event) =>
+                        onSetManualProductDiscount(
+                          product.id,
+                          Number(event.target.value) as DiscountPercentageValue,
+                        )
+                      }
+                      style={darkOptionStyle}
+                      value={manualEntry?.discountPercentage ?? 0}
+                    >
+                      {DISCOUNT_PERCENTAGE_OPTIONS.map((option) => (
+                        <option key={option} style={darkOptionStyle} value={option}>
+                          {option === 0 ? "Sin descuento" : `${option}% OFF`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
               </article>
             );
           })}

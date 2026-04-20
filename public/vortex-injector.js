@@ -1113,7 +1113,12 @@
     var recommendationIds = Array.isArray(payload && payload.recommendations)
       ? payload.recommendations
           .map(function (item) {
-            return item.productId;
+            var itemDiscount =
+              typeof item.discountPercentage === "number" &&
+              !Number.isNaN(item.discountPercentage)
+                ? item.discountPercentage
+                : "";
+            return item.productId + ":" + itemDiscount;
           })
           .join(",")
       : "";
@@ -1244,18 +1249,23 @@
       card.className = "vortex-widget__card";
       card.style.borderRadius = widgetConfig.borderRadius + "px";
       var imageUrl = item.imageUrl || "";
+      var itemDiscount =
+        typeof item.discountPercentage === "number" &&
+        !Number.isNaN(item.discountPercentage)
+          ? item.discountPercentage
+          : widgetConfig.discountPercentage;
       var priceLabel =
         typeof item.price === "number" && !Number.isNaN(item.price)
           ? formatMoney(item.price)
           : "Ver detalle";
       var discountedPrice = getDiscountedPrice(
         item.price,
-        widgetConfig.discountPercentage
+        itemDiscount
       );
       var discountedPriceLabel =
         typeof discountedPrice === "number" ? formatMoney(discountedPrice) : "Ver detalle";
-      var discountLabel = widgetConfig.discountPercentage
-        ? widgetConfig.discountPercentage + "% OFF"
+      var discountLabel = itemDiscount
+        ? itemDiscount + "% OFF"
         : "";
       var productUrl = buildProductUrl(item);
 
@@ -1275,12 +1285,12 @@
         item.name +
         '</h4></a></div>' +
         '<div class="vortex-widget__meta vortex-widget__meta--pricing">' +
-        (widgetConfig.discountPercentage
+        (itemDiscount
           ? '<span class="vortex-widget__price vortex-widget__price--original">' +
             priceLabel +
             "</span>"
           : '<span class="vortex-widget__price">' + priceLabel + "</span>") +
-        (widgetConfig.discountPercentage
+        (itemDiscount
           ? '<span class="vortex-widget__price vortex-widget__price--current">' +
             discountedPriceLabel +
             "</span>"

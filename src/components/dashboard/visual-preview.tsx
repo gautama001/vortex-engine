@@ -113,13 +113,20 @@ const buildPreviewDocument = (
 
   const widgetCards = recommendedProducts
     .map((product) => {
+      const manualEntry = config.manualRecommendations.find(
+        (entry) => entry.productId === product.id,
+      );
+      const effectiveDiscount =
+        config.recommendationAlgorithm === "seleccion-manual"
+          ? (manualEntry?.discountPercentage ?? 0)
+          : config.discountPercentage;
       const originalPriceLabel = formatMoney(product.price, currencyCode);
       const discountedPriceLabel = formatMoney(
-        getDiscountedPrice(product.price, config.discountPercentage),
+        getDiscountedPrice(product.price, effectiveDiscount),
         currencyCode,
       );
-      const discountLabel = config.discountPercentage
-        ? `${config.discountPercentage}% OFF`
+      const discountLabel = effectiveDiscount
+        ? `${effectiveDiscount}% OFF`
         : "";
 
       return `
@@ -133,12 +140,12 @@ const buildPreviewDocument = (
             <p class="vortex-name">${escapeHtml(product.name)}</p>
             <div class="vortex-row vortex-row--pricing">
               ${
-                config.discountPercentage
+                effectiveDiscount
                   ? `<span class="vortex-price vortex-price--original">${escapeHtml(originalPriceLabel)}</span>`
                   : `<span class="vortex-price">${escapeHtml(originalPriceLabel)}</span>`
               }
               ${
-                config.discountPercentage
+                effectiveDiscount
                   ? `<span class="vortex-price vortex-price--current">${escapeHtml(discountedPriceLabel)}</span>`
                   : ""
               }

@@ -11,6 +11,8 @@ type TiendaNubeClientOptions = {
   storeId: string;
 };
 
+type JsonBody = BodyInit | null | Record<string, unknown> | unknown[] | undefined;
+
 const normalizeQueryValue = (value: QueryValue): string | null => {
   if (value === null || value === undefined) {
     return null;
@@ -79,6 +81,71 @@ export class TiendaNubeClient {
     return headers;
   }
 
+  private buildBody(body: JsonBody): BodyInit | null | undefined {
+    if (body === undefined) {
+      return undefined;
+    }
+
+    if (body === null) {
+      return null;
+    }
+
+    if (
+      typeof body === "string" ||
+      body instanceof ArrayBuffer ||
+      body instanceof Blob ||
+      body instanceof FormData ||
+      body instanceof URLSearchParams ||
+      body instanceof ReadableStream
+    ) {
+      return body;
+    }
+
+    return JSON.stringify(body);
+  }
+
+  private buildJsonHeaders(
+    body: JsonBody,
+    initHeaders?: HeadersInit,
+  ): HeadersInit | undefined {
+    if (body === undefined || body === null) {
+      return initHeaders;
+    }
+
+    if (
+      typeof body === "string" ||
+      body instanceof ArrayBuffer ||
+      body instanceof Blob ||
+      body instanceof FormData ||
+      body instanceof URLSearchParams ||
+      body instanceof ReadableStream
+    ) {
+      return initHeaders;
+    }
+
+    return {
+      ...Object.fromEntries(new Headers(initHeaders).entries()),
+      "Content-Type": "application/json",
+    };
+  }
+
+  private send<TResponse>(
+    method: "DELETE" | "PATCH" | "POST" | "PUT",
+    pathname: string,
+    body?: JsonBody,
+    query?: QueryRecord,
+  ): Promise<TResponse> {
+    return this.request<TResponse>(
+      pathname,
+      {
+        body: this.buildBody(body),
+        headers: this.buildJsonHeaders(body),
+        method,
+      },
+      query,
+    );
+  }
+
   async request<TResponse>(
     pathname: string,
     init?: RequestInit,
@@ -118,12 +185,30 @@ export class TiendaNubeClient {
     pathname: string,
     body: TBody,
   ): Promise<TResponse> {
-    return this.request<TResponse>(pathname, {
-      body: JSON.stringify(body),
-      headers: {
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-    });
+    return this.send<TResponse>("POST", pathname, body);
+  }
+
+  put<TResponse, TBody extends Record<string, unknown> | unknown[]>(
+    pathname: string,
+    body: TBody,
+  ): Promise<TResponse> {
+    return this.send<TResponse>("PUT", pathname, body);
+  }
+
+  patch<TResponse, TBody extends Record<string, unknown> | unknown[]>(
+    pathname: string,
+    body: TBody,
+  ): Promise<TResponse> {
+    return this.send<TResponse>("PATCH", pathname, body);
+  }
+
+  delete<TResponse>(
+    pathname: string,
+    options?: {
+      body?: JsonBody;
+      query?: QueryRecord;
+    },
+  ): Promise<TResponse> {
+    return this.send<TResponse>("DELETE", pathname, options?.body, options?.query);
   }
 }

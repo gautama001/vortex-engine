@@ -6,6 +6,7 @@ import { clamp } from "@/lib/utils";
 import {
   FONT_FAMILY_OPTIONS,
   type FontFamilyValue,
+  type ManualRecommendationEntry,
   type StrategyValue,
 } from "@/components/dashboard/types";
 import type {
@@ -55,6 +56,7 @@ export type StoreRecord = Omit<PrismaStore, "manualRecommendationProductIds"> & 
   fontColor: string;
   fontFamily: FontFamilyValue;
   hideOutOfStock: boolean;
+  manualRecommendations: ManualRecommendationEntry[];
   manualRecommendationProductIds: number[];
   mobileColumns: MobileColumnValue;
   productPageEnabled: boolean;
@@ -77,6 +79,7 @@ export type StoreWidgetSettings = {
   fontColor: string;
   fontFamily: FontFamilyValue;
   hideOutOfStock: boolean;
+  manualRecommendations: ManualRecommendationEntry[];
   manualRecommendationProductIds: number[];
   mobileColumns: MobileColumnValue;
   productPageEnabled: boolean;
@@ -99,6 +102,7 @@ export const DEFAULT_STORE_WIDGET_SETTINGS: StoreWidgetSettings = {
   fontColor: "#E6EDF6",
   fontFamily: "plex-sans",
   hideOutOfStock: true,
+  manualRecommendations: [],
   manualRecommendationProductIds: [],
   mobileColumns: 2,
   productPageEnabled: true,
@@ -204,6 +208,7 @@ type ManualMerchandisingState = {
   fontColor: string;
   fontFamily: FontFamilyValue;
   mobileColumns: MobileColumnValue;
+  recommendations: ManualRecommendationEntry[];
   productIds: number[];
 };
 
@@ -213,6 +218,43 @@ const parseProductIds = (value: unknown): number[] => {
   }
 
   return [...new Set(value.map((item) => Number(item)).filter(Number.isFinite))];
+};
+
+const parseManualRecommendations = (
+  value: unknown,
+  fallbackDiscountPercentage: DiscountPercentageValue,
+): ManualRecommendationEntry[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const entries = new Map<number, ManualRecommendationEntry>();
+
+  for (const item of value) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+
+    const candidate = item as {
+      discountPercentage?: number | string;
+      productId?: number | string;
+    };
+    const productId = Number(candidate.productId);
+
+    if (!Number.isFinite(productId)) {
+      continue;
+    }
+
+    entries.set(productId, {
+      discountPercentage: normalizeDiscountPercentage(
+        candidate.discountPercentage,
+        fallbackDiscountPercentage,
+      ),
+      productId,
+    });
+  }
+
+  return [...entries.values()].slice(0, 24);
 };
 
 const parseManualMerchandisingState = (
@@ -225,6 +267,7 @@ const parseManualMerchandisingState = (
       fontColor: DEFAULT_STORE_WIDGET_SETTINGS.fontColor,
       fontFamily: DEFAULT_STORE_WIDGET_SETTINGS.fontFamily,
       mobileColumns: DEFAULT_STORE_WIDGET_SETTINGS.mobileColumns,
+      recommendations: [],
       productIds: [],
     };
   }
@@ -239,6 +282,7 @@ const parseManualMerchandisingState = (
         fontColor: DEFAULT_STORE_WIDGET_SETTINGS.fontColor,
         fontFamily: DEFAULT_STORE_WIDGET_SETTINGS.fontFamily,
         mobileColumns: DEFAULT_STORE_WIDGET_SETTINGS.mobileColumns,
+        recommendations: [],
         productIds: parseProductIds(parsed),
       };
     }
@@ -250,6 +294,7 @@ const parseManualMerchandisingState = (
         fontColor: DEFAULT_STORE_WIDGET_SETTINGS.fontColor,
         fontFamily: DEFAULT_STORE_WIDGET_SETTINGS.fontFamily,
         mobileColumns: DEFAULT_STORE_WIDGET_SETTINGS.mobileColumns,
+        recommendations: [],
         productIds: [],
       };
     }
@@ -262,24 +307,40 @@ const parseManualMerchandisingState = (
       ids?: unknown;
       mobileColumns?: number | string;
       productIds?: unknown;
+      recommendations?: unknown;
     };
+
+    const discountPercentage = normalizeDiscountPercentage(
+      blob.discountPercentage,
+      DEFAULT_STORE_WIDGET_SETTINGS.discountPercentage,
+    );
+    const productIds = parseProductIds(blob.productIds ?? blob.ids);
+    const recommendations = parseManualRecommendations(
+      blob.recommendations,
+      discountPercentage,
+    );
+    const fallbackRecommendations =
+      recommendations.length > 0
+        ? recommendations
+        : productIds.map((productId) => ({
+            discountPercentage,
+            productId,
+          }));
 
     return {
       desktopColumns: normalizeDesktopColumns(
         blob.desktopColumns,
         DEFAULT_STORE_WIDGET_SETTINGS.desktopColumns,
       ),
-      discountPercentage: normalizeDiscountPercentage(
-        blob.discountPercentage,
-        DEFAULT_STORE_WIDGET_SETTINGS.discountPercentage,
-      ),
+      discountPercentage,
       fontColor: normalizeColor(blob.fontColor, DEFAULT_STORE_WIDGET_SETTINGS.fontColor),
       fontFamily: normalizeFontFamily(blob.fontFamily, DEFAULT_STORE_WIDGET_SETTINGS.fontFamily),
       mobileColumns: normalizeMobileColumns(
         blob.mobileColumns,
         DEFAULT_STORE_WIDGET_SETTINGS.mobileColumns,
       ),
-      productIds: parseProductIds(blob.productIds ?? blob.ids),
+      recommendations: fallbackRecommendations,
+      productIds: fallbackRecommendations.map((entry) => entry.productId),
     };
   } catch {
     return {
@@ -288,6 +349,7 @@ const parseManualMerchandisingState = (
       fontColor: DEFAULT_STORE_WIDGET_SETTINGS.fontColor,
       fontFamily: DEFAULT_STORE_WIDGET_SETTINGS.fontFamily,
       mobileColumns: DEFAULT_STORE_WIDGET_SETTINGS.mobileColumns,
+      recommendations: [],
       productIds: [],
     };
   }
@@ -310,6 +372,13 @@ const serializeManualMerchandisingState = (value: ManualMerchandisingState): str
       DEFAULT_STORE_WIDGET_SETTINGS.mobileColumns,
     ),
     productIds: parseProductIds(value.productIds).slice(0, 24),
+    recommendations: parseManualRecommendations(
+      value.recommendations,
+      normalizeDiscountPercentage(
+        value.discountPercentage,
+        DEFAULT_STORE_WIDGET_SETTINGS.discountPercentage,
+      ),
+    ),
   });
 };
 
@@ -339,6 +408,7 @@ const mapStoreRow = (row: StoreRow): StoreRecord => {
     hideOutOfStock:
       row.hide_out_of_stock ?? DEFAULT_STORE_WIDGET_SETTINGS.hideOutOfStock,
     id: row.id,
+    manualRecommendations: manualMerchandisingState.recommendations,
     manualRecommendationProductIds: manualMerchandisingState.productIds,
     mobileColumns: manualMerchandisingState.mobileColumns,
     productPageEnabled:
@@ -464,6 +534,7 @@ export const getStoreWidgetSettings = (store: StoreRecord): StoreWidgetSettings 
     fontColor: normalizeColor(store.fontColor, DEFAULT_STORE_WIDGET_SETTINGS.fontColor),
     fontFamily: normalizeFontFamily(store.fontFamily, DEFAULT_STORE_WIDGET_SETTINGS.fontFamily),
     hideOutOfStock: store.hideOutOfStock,
+    manualRecommendations: store.manualRecommendations,
     manualRecommendationProductIds: store.manualRecommendationProductIds,
     mobileColumns: normalizeMobileColumns(
       store.mobileColumns,
@@ -614,6 +685,7 @@ export const updateStoreWidgetSettings = async (
           input.mobileColumns,
           existingStore.mobileColumns,
         ),
+        recommendations: input.manualRecommendations ?? existingStore.manualRecommendations,
         productIds: input.manualRecommendationProductIds ?? existingStore.manualRecommendationProductIds,
       })},
       "require_image" = ${input.requireImage ?? existingStore.requireImage},

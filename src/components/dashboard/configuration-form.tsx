@@ -26,8 +26,14 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type ConfigurationFormProps = {
+  manualRecommendations: MerchantWidgetConfig["manualRecommendations"];
   manualSelectionProductIds: number[];
-  onConfigChange: (config: MerchantWidgetConfig) => void;
+  onConfigChange: (
+    config: MerchantWidgetConfig,
+    options?: {
+      preserveManualSelection?: boolean;
+    },
+  ) => void;
   onSaved: (config: MerchantWidgetConfig, updatedAt: string) => void;
   savedConfig: MerchantWidgetConfig;
   storeId: string;
@@ -106,6 +112,7 @@ const PlacementToggle = ({
 };
 
 export const ConfigurationForm = ({
+  manualRecommendations,
   manualSelectionProductIds,
   onConfigChange,
   onSaved,
@@ -148,6 +155,8 @@ export const ConfigurationForm = ({
       ) as MerchantWidgetConfig["discountPercentage"],
       fontColor: normalizeHexInput(watchedValues.fontColor ?? savedConfig.fontColor),
       fontFamily: watchedValues.fontFamily ?? savedConfig.fontFamily,
+      manualRecommendations:
+        manualRecommendations ?? watchedValues.manualRecommendations ?? savedConfig.manualRecommendations,
       manualRecommendationProductIds:
         manualSelectionProductIds ??
         watchedValues.manualRecommendationProductIds ??
@@ -167,11 +176,14 @@ export const ConfigurationForm = ({
 
   useEffect(() => {
     registerField("manualRecommendationProductIds");
+    registerField("manualRecommendations");
   }, [registerField]);
 
   useEffect(() => {
     reset(savedConfig);
-    onConfigChange(savedConfig);
+    onConfigChange(savedConfig, {
+      preserveManualSelection: false,
+    });
   }, [onConfigChange, reset, savedConfig]);
 
   useEffect(() => {
@@ -187,13 +199,24 @@ export const ConfigurationForm = ({
   }, [manualSelectionProductIds, setValue]);
 
   useEffect(() => {
-    onConfigChange({
-      ...liveConfig,
-      borderRadius: Number.isFinite(liveConfig.borderRadius) ? liveConfig.borderRadius : 24,
-      recommendationLimit: Number.isFinite(liveConfig.recommendationLimit)
-        ? liveConfig.recommendationLimit
-        : 4,
+    setValue("manualRecommendations", manualRecommendations, {
+      shouldDirty: true,
     });
+  }, [manualRecommendations, setValue]);
+
+  useEffect(() => {
+    onConfigChange(
+      {
+        ...liveConfig,
+        borderRadius: Number.isFinite(liveConfig.borderRadius) ? liveConfig.borderRadius : 24,
+        recommendationLimit: Number.isFinite(liveConfig.recommendationLimit)
+          ? liveConfig.recommendationLimit
+          : 4,
+      },
+      {
+        preserveManualSelection: true,
+      },
+    );
   }, [liveConfig, onConfigChange]);
 
   const submitHandler = handleSubmit(async (values) => {
@@ -255,7 +278,9 @@ export const ConfigurationForm = ({
     setAccentColorDraft(savedConfig.accentColor);
     setFontColorDraft(savedConfig.fontColor);
     setSaveStatus(null);
-    onConfigChange(savedConfig);
+    onConfigChange(savedConfig, {
+      preserveManualSelection: false,
+    });
   };
 
   const applyColorDraft = (field: "accentColor" | "backgroundColor" | "fontColor") => {

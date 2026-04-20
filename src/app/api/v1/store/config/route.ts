@@ -19,6 +19,7 @@ import {
   type DesktopColumnValue,
   type DiscountPercentageValue,
   type FontFamilyValue,
+  type ManualRecommendationEntry,
   type MobileColumnValue,
   type StrategyValue,
 } from "@/components/dashboard/types";
@@ -59,6 +60,43 @@ const normalizeProductIdList = (value: unknown, fallback: number[]): number[] =>
   }
 
   return [...new Set(value.map((item) => Number(item)).filter(Number.isFinite))].slice(0, 24);
+};
+
+const normalizeManualRecommendations = (
+  value: unknown,
+  fallbackDiscountPercentage: DiscountPercentageValue,
+): ManualRecommendationEntry[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const entries = new Map<number, ManualRecommendationEntry>();
+
+  for (const item of value) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+
+    const candidate = item as {
+      discountPercentage?: unknown;
+      productId?: unknown;
+    };
+    const productId = Number(candidate.productId);
+
+    if (!Number.isFinite(productId)) {
+      continue;
+    }
+
+    entries.set(productId, {
+      discountPercentage: normalizeDiscountPercentage(
+        candidate.discountPercentage,
+        fallbackDiscountPercentage,
+      ),
+      productId,
+    });
+  }
+
+  return [...entries.values()].slice(0, 24);
 };
 
 const VALID_STRATEGIES = new Set<StrategyValue>(ESTRATEGIAS.map((item) => item.valor));
@@ -125,6 +163,21 @@ const normalizeStoreConfigPayload = (payload: unknown): Partial<StoreWidgetSetti
   }
 
   const config = payload as Record<string, unknown>;
+  const discountPercentage = normalizeDiscountPercentage(
+    config.discountPercentage,
+    DEFAULT_STORE_WIDGET_SETTINGS.discountPercentage,
+  );
+  const manualRecommendations = normalizeManualRecommendations(
+    config.manualRecommendations,
+    discountPercentage,
+  );
+  const manualRecommendationProductIds =
+    manualRecommendations.length > 0
+      ? manualRecommendations.map((entry) => entry.productId)
+      : normalizeProductIdList(
+          config.manualRecommendationProductIds,
+          DEFAULT_STORE_WIDGET_SETTINGS.manualRecommendationProductIds,
+        );
 
   return {
     accentColor: normalizeColor(config.accentColor, DEFAULT_STORE_WIDGET_SETTINGS.accentColor),
@@ -147,20 +200,21 @@ const normalizeStoreConfigPayload = (payload: unknown): Partial<StoreWidgetSetti
       config.desktopColumns,
       DEFAULT_STORE_WIDGET_SETTINGS.desktopColumns,
     ),
-    discountPercentage: normalizeDiscountPercentage(
-      config.discountPercentage,
-      DEFAULT_STORE_WIDGET_SETTINGS.discountPercentage,
-    ),
+    discountPercentage,
     fontColor: normalizeColor(config.fontColor, DEFAULT_STORE_WIDGET_SETTINGS.fontColor),
     fontFamily: normalizeFontFamily(config.fontFamily, DEFAULT_STORE_WIDGET_SETTINGS.fontFamily),
     hideOutOfStock: normalizeBoolean(
       config.hideOutOfStock,
       DEFAULT_STORE_WIDGET_SETTINGS.hideOutOfStock,
     ),
-    manualRecommendationProductIds: normalizeProductIdList(
-      config.manualRecommendationProductIds,
-      DEFAULT_STORE_WIDGET_SETTINGS.manualRecommendationProductIds,
-    ),
+    manualRecommendations:
+      manualRecommendations.length > 0
+        ? manualRecommendations
+        : manualRecommendationProductIds.map((productId) => ({
+            discountPercentage,
+            productId,
+          })),
+    manualRecommendationProductIds,
     mobileColumns: normalizeMobileColumns(
       config.mobileColumns,
       DEFAULT_STORE_WIDGET_SETTINGS.mobileColumns,
@@ -277,6 +331,7 @@ const handleStoreConfigUpdate = async (request: Request) => {
           fontColor: updatedStore.fontColor,
           fontFamily: updatedStore.fontFamily,
           hideOutOfStock: updatedStore.hideOutOfStock,
+          manualRecommendations: updatedStore.manualRecommendations,
           manualRecommendationProductIds: updatedStore.manualRecommendationProductIds,
           mobileColumns: updatedStore.mobileColumns,
           productPageEnabled: updatedStore.productPageEnabled,
