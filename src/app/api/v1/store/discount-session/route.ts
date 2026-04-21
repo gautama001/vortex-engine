@@ -229,16 +229,7 @@ export async function POST(request: NextRequest) {
     }
 
     const store = await getActiveStoreOrThrow(storeId);
-    if (!store.discountPromotionId) {
-      try {
-        await ensureStoreDiscountIntegration(store);
-      } catch (integrationError) {
-        logger.warn("Discount integration provisioning failed during session prep", {
-          error: integrationError,
-          storeId,
-        });
-      }
-    }
+    await ensureStoreDiscountIntegration(store);
 
     const source = mapStrategyToSource(verifiedProof.strategy);
     const ruleId = buildRuleId(

@@ -39,6 +39,12 @@ export const createStorePromotion = async (
   );
 };
 
+export const listStorePromotions = async (
+  credentials: TiendaNubeStoreCredentials,
+): Promise<TiendaNubePromotion[]> => {
+  return buildClient(credentials).get<TiendaNubePromotion[]>("/promotions");
+};
+
 export const ensureStoreDiscountIntegration = async (
   store: StoreRecord,
 ): Promise<{
@@ -55,10 +61,22 @@ export const ensureStoreDiscountIntegration = async (
   await registerStoreDiscountCallback(credentials, callbackUrl);
 
   if (store.discountPromotionId) {
-    return {
-      callbackUrl,
-      promotionId: store.discountPromotionId,
-    };
+    const promotions = await listStorePromotions(credentials);
+    const existingPromotion = promotions.find(
+      (promotion) =>
+        String(promotion.id) === store.discountPromotionId &&
+        promotion.status === "active" &&
+        promotion.execution_tier === "line_item",
+    );
+
+    if (existingPromotion) {
+      return {
+        callbackUrl,
+        promotionId: store.discountPromotionId,
+      };
+    }
+
+    await setStoreDiscountPromotionId(store.tiendanubeId, null);
   }
 
   const promotion = await createStorePromotion(credentials, {

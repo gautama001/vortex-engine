@@ -47,6 +47,10 @@ export async function POST(request: NextRequest) {
   const storeId = String(payload.store_id ?? "").trim();
   const cartProducts = Array.isArray(payload.products) ? payload.products : [];
 
+  if (payload.execution_tier !== "line_item") {
+    return new NextResponse(null, { status: 204 });
+  }
+
   if (!storeId) {
     return NextResponse.json(
       {
@@ -161,6 +165,7 @@ export async function POST(request: NextRequest) {
 
   logger.info("Resolved TiendaNube discount callback", {
     commandCount: commands.length,
+    executionTier: payload.execution_tier,
     storeId,
   });
 

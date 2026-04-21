@@ -5,7 +5,7 @@ import { getTiendaNubeConfig } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { verifyHmacHex } from "@/lib/security";
 import { type TiendaNubeWebhookPayload } from "@/lib/tiendanube/types";
-import { setStoreStatus } from "@/services/store-service";
+import { setStoreDiscountPromotionId, setStoreStatus } from "@/services/store-service";
 
 export const runtime = "nodejs";
 
@@ -61,6 +61,10 @@ export async function POST(request: NextRequest) {
 
   if (targetStatus) {
     await setStoreStatus(storeId, targetStatus);
+  }
+
+  if (payload.event === "app/uninstalled") {
+    await setStoreDiscountPromotionId(storeId, null);
   }
 
   logger.info("Processed TiendaNube webhook", {
