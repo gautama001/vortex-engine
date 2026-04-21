@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTiendaNubeConfig } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { verifyRecommendationDiscountProof } from "@/lib/security";
+import { getRecommendations } from "@/services/recommendation-service";
 import { getActiveStoreOrThrow } from "@/services/store-service";
 import { ensureStoreDiscountIntegration } from "@/services/tiendanube-discount-integration-service";
 import {
@@ -95,6 +96,30 @@ const buildRemoteDiscountName = (
   ].join("|");
 };
 
+const recoverRecommendationDiscountProof = async (input: {
+  rewardProductId: number;
+  storeId: string;
+  triggerProductId: number;
+}) => {
+  const result = await getRecommendations({
+    productId: input.triggerProductId,
+    storeId: input.storeId,
+  });
+
+  const recommendationProductIds = result.products.map((item) => item.productId);
+
+  if (!recommendationProductIds.includes(input.rewardProductId)) {
+    return null;
+  }
+
+  return {
+    recommendationProductIds,
+    storeId: input.storeId,
+    strategy: result.strategy,
+    triggerProductId: result.seedProductId ? String(result.seedProductId) : null,
+  };
+};
+
 export function OPTIONS() {
   return new NextResponse(null, {
     headers: defaultHeaders,
@@ -156,10 +181,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const verifiedProof = await verifyRecommendationDiscountProof(
-      proof,
-      getTiendaNubeConfig().clientSecret,
-    );
+    const verifiedProof =
+      (await verifyRecommendationDiscountProof(proof, getTiendaNubeConfig().clientSecret)) ??
+      (await recoverRecommendationDiscountProof({
+        rewardProductId,
+        storeId,
+        triggerProductId,
+      }));
 
     if (!verifiedProof) {
       return NextResponse.json(
@@ -172,6 +200,16 @@ export async function POST(request: NextRequest) {
           status: 401,
         },
       );
+    }
+
+    if (
+      !("expiresAt" in verifiedProof)
+    ) {
+      logger.warn("Recovered invalid discount proof via live recommendation resolution", {
+        rewardProductId,
+        storeId,
+        triggerProductId,
+      });
     }
 
     if (verifiedProof.storeId !== storeId) {

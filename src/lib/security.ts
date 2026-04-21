@@ -160,7 +160,7 @@ const buildRecommendationDiscountProofPayload = ({
 export const buildRecommendationDiscountProof = async (
   input: RecommendationDiscountProofInput,
   secret: string,
-  ttlMs = 1000 * 60 * 10,
+  ttlMs = 1000 * 60 * 60,
 ): Promise<string> => {
   const expiresAt =
     typeof input.expiresAt === "number" && Number.isFinite(input.expiresAt)
