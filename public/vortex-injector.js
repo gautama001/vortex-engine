@@ -898,20 +898,15 @@
       fallbackItem: fallbackItem,
       selectedVariantId: variantId,
     })
-      .then(function () {
-        return shouldTryNative ? nativeAddToCart(snapshot, selection) : tryDirectAdd();
-      })
       .catch(function (error) {
         if (error && error.message === "discount_session_failed") {
-          restoreAfterDiscountFailure();
-          throw error;
+          return null;
         }
 
-        if (shouldTryNative) {
-          return tryDirectAdd();
-        }
-
-        throw error || new Error("add_to_cart_failed");
+        throw error;
+      })
+      .then(function () {
+        return shouldTryNative ? nativeAddToCart(snapshot, selection) : tryDirectAdd();
       })
       .then(function () {
         restoreAfterSuccess();

@@ -6,6 +6,7 @@ CREATE TABLE "stores" (
     "access_token" TEXT NOT NULL,
     "scope" TEXT NOT NULL,
     "status" "StoreStatus" NOT NULL DEFAULT 'PENDING',
+    "discount_promotion_id" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 

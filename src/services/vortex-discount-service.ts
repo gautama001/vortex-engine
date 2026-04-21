@@ -271,6 +271,23 @@ export const listDiscountRulesByStore = async (
   return rows.map(mapDiscountRule);
 };
 
+export const listActiveOfferSessionsByStore = async (
+  storeId: string,
+): Promise<VortexOfferSession[]> => {
+  await ensureDiscountPersistence();
+
+  const rows = await prisma.$queryRaw<OfferSessionRow[]>`
+    SELECT *
+    FROM "offer_sessions"
+    WHERE "store_id" = ${storeId}
+      AND "status" IN ('PENDING', 'APPLIED')
+      AND ("expires_at" IS NULL OR "expires_at" > NOW())
+    ORDER BY "updated_at" DESC, "created_at" DESC
+  `;
+
+  return rows.map(mapOfferSession);
+};
+
 export const createOfferSession = async (
   input: CreateOfferSessionInput,
 ): Promise<VortexOfferSession> => {

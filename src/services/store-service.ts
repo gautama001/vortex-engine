@@ -29,6 +29,7 @@ type StoreRow = {
   border_radius: number | null;
   cart_page_enabled: boolean | null;
   created_at: Date;
+  discount_promotion_id: string | null;
   hide_out_of_stock: boolean | null;
   id: string;
   manual_recommendation_product_ids: string | null;
@@ -53,6 +54,7 @@ export type StoreRecord = Omit<PrismaStore, "manualRecommendationProductIds"> & 
   cartPageEnabled: boolean;
   desktopColumns: DesktopColumnValue;
   discountPercentage: DiscountPercentageValue;
+  discountPromotionId: string | null;
   fontColor: string;
   fontFamily: FontFamilyValue;
   hideOutOfStock: boolean;
@@ -402,6 +404,7 @@ const mapStoreRow = (row: StoreRow): StoreRecord => {
     cartPageEnabled: row.cart_page_enabled ?? DEFAULT_STORE_WIDGET_SETTINGS.cartPageEnabled,
     desktopColumns: manualMerchandisingState.desktopColumns,
     discountPercentage: manualMerchandisingState.discountPercentage,
+    discountPromotionId: row.discount_promotion_id,
     createdAt: row.created_at,
     fontColor: manualMerchandisingState.fontColor,
     fontFamily: manualMerchandisingState.fontFamily,
@@ -452,6 +455,7 @@ const selectStoreByTiendaNubeId = async (tiendanubeId: string): Promise<StoreRec
       widget_enabled,
       product_page_enabled,
       cart_page_enabled,
+      discount_promotion_id,
       widget_title,
       widget_subtitle,
       quick_add_label,
@@ -626,6 +630,7 @@ export const listRecentStores = async (limit = 6): Promise<StoreRecord[]> => {
       widget_enabled,
       product_page_enabled,
       cart_page_enabled,
+      discount_promotion_id,
       widget_title,
       widget_subtitle,
       quick_add_label,
@@ -703,6 +708,30 @@ export const updateStoreWidgetSettings = async (
       "updated_at" = NOW()
     WHERE "tiendanube_id" = ${tiendanubeId}
   `;
+
+  return selectStoreByTiendaNubeId(tiendanubeId);
+};
+
+export const setStoreDiscountPromotionId = async (
+  tiendanubeId: string,
+  discountPromotionId: string | null,
+): Promise<StoreRecord | null> => {
+  await ensureStorePersistence();
+
+  const existingStore = await getStoreByTiendaNubeId(tiendanubeId);
+
+  if (!existingStore) {
+    return null;
+  }
+
+  await prisma.store.update({
+    data: {
+      discountPromotionId,
+    },
+    where: {
+      tiendanubeId,
+    },
+  });
 
   return selectStoreByTiendaNubeId(tiendanubeId);
 };

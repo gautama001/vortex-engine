@@ -15,6 +15,11 @@ type StorePersistenceProbeRow = {
 const verifyStorePersistence = async (): Promise<void> => {
   await prisma.$queryRaw`SELECT 1`;
 
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE "stores"
+    ADD COLUMN IF NOT EXISTS "discount_promotion_id" TEXT
+  `);
+
   const probeRows = await prisma.$queryRaw<StorePersistenceProbeRow[]>`
     SELECT
       to_regclass('public.stores')::text AS stores_table,

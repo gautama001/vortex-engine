@@ -24,6 +24,7 @@ model Store {
   widgetEnabled       Boolean     @default(true) @map("widget_enabled")
   productPageEnabled  Boolean     @default(true) @map("product_page_enabled")
   cartPageEnabled     Boolean     @default(true) @map("cart_page_enabled")
+  discountPromotionId  String?     @map("discount_promotion_id") @db.Text
   backgroundColor     String      @default("#0A0F1A") @map("background_color") @db.Text
   accentColor         String      @default("#58E2F3") @map("accent_color") @db.Text
   borderRadius        Int         @default(24) @map("border_radius")

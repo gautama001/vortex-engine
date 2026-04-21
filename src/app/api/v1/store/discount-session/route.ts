@@ -3,15 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTiendaNubeConfig } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { verifyRecommendationDiscountProof } from "@/lib/security";
-import {
-  activateStoreDiscount,
-  createStoreDiscount,
-  listStoreDiscounts,
-} from "@/services/tiendanube-discount-api-service";
 import { getActiveStoreOrThrow } from "@/services/store-service";
+import { ensureStoreDiscountIntegration } from "@/services/tiendanube-discount-integration-service";
 import {
   createOfferSession,
   type VortexDiscountSource,
+  invalidateOfferSessionsByTrigger,
   updateOfferSessionStatus,
   upsertDiscountRule,
 } from "@/services/vortex-discount-service";
@@ -232,6 +229,7 @@ export async function POST(request: NextRequest) {
     }
 
     const store = await getActiveStoreOrThrow(storeId);
+    await ensureStoreDiscountIntegration(store);
     const source = mapStrategyToSource(verifiedProof.strategy);
     const ruleId = buildRuleId(
       storeId,
@@ -260,34 +258,7 @@ export async function POST(request: NextRequest) {
       triggerProductIds: [triggerProductId],
     });
 
-    const credentials = {
-      accessToken: store.accessToken,
-      storeId,
-    };
-    const existingDiscounts = await listStoreDiscounts(credentials);
-    let remoteDiscount = existingDiscounts.find((discount) => discount.name === remoteDiscountName);
-
-    if (!remoteDiscount) {
-      remoteDiscount = await createStoreDiscount(credentials, {
-        benefit: {
-          percentage: discountPercentage,
-          type: "percentage",
-        },
-        name: remoteDiscountName,
-        priority: 100,
-        status: "active",
-        target: {
-          product_ids: [rewardProductId],
-          type: "products",
-        },
-        trigger: {
-          product_ids: [triggerProductId],
-          type: "products",
-        },
-      });
-    } else if (remoteDiscount.status === "paused") {
-      remoteDiscount = await activateStoreDiscount(credentials, remoteDiscount.id);
-    }
+    await invalidateOfferSessionsByTrigger(storeId, triggerProductId);
 
     const offerSession = await createOfferSession({
       attributionId: remoteDiscountName,
@@ -314,7 +285,6 @@ export async function POST(request: NextRequest) {
       {
         discount_rule_id: rule.id,
         offer_session_id: appliedSession.id,
-        remote_discount_id: remoteDiscount.id,
         status: "ok",
       },
       {
