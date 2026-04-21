@@ -8,7 +8,11 @@ import { ProfitFirstSummary } from "@/components/dashboard/profit-first-summary"
 import type { AnalyticsSnapshot } from "@/components/dashboard/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getTiendaNubeConfig, hasCoreEnvironment } from "@/lib/env";
+import {
+  getTiendaNubeConfig,
+  hasCoreEnvironment,
+  shouldPrefetchRemoteMerchantContext,
+} from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { RELEASE_MARKER } from "@/lib/release";
 import { ADMIN_SESSION_COOKIE, verifySignedSessionValue } from "@/lib/security";
@@ -117,6 +121,7 @@ export default async function AppDashboardPage({
   noStore();
 
   const environmentReady = hasCoreEnvironment();
+  const prefetchRemoteMerchantContext = shouldPrefetchRemoteMerchantContext();
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
   const clientSecret = process.env.TIENDANUBE_CLIENT_SECRET;
@@ -159,7 +164,7 @@ export default async function AppDashboardPage({
       persistenceReady = true;
       activeStore = await getStoreByTiendaNubeId(authenticatedStoreId);
 
-      if (activeStore?.status === StoreStatus.ACTIVE) {
+      if (activeStore?.status === StoreStatus.ACTIVE && prefetchRemoteMerchantContext) {
         const [catalogPreviewResult, storefrontContextResult] = await Promise.allSettled([
           listCatalogPreview(authenticatedStoreId, 8),
           getStorefrontContext(authenticatedStoreId),
@@ -343,6 +348,12 @@ export default async function AppDashboardPage({
                   ? "Panel de beta privada para gobernar configuracion visual, estrategia, previsualizacion y activacion storefront sin tocar la base operativa ya validada."
                   : "La capa operativa de Vortex esta online, pero necesitamos volver a enlazar la sesion merchant para mostrar productos, configuracion y storefront de la tienda correcta."}
               </CardDescription>
+              {!prefetchRemoteMerchantContext && hasResolvedMerchantContext ? (
+                <p className="max-w-4xl text-sm leading-6 text-slate-400">
+                  La precarga remota de catalogo/storefront esta pausada en el primer render para
+                  privilegiar estabilidad del runtime en produccion.
+                </p>
+              ) : null}
             </CardHeader>
           </Card>
 

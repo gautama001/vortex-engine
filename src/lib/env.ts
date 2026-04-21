@@ -36,6 +36,26 @@ const optionalNumber = (key: string, fallback: number, min: number, max: number)
   return Math.min(Math.max(parsedValue, min), max);
 };
 
+const optionalBoolean = (key: string, fallback: boolean): boolean => {
+  const rawValue = process.env[key];
+
+  if (rawValue === undefined) {
+    return fallback;
+  }
+
+  const normalized = rawValue.trim().toLowerCase();
+
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+
+  return fallback;
+};
+
 export const hasCoreEnvironment = (): boolean => {
   return Boolean(
     process.env.DATABASE_URL &&
@@ -54,6 +74,10 @@ export const getDefaultRecommendationLimit = (): number => {
   }
 
   return Math.min(parsedValue, 8);
+};
+
+export const shouldPrefetchRemoteMerchantContext = (): boolean => {
+  return optionalBoolean("VORTEX_PREFETCH_REMOTE_MERCHANT_CONTEXT", false);
 };
 
 export const getTiendaNubeConfig = (): TiendaNubeConfig => {
