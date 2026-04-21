@@ -6,6 +6,7 @@ import { ADMIN_SESSION_COOKIE, buildSignedSessionValue, OAUTH_STATE_COOKIE } fro
 import { associateManualScriptToStore, exchangeAuthorizationCode } from "@/lib/tiendanube/auth";
 import { TiendaNubeApiError } from "@/lib/tiendanube/types";
 import { upsertStoreInstallation } from "@/services/store-service";
+import { ensureStoreDiscountIntegration } from "@/services/tiendanube-discount-integration-service";
 
 export const runtime = "nodejs";
 
@@ -75,6 +76,15 @@ export async function GET(request: NextRequest) {
       logger.warn("Script association failed after OAuth callback", {
         error: scriptError,
         storeId: token.user_id,
+      });
+    }
+
+    try {
+      await ensureStoreDiscountIntegration(store);
+    } catch (discountSetupError) {
+      logger.warn("Discount integration provisioning failed after OAuth callback", {
+        error: discountSetupError,
+        storeId: store.tiendanubeId,
       });
     }
 
