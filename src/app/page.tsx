@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { hasCoreEnvironment } from "@/lib/env";
+import { unstable_noStore as noStore } from "next/cache";
+
+export const dynamic = "force-dynamic";
 
 const proofPoints = [
   { label: "Revenue lift", value: "+14.7%" },
@@ -37,6 +40,7 @@ const storefrontBullets = [
 ];
 
 export default function HomePage() {
+  noStore();
   const environmentReady = hasCoreEnvironment();
 
   return (
