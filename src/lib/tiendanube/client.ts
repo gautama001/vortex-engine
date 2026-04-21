@@ -151,17 +151,54 @@ export class TiendaNubeClient {
     init?: RequestInit,
     query?: QueryRecord,
   ): Promise<TResponse> {
+    const startedAt = Date.now();
     const url = this.buildUrl(pathname, query);
-    const response = await fetch(url, {
-      ...init,
-      cache: "no-store",
-      headers: this.buildHeaders(init?.headers),
-    });
+    const { apiTimeoutMs } = getTiendaNubeConfig();
+    const timeoutSignal = AbortSignal.timeout(apiTimeoutMs);
+    const signal = init?.signal ? AbortSignal.any([init.signal, timeoutSignal]) : timeoutSignal;
+
+    let response: Response;
+
+    try {
+      response = await fetch(url, {
+        ...init,
+        cache: "no-store",
+        headers: this.buildHeaders(init?.headers),
+        signal,
+      });
+    } catch (error) {
+      const durationMs = Date.now() - startedAt;
+
+      logger.warn("TiendaNube API request aborted", {
+        durationMs,
+        pathname,
+        storeId: this.storeId,
+        timeoutMs: apiTimeoutMs,
+      });
+
+      if (error instanceof Error && error.name === "TimeoutError") {
+        throw new TiendaNubeApiError(
+          `TiendaNube request timed out after ${apiTimeoutMs}ms`,
+          504,
+          {
+            message: `timeout after ${apiTimeoutMs}ms`,
+          },
+        );
+      }
+
+      throw error;
+    }
     const rawBody = await response.text();
     const parsedBody = rawBody ? safeParseJson(rawBody) : null;
+    const durationMs = Date.now() - startedAt;
 
     if (!response.ok) {
       logger.warn("TiendaNube API request failed", {
+        body:
+          parsedBody && typeof parsedBody === "object"
+            ? parsedBody
+            : rawBody || null,
+        durationMs,
         pathname,
         status: response.status,
         storeId: this.storeId,
@@ -173,6 +210,13 @@ export class TiendaNubeClient {
         parsedBody && typeof parsedBody === "object" ? (parsedBody as Record<string, unknown>) : undefined,
       );
     }
+
+    logger.info("TiendaNube API request completed", {
+      durationMs,
+      pathname,
+      status: response.status,
+      storeId: this.storeId,
+    });
 
     return parsedBody as TResponse;
   }

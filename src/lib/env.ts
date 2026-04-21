@@ -1,5 +1,6 @@
 type TiendaNubeConfig = {
   apiBaseUrl: string;
+  apiTimeoutMs: number;
   apiVersion: string;
   appId: string;
   appUrl: string;
@@ -22,6 +23,17 @@ const required = (key: string): string => {
 
 const optional = (key: string, fallback: string): string => {
   return process.env[key] ?? fallback;
+};
+
+const optionalNumber = (key: string, fallback: number, min: number, max: number): number => {
+  const rawValue = process.env[key];
+  const parsedValue = rawValue ? Number(rawValue) : fallback;
+
+  if (!Number.isFinite(parsedValue)) {
+    return fallback;
+  }
+
+  return Math.min(Math.max(parsedValue, min), max);
 };
 
 export const hasCoreEnvironment = (): boolean => {
@@ -50,6 +62,7 @@ export const getTiendaNubeConfig = (): TiendaNubeConfig => {
 
   return {
     apiBaseUrl: optional("TIENDANUBE_API_BASE_URL", "https://api.tiendanube.com"),
+    apiTimeoutMs: optionalNumber("TIENDANUBE_API_TIMEOUT_MS", 4500, 1000, 15000),
     apiVersion: optional("TIENDANUBE_API_VERSION", "2025-03"),
     appId: required("TIENDANUBE_APP_ID"),
     appUrl: required("TIENDANUBE_APP_URL").replace(/\/+$/, ""),

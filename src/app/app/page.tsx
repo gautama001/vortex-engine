@@ -160,9 +160,15 @@ export default async function AppDashboardPage({
       activeStore = await getStoreByTiendaNubeId(authenticatedStoreId);
 
       if (activeStore?.status === StoreStatus.ACTIVE) {
-        try {
-          catalogPreview = await listCatalogPreview(authenticatedStoreId, 8);
-        } catch (error) {
+        const [catalogPreviewResult, storefrontContextResult] = await Promise.allSettled([
+          listCatalogPreview(authenticatedStoreId, 8),
+          getStorefrontContext(authenticatedStoreId),
+        ]);
+
+        if (catalogPreviewResult.status === "fulfilled") {
+          catalogPreview = catalogPreviewResult.value;
+        } else {
+          const error = catalogPreviewResult.reason;
           catalogRuntimeDetail =
             error instanceof Error ? error.message : "No pudimos cargar el catalogo de la tienda.";
           logger.warn("Catalog preview lookup failed while rendering /app", {
@@ -172,9 +178,10 @@ export default async function AppDashboardPage({
           catalogPreview = [];
         }
 
-        try {
-          storefrontContext = await getStorefrontContext(authenticatedStoreId);
-        } catch (error) {
+        if (storefrontContextResult.status === "fulfilled") {
+          storefrontContext = storefrontContextResult.value;
+        } else {
+          const error = storefrontContextResult.reason;
           storefrontRuntimeDetail =
             error instanceof Error
               ? error.message
