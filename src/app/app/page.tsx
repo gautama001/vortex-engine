@@ -1,4 +1,3 @@
-import { StoreStatus } from "@prisma/client";
 import { unstable_noStore as noStore } from "next/cache";
 import { cookies } from "next/headers";
 
@@ -10,13 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTiendaNubeConfig, hasCoreEnvironment } from "@/lib/env";
 import { ADMIN_SESSION_COOKIE, verifySignedSessionValue } from "@/lib/security";
-import { listCatalogPreview } from "@/services/catalog-service";
-import { getStorefrontContext } from "@/services/storefront-service";
-import {
-  DEFAULT_STORE_WIDGET_SETTINGS,
-  getStoreByTiendaNubeId,
-  getStoreWidgetSettings,
-} from "@/services/store-service";
+import { DEFAULT_STORE_WIDGET_SETTINGS } from "@/services/store-service";
 
 export const dynamic = "force-dynamic";
 
@@ -48,27 +41,8 @@ const installationErrors: Record<string, { detail: string; title: string }> = {
 
 const DEFAULT_ANALYTICS_SEED = 2026;
 
-const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
-  let timeoutId: NodeJS.Timeout | null = null;
-
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<T>((_resolve, reject) => {
-        timeoutId = setTimeout(() => {
-          reject(new Error(`${label}_timeout`));
-        }, timeoutMs);
-      }),
-    ]);
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-  }
-};
-
 const buildProfitSummary = (input: {
-  catalogPreview: Awaited<ReturnType<typeof listCatalogPreview>>;
+  catalogPreview: Array<{ name?: string; price?: number }>;
   storeId: string | null;
 }) => {
   const seed = Number(input.storeId ?? 0) || DEFAULT_ANALYTICS_SEED;
@@ -154,11 +128,7 @@ export default async function AppDashboardPage({
   const installationError = errorCode ? installationErrors[errorCode] : null;
 
   let authenticatedStoreId: string | null = null;
-  let persistenceReady = false;
-  let persistenceRuntimeDetail: string | null = null;
-  let activeStore = null as Awaited<ReturnType<typeof getStoreByTiendaNubeId>>;
-  let catalogPreview = [] as Awaited<ReturnType<typeof listCatalogPreview>>;
-  let storefrontContext = null as Awaited<ReturnType<typeof getStorefrontContext>>;
+  const catalogPreview: Array<{ name?: string; price?: number }> = [];
 
   if (sessionCookie && clientSecret) {
     try {
@@ -169,37 +139,7 @@ export default async function AppDashboardPage({
     }
   }
 
-  if (environmentReady && authenticatedStoreId) {
-    try {
-      persistenceReady = true;
-      activeStore = await withTimeout(
-        getStoreByTiendaNubeId(authenticatedStoreId),
-        1800,
-        "store_lookup",
-      );
-
-      if (activeStore?.status === StoreStatus.ACTIVE) {
-        const [catalogResult, storefrontResult] = await Promise.allSettled([
-          withTimeout(listCatalogPreview(authenticatedStoreId, 8), 2200, "catalog_preview"),
-          withTimeout(getStorefrontContext(authenticatedStoreId), 2200, "storefront_context"),
-        ]);
-
-        catalogPreview = catalogResult.status === "fulfilled" ? catalogResult.value : [];
-        storefrontContext = storefrontResult.status === "fulfilled" ? storefrontResult.value : null;
-      }
-    } catch (error) {
-      persistenceReady = false;
-      persistenceRuntimeDetail =
-        error instanceof Error ? error.message : "No pudimos resolver la store desde el runtime.";
-      activeStore = null;
-      catalogPreview = [];
-      storefrontContext = null;
-    }
-  }
-
-  const widgetSettings = activeStore
-    ? getStoreWidgetSettings(activeStore)
-    : DEFAULT_STORE_WIDGET_SETTINGS;
+  const widgetSettings = DEFAULT_STORE_WIDGET_SETTINGS;
   const scriptDevelopmentUrl = appUrl
     ? `${appUrl}/vortex-injector.js?api_origin=${encodeURIComponent(appUrl)}`
     : "Pendiente";
@@ -212,14 +152,20 @@ export default async function AppDashboardPage({
     storeId: authenticatedStoreId,
     vortexRevenue: profitSummary.vortexRevenue,
   });
-  const storefrontBaseUrl = storefrontContext?.primaryDomain
-    ? storefrontContext.primaryDomain.replace(/\/+$/, "")
-    : null;
-  const hasResolvedMerchantContext = Boolean(authenticatedStoreId && activeStore);
+  const storefrontBaseUrl = null;
+  const hasResolvedMerchantContext = Boolean(authenticatedStoreId);
   const resolvedStoreId = authenticatedStoreId ?? "";
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[2280px] px-5 py-8 sm:px-7 lg:px-10 min-[1900px]:px-14">
+    <main className="relative mx-auto min-h-screen w-full max-w-[2280px] overflow-hidden bg-slate-950 px-5 py-8 text-slate-100 sm:px-7 lg:px-10 min-[1900px]:px-14">
+      <div
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(circle at 20% 10%, rgba(103,232,249,0.10), transparent 24%), radial-gradient(circle at 84% 14%, rgba(59,130,246,0.10), transparent 28%), radial-gradient(circle at 50% 100%, rgba(14,165,233,0.10), transparent 30%), linear-gradient(180deg, #050816 0%, #0b1220 44%, #0f172a 100%)",
+        }}
+      />
+
       <div className="grid gap-10">
         {hasResolvedMerchantContext ? <ProfitFirstSummary {...profitSummary} /> : null}
 
@@ -262,32 +208,12 @@ export default async function AppDashboardPage({
           </Card>
         ) : null}
 
-        {persistenceRuntimeDetail ? (
-          <Card className="border-amber-400/30 bg-amber-500/5">
-            <CardHeader>
-              <CardTitle className="text-2xl text-white">Persistencia degradada</CardTitle>
-              <CardDescription className="text-amber-100/80">
-                El runtime pudo abrir el panel, pero la capa de store no termino de resolver el
-                contexto completo para esta sesion.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm leading-6 text-slate-300">
-              <p className="break-words">
-                Detalle: <span className="text-white">{persistenceRuntimeDetail}</span>
-              </p>
-            </CardContent>
-          </Card>
-        ) : null}
-
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.14fr)_minmax(260px,0.5fr)] min-[1900px]:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.52fr)_minmax(320px,0.7fr)]">
           <Card className="border-white/8 bg-white/[0.03] xl:col-span-2 min-[1900px]:col-span-1">
             <CardHeader>
               <div className="flex flex-wrap items-center gap-3">
                 <Badge tone={environmentReady ? "success" : "danger"}>
                   {environmentReady ? "Infra lista" : "Faltan variables"}
-                </Badge>
-                <Badge tone={persistenceReady ? "success" : "danger"}>
-                  {persistenceReady ? "Schema lista" : "Schema pendiente"}
                 </Badge>
                 {authenticatedStoreId ? (
                   <Badge tone="info">Store activa #{authenticatedStoreId}</Badge>
@@ -308,12 +234,9 @@ export default async function AppDashboardPage({
             </CardHeader>
             <CardContent className="space-y-1 text-[15px] leading-7 text-slate-300">
               <p className="text-white">{authenticatedStoreId ? `#${authenticatedStoreId}` : "Sin sesion"}</p>
-              {storefrontContext ? (
-                <p className="mt-2">
-                  {storefrontContext.name}
-                  {storefrontContext.currencyCode ? ` / ${storefrontContext.currencyCode}` : ""}
-                </p>
-              ) : null}
+              <p className="mt-2 text-slate-400">
+                {hasResolvedMerchantContext ? "Contexto base cargado" : "Sin sesion"}
+              </p>
             </CardContent>
           </Card>
 
@@ -339,8 +262,8 @@ export default async function AppDashboardPage({
             productionLoaderUrl={productionLoaderUrl}
             scriptDevelopmentUrl={scriptDevelopmentUrl}
             storeId={resolvedStoreId}
-            storefront={storefrontContext}
-            storefrontProducts={catalogPreview}
+            storefront={null}
+            storefrontProducts={[]}
           />
         ) : (
           <AdminSessionRecovery appUrl={appUrl} />
