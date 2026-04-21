@@ -216,10 +216,12 @@ export type TiendaNubeDiscountCallbackLineItem = {
 };
 
 export type TiendaNubeDiscountCallbackPayloadBody = {
+  allocation_type?: TiendaNubePromotionTier;
   cart_id: number | string;
   currency: string;
   execution_tier: TiendaNubePromotionTier;
   language?: string | null;
+  line_items?: TiendaNubeDiscountCallbackLineItem[];
   products?: TiendaNubeDiscountCallbackLineItem[];
   promotions?: TiendaNubeCartPromotionState[];
   store_id: number | string;

@@ -46,9 +46,19 @@ export async function POST(request: NextRequest) {
   }
 
   const storeId = String(payload.store_id ?? "").trim();
-  const cartProducts = Array.isArray(payload.products) ? payload.products : [];
+  const executionTier = payload.execution_tier ?? payload.allocation_type ?? null;
+  const cartProducts = Array.isArray(payload.products)
+    ? payload.products
+    : Array.isArray(payload.line_items)
+      ? payload.line_items
+      : [];
 
-  if (payload.execution_tier !== "line_item") {
+  if (executionTier !== "line_item") {
+    logger.info("Ignoring TiendaNube discount callback for unsupported tier", {
+      durationMs: Date.now() - startedAt,
+      executionTier,
+      storeId,
+    });
     return new NextResponse(null, { status: 204 });
   }
 
@@ -82,6 +92,11 @@ export async function POST(request: NextRequest) {
   }
 
   if (!store.discountPromotionId) {
+    logger.info("Ignoring TiendaNube discount callback without persisted promotion id", {
+      durationMs: Date.now() - startedAt,
+      executionTier,
+      storeId,
+    });
     return new NextResponse(null, { status: 204 });
   }
 
@@ -162,17 +177,19 @@ export async function POST(request: NextRequest) {
 
   if (commands.length === 0) {
     logger.info("No discount actions required for TiendaNube callback", {
+      cartProductCount: cartProducts.length,
       durationMs: Date.now() - startedAt,
-      executionTier: payload.execution_tier,
+      executionTier,
       storeId,
     });
     return new NextResponse(null, { status: 204 });
   }
 
   logger.info("Resolved TiendaNube discount callback", {
+    cartProductCount: cartProducts.length,
     commandCount: commands.length,
     durationMs: Date.now() - startedAt,
-    executionTier: payload.execution_tier,
+    executionTier,
     storeId,
   });
 
