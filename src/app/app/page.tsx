@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTiendaNubeConfig, hasCoreEnvironment } from "@/lib/env";
 import { logger } from "@/lib/logger";
+import { RELEASE_MARKER } from "@/lib/release";
 import { ADMIN_SESSION_COOKIE, verifySignedSessionValue } from "@/lib/security";
 import { listCatalogPreview } from "@/services/catalog-service";
 import { getStorefrontContext } from "@/services/storefront-service";
@@ -324,6 +325,7 @@ export default async function AppDashboardPage({
                 <Badge tone={persistenceReady ? "success" : "danger"}>
                   {persistenceReady ? "Schema lista" : "Schema pendiente"}
                 </Badge>
+                <Badge tone="info">Release {RELEASE_MARKER}</Badge>
                 {authenticatedStoreId ? (
                   <Badge tone="info">Store activa #{authenticatedStoreId}</Badge>
                 ) : null}
