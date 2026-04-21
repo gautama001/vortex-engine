@@ -129,10 +129,24 @@ const DashboardContent = ({
   }, [catalogPool, mergeCatalogProducts, persistedDraft.manualRecommendations]);
 
   const handleConfigChange = useCallback(
-    (config: PersistedWidgetConfig) => {
-      setDraftConfig(widgetConfigFromPersisted(config));
+    (
+      config: PersistedWidgetConfig,
+      options?: {
+        preserveManualSelection?: boolean;
+      },
+    ) => {
+      const nextConfig = widgetConfigFromPersisted(config);
+
+      setDraftConfig(
+        options?.preserveManualSelection
+          ? {
+              ...nextConfig,
+              manuales: draftConfig.manuales,
+            }
+          : nextConfig,
+      );
     },
-    [setDraftConfig],
+    [draftConfig.manuales, setDraftConfig],
   );
 
   const handleConfigSaved = useCallback(

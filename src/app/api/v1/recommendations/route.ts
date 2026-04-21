@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getTiendaNubeConfig } from "@/lib/env";
 import { logger } from "@/lib/logger";
+import { buildRecommendationDiscountProof } from "@/lib/security";
 import { getRecommendations } from "@/services/recommendation-service";
 
 export const runtime = "nodejs";
@@ -59,10 +61,21 @@ export async function GET(request: NextRequest) {
       productId,
       storeId,
     });
+    const recommendationProductIds = result.products.map((item) => item.productId);
+    const discountProof = await buildRecommendationDiscountProof(
+      {
+        recommendationProductIds,
+        storeId,
+        strategy: result.strategy,
+        triggerProductId: result.seedProductId,
+      },
+      getTiendaNubeConfig().clientSecret,
+    );
 
     return NextResponse.json(
       {
         count: result.products.length,
+        discount_proof: discountProof,
         fallback_used: result.fallbackUsed,
         product_id: result.seedProductId,
         recommendations: result.products,

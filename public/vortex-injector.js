@@ -54,6 +54,10 @@
       : window.location.origin;
   }
 
+  function getDiscountSessionEndpoint() {
+    return apiOrigin + "/api/v1/store/discount-session";
+  }
+
   function normalizeHandle(handle) {
     if (!handle) {
       return "";
@@ -738,8 +742,62 @@
     });
   }
 
+  function prepareDiscountSession(input) {
+    var fallbackItem = input && input.fallbackItem ? input.fallbackItem : null;
+    var discountContext = input && input.discountContext ? input.discountContext : null;
+    var selectedVariantId = input && input.selectedVariantId ? input.selectedVariantId : null;
+    var triggerProductId =
+      discountContext && discountContext.triggerProductId
+        ? Number(discountContext.triggerProductId)
+        : null;
+    var storeId =
+      discountContext && discountContext.storeId ? String(discountContext.storeId) : getStoreId();
+    var rewardProductId = fallbackItem ? Number(fallbackItem.productId) : null;
+    var discountPercentage =
+      fallbackItem &&
+      typeof fallbackItem.discountPercentage === "number" &&
+      !Number.isNaN(fallbackItem.discountPercentage)
+        ? fallbackItem.discountPercentage
+        : 0;
+
+    if (
+      !discountPercentage ||
+      !discountContext ||
+      !discountContext.proof ||
+      !storeId ||
+      !triggerProductId ||
+      !rewardProductId
+    ) {
+      return Promise.resolve(null);
+    }
+
+    return fetch(getDiscountSessionEndpoint(), {
+      body: JSON.stringify({
+        discount_percentage: discountPercentage,
+        proof: discountContext.proof,
+        reward_product_id: rewardProductId,
+        selected_variant_id: selectedVariantId,
+        store_id: storeId,
+        trigger_product_id: triggerProductId,
+      }),
+      credentials: "omit",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      mode: "cors",
+    }).then(function (response) {
+      if (!response.ok) {
+        throw new Error("discount_session_failed");
+      }
+
+      return response.json();
+    });
+  }
+
   function addVariantToCart(input) {
     var fallbackItem = input && input.fallbackItem ? input.fallbackItem : null;
+    var discountContext = input && input.discountContext ? input.discountContext : null;
     var selection =
       input && Array.isArray(input.selection) ? input.selection.slice() : [];
     var snapshot = input && input.snapshot ? input.snapshot : null;
@@ -778,6 +836,19 @@
       window.location.href = buildProductUrl(fallbackItem);
     }
 
+    function restoreAfterDiscountFailure() {
+      if (!triggerButton) {
+        return;
+      }
+
+      triggerButton.disabled = false;
+      triggerButton.textContent = "Promo no disponible";
+
+      window.setTimeout(function () {
+        triggerButton.textContent = originalText;
+      }, 1400);
+    }
+
     function tryDirectAdd() {
       if (!variantId || !window.LS || !window.LS.cart || typeof window.LS.cart.addItem !== "function") {
         return Promise.reject(new Error("Direct add unavailable"));
@@ -796,23 +867,39 @@
       triggerButton.textContent = "Agregando...";
     }
 
-    return (shouldTryNative ? nativeAddToCart(snapshot, selection) : tryDirectAdd())
-      .catch(function () {
+    return prepareDiscountSession({
+      discountContext: discountContext,
+      fallbackItem: fallbackItem,
+      selectedVariantId: variantId,
+    })
+      .then(function () {
+        return shouldTryNative ? nativeAddToCart(snapshot, selection) : tryDirectAdd();
+      })
+      .catch(function (error) {
+        if (error && error.message === "discount_session_failed") {
+          restoreAfterDiscountFailure();
+          throw error;
+        }
+
         if (shouldTryNative) {
           return tryDirectAdd();
         }
 
-        throw new Error("Unable to add item");
+        throw error || new Error("add_to_cart_failed");
       })
       .then(function () {
         restoreAfterSuccess();
       })
-      .catch(function () {
+      .catch(function (error) {
+        if (error && error.message === "discount_session_failed") {
+          return;
+        }
+
         restoreAfterFailure();
       });
   }
 
-  function openVariantSelector(snapshot, item, triggerButton, widgetConfig) {
+  function openVariantSelector(snapshot, item, triggerButton, widgetConfig, discountContext) {
     closeQuickAddOverlay();
 
     var selection = buildInitialSelection(snapshot);
@@ -934,19 +1021,35 @@
 
       currentVariant = findMatchingVariant(snapshot, selection);
 
-      if (currentVariant && currentVariant.price) {
-        submitButton.textContent =
-          widgetConfig.quickAddLabel + " · " + formatMoney(currentVariant.price);
-        submitButton.disabled = false;
-      } else {
+      if (!currentVariant) {
         submitButton.textContent = getSelectionPrompt(snapshot);
         submitButton.disabled = true;
+        return;
       }
 
-      if (currentVariant && typeof currentVariant.price === "number") {
-        submitButton.textContent =
-          widgetConfig.quickAddLabel + " - " + formatMoney(currentVariant.price);
-      }
+      var currentVariantPrice =
+        typeof currentVariant.price === "number"
+          ? currentVariant.price
+          : typeof item.price === "number"
+            ? item.price
+            : null;
+      var effectiveDiscountPercentage =
+        item &&
+        typeof item.discountPercentage === "number" &&
+        !Number.isNaN(item.discountPercentage)
+          ? item.discountPercentage
+          : 0;
+      var effectiveVariantPrice = getDiscountedPrice(
+        currentVariantPrice,
+        effectiveDiscountPercentage
+      );
+
+      submitButton.disabled = false;
+      submitButton.textContent =
+        widgetConfig.quickAddLabel +
+        (typeof effectiveVariantPrice === "number"
+          ? " - " + formatMoney(effectiveVariantPrice)
+          : "");
     }
 
     submitButton.addEventListener("click", function () {
@@ -956,6 +1059,7 @@
 
       addVariantToCart({
         fallbackItem: item,
+        discountContext: discountContext,
         selection: selection,
         snapshot: snapshot,
         triggerButton: submitButton,
@@ -979,13 +1083,14 @@
     renderSelectorState();
   }
 
-  function handleQuickAdd(item, button, widgetConfig) {
+  function handleQuickAdd(item, button, widgetConfig, discountContext) {
     var variantCount =
       typeof item.variantCount === "number" && item.variantCount > 0 ? item.variantCount : 0;
 
     if (variantCount <= 1 && item && item.variantId) {
       addVariantToCart({
         fallbackItem: item,
+        discountContext: discountContext,
         triggerButton: button,
         variantId: item.variantId,
         accentColor: widgetConfig.accentColor,
@@ -1012,6 +1117,7 @@
           if (onlyVariant) {
             return addVariantToCart({
               fallbackItem: item,
+              discountContext: discountContext,
               selection: getVariantValues(onlyVariant),
               snapshot: snapshot,
               triggerButton: button,
@@ -1027,7 +1133,7 @@
 
         button.disabled = false;
         button.textContent = widgetConfig.quickAddLabel;
-        openVariantSelector(snapshot, item, button, widgetConfig);
+        openVariantSelector(snapshot, item, button, widgetConfig, discountContext);
       })
       .catch(function () {
         button.disabled = false;
@@ -1193,6 +1299,12 @@
     }
 
     ensureStyles();
+    var discountContext = {
+      proof: payload.discount_proof || "",
+      storeId: payload.store_id || getStoreId(),
+      strategy: payload.strategy || "unknown",
+      triggerProductId: payload.product_id || context.productId || null,
+    };
 
     var signature = buildSignature(context, payload, widgetConfig);
     var existing = document.getElementById(context.widgetId);
@@ -1310,7 +1422,7 @@
       var button = card.querySelector(".vortex-widget__button");
       if (button) {
         button.addEventListener("click", function () {
-          handleQuickAdd(item, button, widgetConfig);
+          handleQuickAdd(item, button, widgetConfig, discountContext);
         });
       }
 
@@ -1425,3 +1537,4 @@
   setupObservers();
   scheduleBoot(0);
 })();
+

@@ -117,6 +117,120 @@ export const verifySortedQueryHmac = async (
   return verifyHmacHex(secret, normalizedPayload, signature);
 };
 
+type RecommendationDiscountProofInput = {
+  expiresAt?: number;
+  recommendationProductIds: Array<number | string>;
+  storeId: string;
+  strategy: string;
+  triggerProductId: number | string | null;
+};
+
+type VerifiedRecommendationDiscountProof = {
+  expiresAt: number;
+  recommendationProductIds: number[];
+  storeId: string;
+  strategy: string;
+  triggerProductId: string | null;
+};
+
+const normalizeRecommendationProofProductIds = (
+  productIds: Array<number | string>,
+): number[] => {
+  return [...new Set(productIds.map((value) => Number(value)).filter(Number.isFinite))].sort(
+    (left, right) => left - right,
+  );
+};
+
+const buildRecommendationDiscountProofPayload = ({
+  expiresAt,
+  recommendationProductIds,
+  storeId,
+  strategy,
+  triggerProductId,
+}: Required<RecommendationDiscountProofInput>): string => {
+  return [
+    storeId.trim(),
+    triggerProductId === null ? "none" : String(triggerProductId).trim(),
+    strategy.trim(),
+    recommendationProductIds.join(","),
+    String(expiresAt),
+  ].join(".");
+};
+
+export const buildRecommendationDiscountProof = async (
+  input: RecommendationDiscountProofInput,
+  secret: string,
+  ttlMs = 1000 * 60 * 10,
+): Promise<string> => {
+  const expiresAt =
+    typeof input.expiresAt === "number" && Number.isFinite(input.expiresAt)
+      ? input.expiresAt
+      : Date.now() + ttlMs;
+  const normalizedRecommendationProductIds = normalizeRecommendationProofProductIds(
+    input.recommendationProductIds,
+  );
+  const payload = buildRecommendationDiscountProofPayload({
+    expiresAt,
+    recommendationProductIds: normalizedRecommendationProductIds,
+    storeId: input.storeId,
+    strategy: input.strategy,
+    triggerProductId: input.triggerProductId,
+  });
+  const signature = await hmacSha256Hex(secret, payload);
+
+  return `${payload}.${signature}`;
+};
+
+export const verifyRecommendationDiscountProof = async (
+  value: string,
+  secret: string,
+): Promise<VerifiedRecommendationDiscountProof | null> => {
+  const parts = value.split(".");
+
+  if (parts.length < 6) {
+    return null;
+  }
+
+  const signature = parts.pop() ?? "";
+  const expiresAtRaw = parts.pop() ?? "";
+  const recommendationProductIdsRaw = parts.pop() ?? "";
+  const strategy = parts.pop() ?? "";
+  const triggerProductIdRaw = parts.pop() ?? "";
+  const storeId = parts.join(".");
+  const expiresAt = Number(expiresAtRaw);
+
+  if (!storeId || !strategy || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+    return null;
+  }
+
+  const recommendationProductIds = normalizeRecommendationProofProductIds(
+    recommendationProductIdsRaw
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
+  const payload = buildRecommendationDiscountProofPayload({
+    expiresAt,
+    recommendationProductIds,
+    storeId,
+    strategy,
+    triggerProductId: triggerProductIdRaw === "none" ? null : triggerProductIdRaw,
+  });
+  const valid = await verifyHmacHex(secret, payload, signature);
+
+  if (!valid) {
+    return null;
+  }
+
+  return {
+    expiresAt,
+    recommendationProductIds,
+    storeId,
+    strategy,
+    triggerProductId: triggerProductIdRaw === "none" ? null : triggerProductIdRaw,
+  };
+};
+
 export const isRecentTimestamp = (value: string, toleranceMs = 1000 * 60 * 10): boolean => {
   const numericValue = Number(value);
   const parsedValue = Number.isFinite(numericValue)
