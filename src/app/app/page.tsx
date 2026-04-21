@@ -1,3 +1,4 @@
+import { StoreStatus } from "@prisma/client";
 import { unstable_noStore as noStore } from "next/cache";
 import { cookies } from "next/headers";
 
@@ -8,8 +9,15 @@ import type { AnalyticsSnapshot } from "@/components/dashboard/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTiendaNubeConfig, hasCoreEnvironment } from "@/lib/env";
+import { logger } from "@/lib/logger";
 import { ADMIN_SESSION_COOKIE, verifySignedSessionValue } from "@/lib/security";
-import { DEFAULT_STORE_WIDGET_SETTINGS } from "@/services/store-service";
+import { listCatalogPreview } from "@/services/catalog-service";
+import { getStorefrontContext } from "@/services/storefront-service";
+import {
+  DEFAULT_STORE_WIDGET_SETTINGS,
+  getStoreByTiendaNubeId,
+  getStoreWidgetSettings,
+} from "@/services/store-service";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +50,7 @@ const installationErrors: Record<string, { detail: string; title: string }> = {
 const DEFAULT_ANALYTICS_SEED = 2026;
 
 const buildProfitSummary = (input: {
-  catalogPreview: Array<{ name?: string; price?: number }>;
+  catalogPreview: Awaited<ReturnType<typeof listCatalogPreview>>;
   storeId: string | null;
 }) => {
   const seed = Number(input.storeId ?? 0) || DEFAULT_ANALYTICS_SEED;
@@ -128,7 +136,13 @@ export default async function AppDashboardPage({
   const installationError = errorCode ? installationErrors[errorCode] : null;
 
   let authenticatedStoreId: string | null = null;
-  const catalogPreview: Array<{ name?: string; price?: number }> = [];
+  let persistenceReady = false;
+  let persistenceRuntimeDetail: string | null = null;
+  let catalogRuntimeDetail: string | null = null;
+  let storefrontRuntimeDetail: string | null = null;
+  let activeStore = null as Awaited<ReturnType<typeof getStoreByTiendaNubeId>>;
+  let catalogPreview = [] as Awaited<ReturnType<typeof listCatalogPreview>>;
+  let storefrontContext = null as Awaited<ReturnType<typeof getStorefrontContext>>;
 
   if (sessionCookie && clientSecret) {
     try {
@@ -139,7 +153,51 @@ export default async function AppDashboardPage({
     }
   }
 
-  const widgetSettings = DEFAULT_STORE_WIDGET_SETTINGS;
+  if (environmentReady && authenticatedStoreId) {
+    try {
+      persistenceReady = true;
+      activeStore = await getStoreByTiendaNubeId(authenticatedStoreId);
+
+      if (activeStore?.status === StoreStatus.ACTIVE) {
+        try {
+          catalogPreview = await listCatalogPreview(authenticatedStoreId, 8);
+        } catch (error) {
+          catalogRuntimeDetail =
+            error instanceof Error ? error.message : "No pudimos cargar el catalogo de la tienda.";
+          logger.warn("Catalog preview lookup failed while rendering /app", {
+            error,
+            storeId: authenticatedStoreId,
+          });
+          catalogPreview = [];
+        }
+
+        try {
+          storefrontContext = await getStorefrontContext(authenticatedStoreId);
+        } catch (error) {
+          storefrontRuntimeDetail =
+            error instanceof Error
+              ? error.message
+              : "No pudimos cargar el storefront real de la tienda.";
+          logger.warn("Storefront context lookup failed while rendering /app", {
+            error,
+            storeId: authenticatedStoreId,
+          });
+          storefrontContext = null;
+        }
+      }
+    } catch (error) {
+      persistenceReady = false;
+      persistenceRuntimeDetail =
+        error instanceof Error ? error.message : "No pudimos resolver la store desde el runtime.";
+      activeStore = null;
+      catalogPreview = [];
+      storefrontContext = null;
+    }
+  }
+
+  const widgetSettings = activeStore
+    ? getStoreWidgetSettings(activeStore)
+    : DEFAULT_STORE_WIDGET_SETTINGS;
   const scriptDevelopmentUrl = appUrl
     ? `${appUrl}/vortex-injector.js?api_origin=${encodeURIComponent(appUrl)}`
     : "Pendiente";
@@ -152,8 +210,10 @@ export default async function AppDashboardPage({
     storeId: authenticatedStoreId,
     vortexRevenue: profitSummary.vortexRevenue,
   });
-  const storefrontBaseUrl = null;
-  const hasResolvedMerchantContext = Boolean(authenticatedStoreId);
+  const storefrontBaseUrl = storefrontContext?.primaryDomain
+    ? storefrontContext.primaryDomain.replace(/\/+$/, "")
+    : null;
+  const hasResolvedMerchantContext = Boolean(authenticatedStoreId && activeStore);
   const resolvedStoreId = authenticatedStoreId ?? "";
 
   return (
@@ -208,12 +268,61 @@ export default async function AppDashboardPage({
           </Card>
         ) : null}
 
+        {persistenceRuntimeDetail ? (
+          <Card className="border-amber-400/30 bg-amber-500/5">
+            <CardHeader>
+              <CardTitle className="text-2xl text-white">Persistencia degradada</CardTitle>
+              <CardDescription className="text-amber-100/80">
+                El runtime pudo abrir el panel, pero la capa de store no termino de resolver el
+                contexto completo para esta sesion.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-sm leading-6 text-slate-300">
+              <p className="break-words">
+                Detalle: <span className="text-white">{persistenceRuntimeDetail}</span>
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {catalogRuntimeDetail || storefrontRuntimeDetail ? (
+          <Card className="border-cyan-300/25 bg-cyan-400/8">
+            <CardHeader>
+              <CardTitle className="text-2xl text-white">Contexto merchant incompleto</CardTitle>
+              <CardDescription className="text-cyan-100/80">
+                La sesion admin y la store en Vortex entraron bien, pero una o mas lecturas a
+                TiendaNube devolvieron error y el dashboard cayo a preview segura.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm leading-6 text-slate-300">
+              {catalogRuntimeDetail ? (
+                <p className="break-words">
+                  Catalogo: <span className="text-white">{catalogRuntimeDetail}</span>
+                </p>
+              ) : null}
+              {storefrontRuntimeDetail ? (
+                <p className="break-words">
+                  Storefront: <span className="text-white">{storefrontRuntimeDetail}</span>
+                </p>
+              ) : null}
+              {activeStore?.scope ? (
+                <p className="break-words">
+                  Scope OAuth persistido: <span className="text-white">{activeStore.scope}</span>
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
+
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.14fr)_minmax(260px,0.5fr)] min-[1900px]:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.52fr)_minmax(320px,0.7fr)]">
           <Card className="border-white/8 bg-white/[0.03] xl:col-span-2 min-[1900px]:col-span-1">
             <CardHeader>
               <div className="flex flex-wrap items-center gap-3">
                 <Badge tone={environmentReady ? "success" : "danger"}>
                   {environmentReady ? "Infra lista" : "Faltan variables"}
+                </Badge>
+                <Badge tone={persistenceReady ? "success" : "danger"}>
+                  {persistenceReady ? "Schema lista" : "Schema pendiente"}
                 </Badge>
                 {authenticatedStoreId ? (
                   <Badge tone="info">Store activa #{authenticatedStoreId}</Badge>
@@ -234,9 +343,13 @@ export default async function AppDashboardPage({
             </CardHeader>
             <CardContent className="space-y-1 text-[15px] leading-7 text-slate-300">
               <p className="text-white">{authenticatedStoreId ? `#${authenticatedStoreId}` : "Sin sesion"}</p>
-              <p className="mt-2 text-slate-400">
-                {hasResolvedMerchantContext ? "Contexto base cargado" : "Sin sesion"}
-              </p>
+              {storefrontContext ? (
+                <p className="mt-2">
+                  {storefrontContext.name}
+                  {storefrontContext.currencyCode ? ` / ${storefrontContext.currencyCode}` : ""}
+                </p>
+              ) : null}
+              {activeStore?.scope ? <p className="mt-2 break-words">Scopes: {activeStore.scope}</p> : null}
             </CardContent>
           </Card>
 
@@ -262,8 +375,8 @@ export default async function AppDashboardPage({
             productionLoaderUrl={productionLoaderUrl}
             scriptDevelopmentUrl={scriptDevelopmentUrl}
             storeId={resolvedStoreId}
-            storefront={null}
-            storefrontProducts={[]}
+            storefront={storefrontContext}
+            storefrontProducts={catalogPreview}
           />
         ) : (
           <AdminSessionRecovery appUrl={appUrl} />
