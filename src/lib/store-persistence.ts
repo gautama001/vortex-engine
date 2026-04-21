@@ -5,29 +5,20 @@ declare global {
   var __vortexStorePersistenceReady__: Promise<void> | undefined;
 }
 
-type StorePersistenceProbeRow = {
-  fbt_table: string | null;
-  order_attributions_table: string | null;
-  store_status_type: string | null;
-  stores_table: string | null;
-};
-
 const verifyStorePersistence = async (): Promise<void> => {
-  await prisma.$queryRaw`SELECT 1`;
+  try {
+    await prisma.$connect();
+    await prisma.store.findFirst({
+      select: {
+        id: true,
+      },
+    });
+  } catch (error) {
+    const detail = error instanceof Error && error.message ? ` Detail: ${error.message}` : "";
 
-  const probeRows = await prisma.$queryRaw<StorePersistenceProbeRow[]>`
-    SELECT
-      to_regclass('public.stores')::text AS stores_table,
-      to_regtype('"StoreStatus"')::text AS store_status_type,
-      to_regclass('public.fbt_recommendations')::text AS fbt_table,
-      to_regclass('public.order_attributions')::text AS order_attributions_table
-  `;
-
-  const probe = probeRows[0];
-
-  if (!probe?.stores_table || !probe?.store_status_type) {
     throw new Error(
-      "Persistence schema is missing required TiendaNube store tables. Run Prisma migrations or deploy a database push before opening /app.",
+      "Persistence schema is missing or inaccessible for TiendaNube stores. Run Prisma migrations and verify DATABASE_URL/DIRECT_URL before opening /app." +
+        detail,
     );
   }
 };

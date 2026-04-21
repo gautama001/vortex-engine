@@ -22,31 +22,6 @@ type UpsertStoreInstallationInput = {
   tiendanubeId: string;
 };
 
-type StoreRow = {
-  access_token: string;
-  accent_color: string | null;
-  background_color: string | null;
-  border_radius: number | null;
-  cart_page_enabled: boolean | null;
-  created_at: Date;
-  discount_promotion_id: string | null;
-  hide_out_of_stock: boolean | null;
-  id: string;
-  manual_recommendation_product_ids: string | null;
-  product_page_enabled: boolean | null;
-  quick_add_label: string | null;
-  recommendation_algorithm: string | null;
-  recommendation_limit: number | null;
-  require_image: boolean | null;
-  scope: string;
-  status: StoreStatus;
-  tiendanube_id: string;
-  updated_at: Date;
-  widget_enabled: boolean | null;
-  widget_subtitle: string | null;
-  widget_title: string | null;
-};
-
 export type StoreRecord = Omit<PrismaStore, "manualRecommendationProductIds"> & {
   accentColor: string;
   backgroundColor: string;
@@ -384,90 +359,65 @@ const serializeManualMerchandisingState = (value: ManualMerchandisingState): str
   });
 };
 
-const mapStoreRow = (row: StoreRow): StoreRecord => {
+const mapStoreModel = (store: PrismaStore): StoreRecord => {
   const manualMerchandisingState = parseManualMerchandisingState(
-    row.manual_recommendation_product_ids,
+    store.manualRecommendationProductIds,
   );
 
   return {
-    accessToken: row.access_token,
-    accentColor: normalizeColor(row.accent_color, DEFAULT_STORE_WIDGET_SETTINGS.accentColor),
+    accessToken: store.accessToken,
+    accentColor: normalizeColor(store.accentColor, DEFAULT_STORE_WIDGET_SETTINGS.accentColor),
     backgroundColor: normalizeColor(
-      row.background_color,
+      store.backgroundColor,
       DEFAULT_STORE_WIDGET_SETTINGS.backgroundColor,
     ),
     borderRadius: clamp(
-      row.border_radius ?? DEFAULT_STORE_WIDGET_SETTINGS.borderRadius,
+      store.borderRadius ?? DEFAULT_STORE_WIDGET_SETTINGS.borderRadius,
       8,
       32,
     ),
-    cartPageEnabled: row.cart_page_enabled ?? DEFAULT_STORE_WIDGET_SETTINGS.cartPageEnabled,
+    cartPageEnabled: store.cartPageEnabled ?? DEFAULT_STORE_WIDGET_SETTINGS.cartPageEnabled,
     desktopColumns: manualMerchandisingState.desktopColumns,
     discountPercentage: manualMerchandisingState.discountPercentage,
-    discountPromotionId: row.discount_promotion_id,
-    createdAt: row.created_at,
+    discountPromotionId: store.discountPromotionId,
+    createdAt: store.createdAt,
     fontColor: manualMerchandisingState.fontColor,
     fontFamily: manualMerchandisingState.fontFamily,
-    hideOutOfStock:
-      row.hide_out_of_stock ?? DEFAULT_STORE_WIDGET_SETTINGS.hideOutOfStock,
-    id: row.id,
+    hideOutOfStock: store.hideOutOfStock ?? DEFAULT_STORE_WIDGET_SETTINGS.hideOutOfStock,
+    id: store.id,
     manualRecommendations: manualMerchandisingState.recommendations,
     manualRecommendationProductIds: manualMerchandisingState.productIds,
     mobileColumns: manualMerchandisingState.mobileColumns,
-    productPageEnabled:
-      row.product_page_enabled ?? DEFAULT_STORE_WIDGET_SETTINGS.productPageEnabled,
-    quickAddLabel: row.quick_add_label ?? DEFAULT_STORE_WIDGET_SETTINGS.quickAddLabel,
+    productPageEnabled: store.productPageEnabled ?? DEFAULT_STORE_WIDGET_SETTINGS.productPageEnabled,
+    quickAddLabel: store.quickAddLabel ?? DEFAULT_STORE_WIDGET_SETTINGS.quickAddLabel,
     recommendationAlgorithm: normalizeStrategy(
-      row.recommendation_algorithm,
+      store.recommendationAlgorithm,
       DEFAULT_STORE_WIDGET_SETTINGS.recommendationAlgorithm,
     ),
     recommendationLimit: clamp(
-      row.recommendation_limit ?? DEFAULT_STORE_WIDGET_SETTINGS.recommendationLimit,
+      store.recommendationLimit ?? DEFAULT_STORE_WIDGET_SETTINGS.recommendationLimit,
       1,
       8,
     ),
-    requireImage: row.require_image ?? DEFAULT_STORE_WIDGET_SETTINGS.requireImage,
-    scope: row.scope,
-    status: row.status,
-    tiendanubeId: row.tiendanube_id,
-    updatedAt: row.updated_at,
-    widgetEnabled: row.widget_enabled ?? DEFAULT_STORE_WIDGET_SETTINGS.widgetEnabled,
-    widgetSubtitle: row.widget_subtitle ?? DEFAULT_STORE_WIDGET_SETTINGS.widgetSubtitle,
-    widgetTitle: row.widget_title ?? DEFAULT_STORE_WIDGET_SETTINGS.widgetTitle,
+    requireImage: store.requireImage ?? DEFAULT_STORE_WIDGET_SETTINGS.requireImage,
+    scope: store.scope,
+    status: store.status,
+    tiendanubeId: store.tiendanubeId,
+    updatedAt: store.updatedAt,
+    widgetEnabled: store.widgetEnabled ?? DEFAULT_STORE_WIDGET_SETTINGS.widgetEnabled,
+    widgetSubtitle: store.widgetSubtitle ?? DEFAULT_STORE_WIDGET_SETTINGS.widgetSubtitle,
+    widgetTitle: store.widgetTitle ?? DEFAULT_STORE_WIDGET_SETTINGS.widgetTitle,
   };
 };
 
 const selectStoreByTiendaNubeId = async (tiendanubeId: string): Promise<StoreRecord | null> => {
-  const rows = await prisma.$queryRaw<StoreRow[]>`
-    SELECT
-      id,
-      tiendanube_id,
-      access_token,
-      scope,
-      status,
-      recommendation_algorithm,
-      hide_out_of_stock,
-      manual_recommendation_product_ids,
-      require_image,
-      background_color,
-      accent_color,
-      border_radius,
-      widget_enabled,
-      product_page_enabled,
-      cart_page_enabled,
-      discount_promotion_id,
-      widget_title,
-      widget_subtitle,
-      quick_add_label,
-      recommendation_limit,
-      created_at,
-      updated_at
-    FROM "stores"
-    WHERE "tiendanube_id" = ${tiendanubeId}
-    LIMIT 1
-  `;
+  const store = await prisma.store.findUnique({
+    where: {
+      tiendanubeId,
+    },
+  });
 
-  return rows[0] ? mapStoreRow(rows[0]) : null;
+  return store ? mapStoreModel(store) : null;
 };
 
 const selectStoreByTiendaNubeIdWithBootstrap = async (
@@ -613,36 +563,14 @@ export const deleteStoreByTiendaNubeId = async (tiendanubeId: string): Promise<b
 export const listRecentStores = async (limit = 6): Promise<StoreRecord[]> => {
   await ensureStorePersistence();
 
-  const rows = await prisma.$queryRaw<StoreRow[]>`
-    SELECT
-      id,
-      tiendanube_id,
-      access_token,
-      scope,
-      status,
-      recommendation_algorithm,
-      hide_out_of_stock,
-      manual_recommendation_product_ids,
-      require_image,
-      background_color,
-      accent_color,
-      border_radius,
-      widget_enabled,
-      product_page_enabled,
-      cart_page_enabled,
-      discount_promotion_id,
-      widget_title,
-      widget_subtitle,
-      quick_add_label,
-      recommendation_limit,
-      created_at,
-      updated_at
-    FROM "stores"
-    ORDER BY "updated_at" DESC
-    LIMIT ${limit}
-  `;
+  const stores = await prisma.store.findMany({
+    orderBy: {
+      updatedAt: "desc",
+    },
+    take: limit,
+  });
 
-  return rows.map(mapStoreRow);
+  return stores.map(mapStoreModel);
 };
 
 export const updateStoreWidgetSettings = async (
@@ -657,25 +585,14 @@ export const updateStoreWidgetSettings = async (
     return null;
   }
 
-  await prisma.$executeRaw`
-    UPDATE "stores"
-    SET
-      "background_color" = ${normalizeColor(
-        input.backgroundColor,
-        existingStore.backgroundColor,
-      )},
-      "accent_color" = ${normalizeColor(input.accentColor, existingStore.accentColor)},
-      "border_radius" = ${clamp(
-        input.borderRadius ?? existingStore.borderRadius,
-        8,
-        32,
-      )},
-      "recommendation_algorithm" = ${normalizeStrategy(
-        input.recommendationAlgorithm,
-        existingStore.recommendationAlgorithm,
-      )},
-      "hide_out_of_stock" = ${input.hideOutOfStock ?? existingStore.hideOutOfStock},
-      "manual_recommendation_product_ids" = ${serializeManualMerchandisingState({
+  await prisma.store.update({
+    data: {
+      accentColor: normalizeColor(input.accentColor, existingStore.accentColor),
+      backgroundColor: normalizeColor(input.backgroundColor, existingStore.backgroundColor),
+      borderRadius: clamp(input.borderRadius ?? existingStore.borderRadius, 8, 32),
+      cartPageEnabled: input.cartPageEnabled ?? existingStore.cartPageEnabled,
+      hideOutOfStock: input.hideOutOfStock ?? existingStore.hideOutOfStock,
+      manualRecommendationProductIds: serializeManualMerchandisingState({
         desktopColumns: normalizeDesktopColumns(
           input.desktopColumns,
           existingStore.desktopColumns,
@@ -686,28 +603,32 @@ export const updateStoreWidgetSettings = async (
         ),
         fontColor: normalizeColor(input.fontColor, existingStore.fontColor),
         fontFamily: normalizeFontFamily(input.fontFamily, existingStore.fontFamily),
-        mobileColumns: normalizeMobileColumns(
-          input.mobileColumns,
-          existingStore.mobileColumns,
-        ),
+        mobileColumns: normalizeMobileColumns(input.mobileColumns, existingStore.mobileColumns),
         recommendations: input.manualRecommendations ?? existingStore.manualRecommendations,
-        productIds: input.manualRecommendationProductIds ?? existingStore.manualRecommendationProductIds,
-      })},
-      "require_image" = ${input.requireImage ?? existingStore.requireImage},
-      "widget_enabled" = ${input.widgetEnabled ?? existingStore.widgetEnabled},
-      "product_page_enabled" = ${input.productPageEnabled ?? existingStore.productPageEnabled},
-      "cart_page_enabled" = ${input.cartPageEnabled ?? existingStore.cartPageEnabled},
-      "widget_title" = ${input.widgetTitle?.trim().slice(0, 96) || existingStore.widgetTitle},
-      "widget_subtitle" = ${input.widgetSubtitle?.trim().slice(0, 180) || existingStore.widgetSubtitle},
-      "quick_add_label" = ${input.quickAddLabel?.trim().slice(0, 24) || existingStore.quickAddLabel},
-      "recommendation_limit" = ${clamp(
+        productIds:
+          input.manualRecommendationProductIds ?? existingStore.manualRecommendationProductIds,
+      }),
+      productPageEnabled: input.productPageEnabled ?? existingStore.productPageEnabled,
+      quickAddLabel: input.quickAddLabel?.trim().slice(0, 24) || existingStore.quickAddLabel,
+      recommendationAlgorithm: normalizeStrategy(
+        input.recommendationAlgorithm,
+        existingStore.recommendationAlgorithm,
+      ),
+      recommendationLimit: clamp(
         input.recommendationLimit ?? existingStore.recommendationLimit,
         1,
         8,
-      )},
-      "updated_at" = NOW()
-    WHERE "tiendanube_id" = ${tiendanubeId}
-  `;
+      ),
+      requireImage: input.requireImage ?? existingStore.requireImage,
+      widgetEnabled: input.widgetEnabled ?? existingStore.widgetEnabled,
+      widgetSubtitle:
+        input.widgetSubtitle?.trim().slice(0, 180) || existingStore.widgetSubtitle,
+      widgetTitle: input.widgetTitle?.trim().slice(0, 96) || existingStore.widgetTitle,
+    },
+    where: {
+      tiendanubeId,
+    },
+  });
 
   return selectStoreByTiendaNubeId(tiendanubeId);
 };
