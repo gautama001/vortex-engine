@@ -16,11 +16,12 @@ html {
 body {
   min-height: 100vh;
   margin: 0;
+  background-color: #f7f4ec;
   background:
-    radial-gradient(circle at top, rgba(34, 211, 238, 0.14), transparent 38%),
-    radial-gradient(circle at 85% 20%, rgba(59, 130, 246, 0.16), transparent 24%),
-    linear-gradient(180deg, #07111a 0%, #04070d 60%, #02050a 100%);
-  color: #e5eef5;
+    radial-gradient(circle at top left, rgba(103, 232, 249, 0.14), transparent 30%),
+    radial-gradient(circle at 90% 15%, rgba(59, 130, 246, 0.12), transparent 24%),
+    linear-gradient(180deg, #f4efe5 0%, #efe7d6 40%, #f7f4ec 100%);
+  color: #0f172a;
   font-family: "IBM Plex Sans", "Segoe UI Variable", "Segoe UI", sans-serif;
 }
 
