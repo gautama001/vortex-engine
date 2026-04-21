@@ -48,6 +48,25 @@ const installationErrors: Record<string, { detail: string; title: string }> = {
 
 const DEFAULT_ANALYTICS_SEED = 2026;
 
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+  let timeoutId: NodeJS.Timeout | null = null;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_resolve, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error(`${label}_timeout`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+};
+
 const buildProfitSummary = (input: {
   catalogPreview: Awaited<ReturnType<typeof listCatalogPreview>>;
   storeId: string | null;
@@ -153,20 +172,20 @@ export default async function AppDashboardPage({
   if (environmentReady && authenticatedStoreId) {
     try {
       persistenceReady = true;
-      activeStore = await getStoreByTiendaNubeId(authenticatedStoreId);
+      activeStore = await withTimeout(
+        getStoreByTiendaNubeId(authenticatedStoreId),
+        1800,
+        "store_lookup",
+      );
 
       if (activeStore?.status === StoreStatus.ACTIVE) {
-        try {
-          const [catalogResult, storefrontResult] = await Promise.all([
-            listCatalogPreview(authenticatedStoreId, 8),
-            getStorefrontContext(authenticatedStoreId),
-          ]);
-          catalogPreview = catalogResult;
-          storefrontContext = storefrontResult;
-        } catch {
-          catalogPreview = [];
-          storefrontContext = null;
-        }
+        const [catalogResult, storefrontResult] = await Promise.allSettled([
+          withTimeout(listCatalogPreview(authenticatedStoreId, 8), 2200, "catalog_preview"),
+          withTimeout(getStorefrontContext(authenticatedStoreId), 2200, "storefront_context"),
+        ]);
+
+        catalogPreview = catalogResult.status === "fulfilled" ? catalogResult.value : [];
+        storefrontContext = storefrontResult.status === "fulfilled" ? storefrontResult.value : null;
       }
     } catch (error) {
       persistenceReady = false;
