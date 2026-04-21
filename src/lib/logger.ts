@@ -1,5 +1,18 @@
 type LogLevel = "info" | "warn" | "error";
 
+const normalizeError = (error: Error): Record<string, unknown> => {
+  const extraEntries = Object.entries(error as unknown as Record<string, unknown>).filter(
+    ([key]) => key !== "message" && key !== "name" && key !== "stack",
+  );
+
+  return {
+    message: error.message,
+    name: error.name,
+    stack: error.stack,
+    ...Object.fromEntries(extraEntries),
+  };
+};
+
 const normalizeMeta = (meta?: Record<string, unknown>): Record<string, unknown> => {
   if (!meta) {
     return {};
@@ -8,14 +21,7 @@ const normalizeMeta = (meta?: Record<string, unknown>): Record<string, unknown> 
   return Object.fromEntries(
     Object.entries(meta).map(([key, value]) => {
       if (value instanceof Error) {
-        return [
-          key,
-          {
-            message: value.message,
-            name: value.name,
-            stack: value.stack,
-          },
-        ];
+        return [key, normalizeError(value)];
       }
 
       return [key, value];

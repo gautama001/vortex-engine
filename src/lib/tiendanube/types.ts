@@ -167,9 +167,14 @@ export type TiendaNubeDiscountCreatePayload = {
 
 export type TiendaNubePromotionTier = "cross_items" | "line_item";
 
+export type TiendaNubePromotionAllocationType = "cross_items" | "line_item";
+
 export type TiendaNubePromotionStatus = "active" | "paused" | string;
 
 export type TiendaNubePromotion = {
+  active?: boolean | null;
+  allocation_type?: TiendaNubePromotionAllocationType;
+  combines_with_other_discounts?: boolean | null;
   created_at?: string | null;
   execution_tier?: TiendaNubePromotionTier;
   id: number | string;
@@ -179,6 +184,8 @@ export type TiendaNubePromotion = {
 };
 
 export type TiendaNubePromotionCreatePayload = {
+  allocation_type: TiendaNubePromotionAllocationType;
+  combines_with_other_discounts: boolean;
   execution_tier: TiendaNubePromotionTier;
   name: string;
   status?: TiendaNubePromotionStatus;

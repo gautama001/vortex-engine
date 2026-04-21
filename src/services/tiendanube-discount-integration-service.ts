@@ -20,6 +20,21 @@ const buildClient = (credentials: TiendaNubeStoreCredentials): TiendaNubeClient 
   });
 };
 
+const isPromotionActive = (promotion: TiendaNubePromotion): boolean => {
+  if (typeof promotion.active === "boolean") {
+    return promotion.active;
+  }
+
+  return promotion.status === "active";
+};
+
+const isLineItemPromotion = (promotion: TiendaNubePromotion): boolean => {
+  return (
+    promotion.execution_tier === "line_item" ||
+    promotion.allocation_type === "line_item"
+  );
+};
+
 export const registerStoreDiscountCallback = async (
   credentials: TiendaNubeStoreCredentials,
   callbackUrl: string,
@@ -76,8 +91,8 @@ export const ensureStoreDiscountIntegration = async (
     const existingPromotion = promotions.find(
       (promotion) =>
         String(promotion.id) === store.discountPromotionId &&
-        promotion.status === "active" &&
-        promotion.execution_tier === "line_item",
+        isPromotionActive(promotion) &&
+        isLineItemPromotion(promotion),
     );
 
     if (existingPromotion) {
@@ -91,6 +106,8 @@ export const ensureStoreDiscountIntegration = async (
   }
 
   const promotion = await createStorePromotion(credentials, {
+    allocation_type: "line_item",
+    combines_with_other_discounts: true,
     execution_tier: "line_item",
     name: `Vortex discounts for store ${store.tiendanubeId}`,
     status: "active",
