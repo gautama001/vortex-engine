@@ -103,6 +103,7 @@ export function OPTIONS() {
 }
 
 export async function POST(request: NextRequest) {
+  const startedAt = Date.now();
   let body: PrepareDiscountRequestBody;
 
   try {
@@ -282,6 +283,15 @@ export async function POST(request: NextRequest) {
       throw new Error("offer_session_not_found_after_apply");
     }
 
+    logger.info("Prepared real discount session", {
+      discountPercentage,
+      durationMs: Date.now() - startedAt,
+      offerSessionId: appliedSession.id,
+      rewardProductId,
+      storeId,
+      triggerProductId,
+    });
+
     return NextResponse.json(
       {
         discount_rule_id: rule.id,
@@ -295,6 +305,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     logger.error("Unable to prepare real discount session", {
+      durationMs: Date.now() - startedAt,
       discountPercentage,
       error,
       rewardProductId,

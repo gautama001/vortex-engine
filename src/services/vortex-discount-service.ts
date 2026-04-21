@@ -126,6 +126,57 @@ type UpdateOfferSessionStatusInput = {
   status: VortexOfferSessionStatus;
 };
 
+declare global {
+  // eslint-disable-next-line no-var
+  var __vortexOfferSessionCache__: Map<string, VortexOfferSession[]> | undefined;
+}
+
+const getOfferSessionCache = (): Map<string, VortexOfferSession[]> => {
+  if (!globalThis.__vortexOfferSessionCache__) {
+    globalThis.__vortexOfferSessionCache__ = new Map<string, VortexOfferSession[]>();
+  }
+
+  return globalThis.__vortexOfferSessionCache__;
+};
+
+const isOfferSessionActive = (session: VortexOfferSession, now = Date.now()): boolean => {
+  if (session.status !== "PENDING" && session.status !== "APPLIED") {
+    return false;
+  }
+
+  if (session.expiresAt && session.expiresAt.getTime() <= now) {
+    return false;
+  }
+
+  return true;
+};
+
+const readCachedOfferSessions = (storeId: string): VortexOfferSession[] => {
+  const cache = getOfferSessionCache();
+  const cachedSessions = cache.get(storeId) ?? [];
+  const activeSessions = cachedSessions.filter((session) => isOfferSessionActive(session));
+
+  if (activeSessions.length !== cachedSessions.length) {
+    cache.set(storeId, activeSessions);
+  }
+
+  return activeSessions;
+};
+
+const writeCachedOfferSessions = (
+  storeId: string,
+  updater: (sessions: VortexOfferSession[]) => VortexOfferSession[],
+): void => {
+  const cache = getOfferSessionCache();
+  const nextSessions = updater(readCachedOfferSessions(storeId));
+  cache.set(
+    storeId,
+    nextSessions
+      .filter((session) => isOfferSessionActive(session))
+      .sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime()),
+  );
+};
+
 const normalizeNumericIds = (values: Array<number | string>): number[] => {
   return [...new Set(values.map((value) => Number(value)).filter(Number.isFinite))];
 };
@@ -274,6 +325,12 @@ export const listDiscountRulesByStore = async (
 export const listActiveOfferSessionsByStore = async (
   storeId: string,
 ): Promise<VortexOfferSession[]> => {
+  const cachedSessions = readCachedOfferSessions(storeId);
+
+  if (cachedSessions.length > 0) {
+    return cachedSessions;
+  }
+
   await ensureDiscountPersistence();
 
   const rows = await prisma.$queryRaw<OfferSessionRow[]>`
@@ -285,7 +342,10 @@ export const listActiveOfferSessionsByStore = async (
     ORDER BY "updated_at" DESC, "created_at" DESC
   `;
 
-  return rows.map(mapOfferSession);
+  const sessions = rows.map(mapOfferSession);
+  getOfferSessionCache().set(storeId, sessions);
+
+  return sessions;
 };
 
 export const createOfferSession = async (
@@ -343,7 +403,10 @@ export const createOfferSession = async (
     throw new Error(`Offer session ${id} was not found after creation`);
   }
 
-  return mapOfferSession(rows[0]);
+  const session = mapOfferSession(rows[0]);
+  writeCachedOfferSessions(input.storeId, (sessions) => [session, ...sessions]);
+
+  return session;
 };
 
 export const updateOfferSessionStatus = async ({
@@ -373,7 +436,16 @@ export const updateOfferSessionStatus = async ({
     LIMIT 1
   `;
 
-  return rows[0] ? mapOfferSession(rows[0]) : null;
+  const session = rows[0] ? mapOfferSession(rows[0]) : null;
+
+  if (session) {
+    writeCachedOfferSessions(session.storeId, (sessions) => {
+      const remainingSessions = sessions.filter((candidate) => candidate.id !== session.id);
+      return [session, ...remainingSessions];
+    });
+  }
+
+  return session;
 };
 
 export const invalidateOfferSessionsByTrigger = async (
@@ -392,6 +464,21 @@ export const invalidateOfferSessionsByTrigger = async (
       AND "trigger_product_id" = ${String(triggerProductId)}
       AND "status" IN ('PENDING', 'APPLIED')
   `;
+
+  writeCachedOfferSessions(storeId, (sessions) =>
+    sessions.map((session) => {
+      if (session.triggerProductId !== String(triggerProductId)) {
+        return session;
+      }
+
+      return {
+        ...session,
+        invalidatedAt: new Date(),
+        status: "INVALIDATED",
+        updatedAt: new Date(),
+      };
+    }),
+  );
 
   return Number(result);
 };

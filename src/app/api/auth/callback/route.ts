@@ -80,7 +80,9 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      await ensureStoreDiscountIntegration(store);
+      await ensureStoreDiscountIntegration(store, {
+        syncRemote: true,
+      });
     } catch (discountSetupError) {
       logger.warn("Discount integration provisioning failed after OAuth callback", {
         error: discountSetupError,

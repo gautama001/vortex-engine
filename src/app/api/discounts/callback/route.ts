@@ -31,6 +31,7 @@ const toMoneyString = (value: number): string => {
 };
 
 export async function POST(request: NextRequest) {
+  const startedAt = Date.now();
   let payload: TiendaNubeDiscountCallbackPayloadBody;
 
   try {
@@ -160,11 +161,17 @@ export async function POST(request: NextRequest) {
   }
 
   if (commands.length === 0) {
+    logger.info("No discount actions required for TiendaNube callback", {
+      durationMs: Date.now() - startedAt,
+      executionTier: payload.execution_tier,
+      storeId,
+    });
     return new NextResponse(null, { status: 204 });
   }
 
   logger.info("Resolved TiendaNube discount callback", {
     commandCount: commands.length,
+    durationMs: Date.now() - startedAt,
     executionTier: payload.execution_tier,
     storeId,
   });

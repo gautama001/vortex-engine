@@ -47,6 +47,9 @@ export const listStorePromotions = async (
 
 export const ensureStoreDiscountIntegration = async (
   store: StoreRecord,
+  options?: {
+    syncRemote?: boolean;
+  },
 ): Promise<{
   callbackUrl: string;
   promotionId: string;
@@ -57,10 +60,18 @@ export const ensureStoreDiscountIntegration = async (
     accessToken: store.accessToken,
     storeId: store.tiendanubeId,
   };
+  const shouldSyncRemote = options?.syncRemote ?? false;
+
+  if (store.discountPromotionId && !shouldSyncRemote) {
+    return {
+      callbackUrl,
+      promotionId: store.discountPromotionId,
+    };
+  }
 
   await registerStoreDiscountCallback(credentials, callbackUrl);
 
-  if (store.discountPromotionId) {
+  if (store.discountPromotionId && shouldSyncRemote) {
     const promotions = await listStorePromotions(credentials);
     const existingPromotion = promotions.find(
       (promotion) =>
