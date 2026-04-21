@@ -165,6 +165,92 @@ export type TiendaNubeDiscountCreatePayload = {
   trigger: TiendaNubeDiscountTrigger;
 };
 
+export type TiendaNubePromotionTier = "cross_items" | "line_item";
+
+export type TiendaNubePromotionStatus = "active" | "paused" | string;
+
+export type TiendaNubePromotion = {
+  created_at?: string | null;
+  execution_tier?: TiendaNubePromotionTier;
+  id: number | string;
+  name?: string | null;
+  status?: TiendaNubePromotionStatus;
+  updated_at?: string | null;
+};
+
+export type TiendaNubePromotionCreatePayload = {
+  execution_tier: TiendaNubePromotionTier;
+  name: string;
+  status?: TiendaNubePromotionStatus;
+};
+
+export type TiendaNubeDiscountCallback = {
+  url: string;
+};
+
+export type TiendaNubeDiscountCallbackPayload = {
+  url: string;
+};
+
+export type TiendaNubeCartPromotionState = {
+  id: string;
+  line_items?: string[];
+};
+
+export type TiendaNubeDiscountCallbackLineItem = {
+  compare_at_price?: number | string | null;
+  id: number | string;
+  price?: number | string | null;
+  product_id?: number | string | null;
+  quantity?: number | string | null;
+  variant_id?: number | string | null;
+  variant_values?: string[];
+};
+
+export type TiendaNubeDiscountCallbackPayloadBody = {
+  cart_id: number | string;
+  currency: string;
+  execution_tier: TiendaNubePromotionTier;
+  language?: string | null;
+  products?: TiendaNubeDiscountCallbackLineItem[];
+  promotions?: TiendaNubeCartPromotionState[];
+  store_id: number | string;
+};
+
+export type TiendaNubeDiscountCommand =
+  | {
+      command: "create_or_update_discount";
+      specs: {
+        currency: string;
+        display_text: Record<string, string>;
+        line_items: Array<{
+          discount_specs: {
+            amount: string;
+            type: "fixed";
+          };
+          line_item: string;
+        }>;
+        promotion_id: string;
+      };
+    }
+  | {
+      command: "remove_discount";
+      specs:
+        | {
+            line_items: string[];
+            promotion_id: string;
+            scope: "line_item";
+          }
+        | {
+            promotion_ids: string[];
+            scope: "cart";
+          };
+    };
+
+export type TiendaNubeDiscountCallbackResponse = {
+  commands: TiendaNubeDiscountCommand[];
+};
+
 export type TiendaNubeChargeStatus = "accepted" | "cancelled" | "pending" | string;
 
 export type TiendaNubeCharge = {

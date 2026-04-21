@@ -230,6 +230,31 @@
     return "";
   }
 
+  function getCartProductIds() {
+    var items =
+      window.LS &&
+      window.LS.cart &&
+      Array.isArray(window.LS.cart.items)
+        ? window.LS.cart.items
+        : [];
+
+    return items
+      .map(function (item) {
+        if (item && item.product && item.product.id !== undefined && item.product.id !== null) {
+          return Number(item.product.id);
+        }
+
+        if (item && item.product_id !== undefined && item.product_id !== null) {
+          return Number(item.product_id);
+        }
+
+        return null;
+      })
+      .filter(function (value) {
+        return typeof value === "number" && !Number.isNaN(value);
+      });
+  }
+
   function resolveContext() {
     var cartAnchor = findCartAnchor();
     var cartProductId = findCartSeedProductId();
@@ -773,6 +798,7 @@
 
     return fetch(getDiscountSessionEndpoint(), {
       body: JSON.stringify({
+        cart_product_ids: getCartProductIds(),
         discount_percentage: discountPercentage,
         proof: discountContext.proof,
         reward_product_id: rewardProductId,
@@ -1537,4 +1563,3 @@
   setupObservers();
   scheduleBoot(0);
 })();
-

@@ -29,6 +29,7 @@ const defaultHeaders = {
 const ALLOWED_DISCOUNT_VALUES = new Set([10, 20, 30, 40, 50]);
 
 type PrepareDiscountRequestBody = {
+  cart_product_ids?: Array<number | string>;
   discount_percentage?: number;
   proof?: string;
   reward_product_id?: number | string;
@@ -41,6 +42,14 @@ const normalizeNumericId = (value: number | string | null | undefined): number |
   const normalized = Number(value);
 
   return Number.isFinite(normalized) ? normalized : null;
+};
+
+const normalizeNumericIdList = (values: Array<number | string> | undefined): number[] => {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  return [...new Set(values.map((value) => Number(value)).filter(Number.isFinite))];
 };
 
 const mapStrategyToSource = (strategy: string): VortexDiscountSource => {
@@ -120,6 +129,7 @@ export async function POST(request: NextRequest) {
   const rewardProductId = normalizeNumericId(body.reward_product_id);
   const selectedVariantId = normalizeNumericId(body.selected_variant_id);
   const discountPercentage = Number(body.discount_percentage);
+  const cartProductIds = normalizeNumericIdList(body.cart_product_ids);
 
   if (!storeId || !proof || !triggerProductId || !rewardProductId) {
     return NextResponse.json(
@@ -201,6 +211,22 @@ export async function POST(request: NextRequest) {
         {
           headers: defaultHeaders,
           status: 401,
+        },
+      );
+    }
+
+    if (
+      cartProductIds.length > 0 &&
+      !cartProductIds.includes(triggerProductId)
+    ) {
+      return NextResponse.json(
+        {
+          reason: "trigger_removed",
+          status: "skipped",
+        },
+        {
+          headers: defaultHeaders,
+          status: 200,
         },
       );
     }
