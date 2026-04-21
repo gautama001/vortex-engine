@@ -184,9 +184,10 @@ export type TiendaNubePromotion = {
 };
 
 export type TiendaNubePromotionCreatePayload = {
-  allocation_type: TiendaNubePromotionAllocationType;
-  combines_with_other_discounts: boolean;
-  execution_tier: TiendaNubePromotionTier;
+  active?: boolean;
+  allocation_type?: TiendaNubePromotionAllocationType;
+  combines_with_other_discounts?: boolean;
+  execution_tier?: TiendaNubePromotionTier;
   name: string;
   status?: TiendaNubePromotionStatus;
 };

@@ -1,6 +1,8 @@
 import { getTiendaNubeConfig } from "@/lib/env";
+import { logger } from "@/lib/logger";
 import { TiendaNubeClient } from "@/lib/tiendanube/client";
 import type {
+  TiendaNubeApiError,
   TiendaNubeDiscountCallbackPayload,
   TiendaNubePromotion,
   TiendaNubePromotionCreatePayload,
@@ -54,6 +56,56 @@ export const createStorePromotion = async (
   );
 };
 
+const isBadRequestError = (error: unknown): error is TiendaNubeApiError => {
+  return (
+    error instanceof Error &&
+    error.name === "TiendaNubeApiError" &&
+    "status" in error &&
+    Number((error as { status?: unknown }).status) === 400
+  );
+};
+
+const createStorePromotionWithFallback = async (
+  credentials: TiendaNubeStoreCredentials,
+  storeId: string,
+): Promise<TiendaNubePromotion> => {
+  const payloads: TiendaNubePromotionCreatePayload[] = [
+    {
+      active: true,
+      allocation_type: "line_item",
+      combines_with_other_discounts: true,
+      name: `Vortex discounts for store ${storeId}`,
+    },
+    {
+      execution_tier: "line_item",
+      name: `Vortex discounts for store ${storeId}`,
+      status: "active",
+    },
+  ];
+
+  let lastError: unknown = null;
+
+  for (const payload of payloads) {
+    try {
+      return await createStorePromotion(credentials, payload);
+    } catch (error) {
+      lastError = error;
+
+      if (!isBadRequestError(error)) {
+        throw error;
+      }
+
+      logger.warn("TiendaNube promotion payload rejected, trying fallback contract", {
+        error,
+        payload,
+        storeId,
+      });
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("promotion_creation_failed");
+};
+
 export const listStorePromotions = async (
   credentials: TiendaNubeStoreCredentials,
 ): Promise<TiendaNubePromotion[]> => {
@@ -105,13 +157,7 @@ export const ensureStoreDiscountIntegration = async (
     await setStoreDiscountPromotionId(store.tiendanubeId, null);
   }
 
-  const promotion = await createStorePromotion(credentials, {
-    allocation_type: "line_item",
-    combines_with_other_discounts: true,
-    execution_tier: "line_item",
-    name: `Vortex discounts for store ${store.tiendanubeId}`,
-    status: "active",
-  });
+  const promotion = await createStorePromotionWithFallback(credentials, store.tiendanubeId);
 
   await setStoreDiscountPromotionId(store.tiendanubeId, String(promotion.id));
 
