@@ -1,7 +1,6 @@
 import { unstable_noStore as noStore } from "next/cache";
 
 import { LandingPreviewExperience } from "@/components/landing-preview-experience";
-import { BUILD_TIMESTAMP, RELEASE_MARKER } from "@/lib/release";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -29,7 +28,7 @@ const resourceLinks = [
   },
   {
     copy: "Instalacion guiada para conectar Vortex con TiendaNube.",
-    href: "/oauth/tiendanube/install",
+    href: "/api/auth/install",
     label: "Instalar Vortex",
   },
   {
@@ -88,20 +87,16 @@ export default function HomePage() {
             </a>
             <a
               className="inline-flex h-9 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-4 text-xs font-medium uppercase tracking-[0.24em] text-slate-950 shadow-[0_0_60px_-24px_rgba(103,232,249,0.85)] transition hover:bg-cyan-200"
-              href="/oauth/tiendanube/install"
+              href="/api/auth/install"
             >
               Instalar
             </a>
           </div>
         </header>
 
-        <div className="sr-only" data-vortex-build={BUILD_TIMESTAMP} data-vortex-release={RELEASE_MARKER}>
-          vortex-homepage-live-marker
-        </div>
-
         <LandingPreviewExperience />
 
-        <section className="mt-8 grid gap-5" id="implementation">
+        <section className="mt-10 grid gap-5 scroll-mt-28" id="implementation">
           <div className="rounded-[32px] border border-slate-900/10 bg-white/78 p-6 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
               Implementacion
@@ -153,7 +148,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="mt-8 rounded-[34px] border border-slate-900/10 bg-white/78 p-6 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl" id="resources">
+        <section className="mt-10 rounded-[34px] border border-slate-900/10 bg-white/78 p-6 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl scroll-mt-28" id="resources">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
             Recursos
           </p>
@@ -161,8 +156,8 @@ export default function HomePage() {
             Botones claros para todo lo que Vortex ofrece hoy.
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-            Instalacion, command center, soporte y privacidad dentro del mismo index, sin cajas tecnicas
-            ni links que el merchant no entienda.
+            Instalacion, command center, soporte y privacidad dentro del mismo index, sin cajas
+            tecnicas ni botones que mezclen la demo con el flujo operativo real.
           </p>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">

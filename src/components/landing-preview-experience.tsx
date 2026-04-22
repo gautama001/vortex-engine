@@ -1,14 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 type EngineMode = "IA" | "FBT" | "Manual";
 
+type LivePreviewProduct = {
+  image: string;
+  name: string;
+  price: string;
+  url: string;
+};
+
 type PreviewProduct = {
   badge: string;
+  image?: string;
   name: string;
   price: string;
   subtitle: string;
+  url?: string;
 };
 
 type PreviewProfile = {
@@ -43,7 +52,7 @@ const PROFILES: Record<EngineMode, PreviewProfile> = {
       "Mantiene el storefront liviano y hace visible el bundle correcto en el momento correcto.",
     ],
     installSummary:
-      "La demo sugiere una instalacion con bundles ligeros, quick add y reglas comerciales sobre productos relacionados.",
+      "La instalacion sugerida activa recomendaciones de carrito, combinaciones frecuentes y quick add sobre productos relacionados.",
     metrics: [
       { label: "Revenue lift", value: "+11.8%" },
       { label: "AOV boost", value: "+9.2%" },
@@ -58,7 +67,7 @@ const PROFILES: Record<EngineMode, PreviewProfile> = {
       "La demo sugiere un bloque de combinacion de look con quick add para capturar ticket incremental sin tocar checkout ni rearmar todo el storefront.",
     signalTitle: "FBT recomendado para esta tienda",
     widgetIntro:
-      "Mostramos una capa FBT con productos reales o simulados del mismo momento de compra para elevar ticket sin depender de descuentos.",
+      "La preview intenta traer 2 productos publicos del storefront y aplica sobre ellos una capa FBT pensada para quick add.",
     widgetProducts: [
       {
         badge: "01",
@@ -78,7 +87,7 @@ const PROFILES: Record<EngineMode, PreviewProfile> = {
   IA: {
     commandCenterBadge: "IA recomendado",
     commandCenterCopy:
-      "La preview honesta no audita el catalogo real: modela donde Vortex capturaria mejor el crecimiento incremental.",
+      "La preview ordena afinidad, densidad de categoria y contexto visual para modelar donde Vortex capturaria mejor crecimiento incremental.",
     engine: "IA",
     engineBullets: [
       "Afinidad semantica sobre tags, categoria y momento comercial.",
@@ -99,7 +108,7 @@ const PROFILES: Record<EngineMode, PreviewProfile> = {
     projectedRevenue: "$1.798.496 / mes",
     signalCopy:
       "La simulacion prioriza una capa de recomendaciones clara, un placement visible y un motor que haga sentido comercial para la etapa actual de la tienda.",
-    signalTitle: "IA recomendado para esta tienda",
+    signalTitle: "IA recomendada para esta tienda",
     widgetIntro:
       "Recomendaciones activadas sobre la URL cargada para sumar AOV sin intervenir el tema completo.",
     widgetProducts: [
@@ -173,11 +182,11 @@ function normalizeStoreInput(value: string) {
   const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 
   try {
-    const url = new URL(withProtocol);
+    const parsed = new URL(withProtocol);
 
-    return `${url.protocol}//${url.host}`;
+    return `${parsed.protocol}//${parsed.host}`;
   } catch {
-    return trimmed;
+    return DEFAULT_INPUT;
   }
 }
 
@@ -185,18 +194,18 @@ function getStoreHost(value: string) {
   try {
     return new URL(normalizeStoreInput(value)).host;
   } catch {
-    return value.trim() || "mitienda.tiendanube.com";
+    return "mitienda.tiendanube.com";
   }
 }
 
 function inferEngineMode(host: string): EngineMode {
   const normalized = host.toLowerCase();
 
-  if (/(shoes|shoe|zapa|zapat|zapato|calzado|sneaker|boot|borcego|sandal)/.test(normalized)) {
+  if (/(shoes|shoe|zapa|zapat|zapato|calzado|sneaker|boot|borcego|sandalia)/.test(normalized)) {
     return "FBT";
   }
 
-  if (/(atelier|capsule|capsula|editorial|studio|concept|deco|decor|home|design)/.test(normalized)) {
+  if (/(atelier|capsule|capsula|editorial|deco|decor|home|design|concept)/.test(normalized)) {
     return "Manual";
   }
 
@@ -204,37 +213,170 @@ function inferEngineMode(host: string): EngineMode {
 }
 
 function buildInstallHref(storeInput: string) {
-  const normalized = normalizeStoreInput(storeInput);
+  return `/api/auth/install?store_domain=${encodeURIComponent(normalizeStoreInput(storeInput))}`;
+}
 
-  return `/oauth/tiendanube/install?store_domain=${encodeURIComponent(normalized)}`;
+function getProductSubtitle(mode: EngineMode, index: number) {
+  const subtitles: Record<EngineMode, string[]> = {
+    FBT: ["Cross-sell / Compra conjunta", "Bundle / Ticket incremental"],
+    IA: ["Afinidad / Quick Add", "Momento de conversion"],
+    Manual: ["Curado / Storytelling", "Merchandising / Prioridad"],
+  };
+
+  return subtitles[mode][index] ?? "Recomendacion / Vortex";
+}
+
+function hydrateWidgetProducts(
+  mode: EngineMode,
+  liveProducts: LivePreviewProduct[] | null,
+  fallbackProducts: PreviewProduct[],
+) {
+  if (!liveProducts?.length) {
+    return fallbackProducts;
+  }
+
+  return liveProducts.slice(0, 2).map((product, index) => ({
+    badge: String(index + 1).padStart(2, "0"),
+    image: product.image,
+    name: product.name,
+    price: product.price,
+    subtitle: getProductSubtitle(mode, index),
+    url: product.url,
+  }));
+}
+
+function getStatusCopy({
+  host,
+  liveProducts,
+  mode,
+}: {
+  host: string;
+  liveProducts: LivePreviewProduct[] | null;
+  mode: EngineMode;
+}) {
+  if (liveProducts?.length) {
+    return `Preview lista para ${host}. Detectamos ${liveProducts.length} productos publicos y recomendamos ${mode}.`;
+  }
+
+  return `Preview lista para ${host}. No encontramos productos publicos claros, asi que dejamos una simulacion ${mode} liviana.`;
+}
+
+function getPreviewActionLabel(product: PreviewProduct) {
+  return product.url ? "Ver producto" : "Ver demo";
 }
 
 export function LandingPreviewExperience() {
+  const requestIdRef = useRef(0);
   const [draftValue, setDraftValue] = useState(DEFAULT_INPUT);
   const [storeInput, setStoreInput] = useState(DEFAULT_INPUT);
   const [selectedMode, setSelectedMode] = useState<EngineMode | null>(null);
+  const [liveProducts, setLiveProducts] = useState<LivePreviewProduct[] | null>(null);
+  const [previewStatus, setPreviewStatus] = useState(
+    "Demo lista para modelar storefront, placement y algoritmo recomendado.",
+  );
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const previewState = useMemo(() => {
-    const host = getStoreHost(storeInput);
-    const engineMode = selectedMode ?? inferEngineMode(host);
-    const profile = PROFILES[engineMode];
+    const normalizedStore = normalizeStoreInput(storeInput);
+    const host = getStoreHost(normalizedStore);
+    const recommendedMode = inferEngineMode(host);
+    const activeMode = selectedMode ?? recommendedMode;
+    const baseProfile = PROFILES[activeMode];
+    const widgetProducts = hydrateWidgetProducts(activeMode, liveProducts, baseProfile.widgetProducts);
 
     return {
+      activeMode,
       host,
-      installHref: buildInstallHref(storeInput),
-      profile,
+      installHref: buildInstallHref(normalizedStore),
+      normalizedStore,
+      profile: {
+        ...baseProfile,
+        modeTitle: `Preview / ${activeMode} ${activeMode === recommendedMode ? "recomendado" : "activo"}`,
+        widgetIntro: liveProducts?.length
+          ? `Detectamos ${liveProducts.length} productos reales en ${host} y armamos una preview ${activeMode} sobre esa seleccion.`
+          : baseProfile.widgetIntro,
+        widgetProducts,
+      },
+      recommendedMode,
     };
-  }, [selectedMode, storeInput]);
+  }, [liveProducts, selectedMode, storeInput]);
+
+  async function handlePreview() {
+    const normalizedStore = normalizeStoreInput(draftValue);
+    const currentRequestId = requestIdRef.current + 1;
+    requestIdRef.current = currentRequestId;
+
+    setIsPreviewLoading(true);
+    setSelectedMode(null);
+    setStoreInput(normalizedStore);
+    setPreviewStatus("Leyendo storefront, perfilando la tienda y buscando productos publicos...");
+
+    try {
+      const response = await fetch(
+        `/api/preview/storefront?store=${encodeURIComponent(normalizedStore)}`,
+        {
+          cache: "no-store",
+          headers: {
+            Accept: "application/json",
+          },
+        },
+      );
+
+      const payload = (await response.json()) as {
+        message?: string;
+        products?: LivePreviewProduct[];
+      };
+
+      if (currentRequestId !== requestIdRef.current) {
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(payload.message ?? "No pudimos preparar la preview.");
+      }
+
+      const products = Array.isArray(payload.products) ? payload.products.slice(0, 2) : [];
+      const host = getStoreHost(normalizedStore);
+      const recommendedMode = inferEngineMode(host);
+
+      setLiveProducts(products.length ? products : null);
+      setPreviewStatus(
+        getStatusCopy({
+          host,
+          liveProducts: products.length ? products : null,
+          mode: recommendedMode,
+        }),
+      );
+    } catch (error) {
+      if (currentRequestId !== requestIdRef.current) {
+        return;
+      }
+
+      const host = getStoreHost(normalizedStore);
+      const recommendedMode = inferEngineMode(host);
+
+      setLiveProducts(null);
+      setPreviewStatus(
+        error instanceof Error && error.message
+          ? `${error.message} Mostramos una simulacion ${recommendedMode} para ${host}.`
+          : `No pudimos leer el storefront publico. Mostramos una simulacion ${recommendedMode} para ${host}.`,
+      );
+    } finally {
+      if (currentRequestId === requestIdRef.current) {
+        setIsPreviewLoading(false);
+      }
+    }
+  }
 
   return (
     <>
-      <section className="grid gap-8 py-8 lg:grid-cols-[1.18fr_0.82fr] lg:items-start lg:py-12">
+      <section className="grid gap-8 py-8 lg:grid-cols-[1.12fr_0.88fr] lg:items-start lg:py-12">
         <div className="space-y-8">
           <div className="space-y-5">
             <p className="text-xs font-semibold uppercase tracking-[0.34em] text-cyan-700">
               Vortex para TiendaNube
             </p>
-            <h1 className="max-w-4xl text-5xl font-semibold tracking-[-0.06em] text-slate-950 sm:text-6xl lg:text-[6.25rem] lg:leading-[0.9]">
+            <h1 className="max-w-4xl text-5xl font-semibold tracking-[-0.065em] text-slate-950 sm:text-6xl lg:text-[5.6rem] lg:leading-[0.92]">
               Previsualiza el impacto de Vortex sobre una PDP sin meter una implementacion pesada.
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-slate-700">
@@ -244,45 +386,45 @@ export function LandingPreviewExperience() {
           </div>
 
           <form
-            className="grid gap-3 rounded-[32px] border border-slate-900/10 bg-white/75 p-4 shadow-[0_30px_90px_-60px_rgba(15,23,42,0.45)] backdrop-blur-xl sm:grid-cols-[1fr_auto]"
+            className="grid gap-3 rounded-[32px] border border-slate-900/10 bg-white/75 p-5 shadow-[0_30px_90px_-60px_rgba(15,23,42,0.45)] backdrop-blur-xl"
             onSubmit={(event) => {
               event.preventDefault();
-              setStoreInput(normalizeStoreInput(draftValue));
-              setSelectedMode(null);
+              void handlePreview();
             }}
           >
             <label className="grid gap-2">
               <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
                 URL de la tienda o dominio de TiendaNube
               </span>
-              <input
-                autoComplete="off"
-                className="h-14 rounded-full border border-slate-900/10 bg-white px-5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-cyan-400/60 focus:ring-4 focus:ring-cyan-300/20"
-                onChange={(event) => setDraftValue(event.target.value)}
-                placeholder="https://mitienda.tiendanube.com"
-                type="text"
-                value={draftValue}
-              />
+              <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                <input
+                  autoComplete="off"
+                  className="h-14 rounded-full border border-slate-900/10 bg-white px-5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-cyan-400/60 focus:ring-4 focus:ring-cyan-300/20"
+                  onChange={(event) => setDraftValue(event.target.value)}
+                  placeholder="https://mitienda.tiendanube.com"
+                  type="text"
+                  value={draftValue}
+                />
+                <button
+                  className="inline-flex h-14 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-6 text-sm font-medium text-slate-950 shadow-[0_0_60px_-24px_rgba(103,232,249,0.85)] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={isPreviewLoading}
+                  type="submit"
+                >
+                  {isPreviewLoading ? "Previsualizando..." : "Previsualizar potencial"}
+                </button>
+              </div>
               <span className="text-sm leading-6 text-slate-600">
-                  La simulacion corre local en la homepage: no te manda a TiendaNube, solo recalcula
-                  la propuesta visual y el motor sugerido para esa tienda.
-                </span>
-              </label>
+                Este boton no instala nada ni te manda a TiendaNube: solo recalcula la propuesta,
+                el motor sugerido y, si la tienda es publica, intenta traer productos reales para el mockup.
+              </span>
+            </label>
 
-            <div className="flex items-end">
-              <button
-                className="inline-flex h-12 w-full items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-6 text-sm font-medium text-slate-950 shadow-[0_0_60px_-24px_rgba(103,232,249,0.85)] transition hover:bg-cyan-200 sm:w-auto"
-                type="submit"
-              >
-                Previsualizar potencial
-              </button>
+            <div className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-3 text-sm text-cyan-950">
+              {previewStatus}
             </div>
           </form>
 
           <div className="flex flex-wrap gap-3">
-            <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-4 py-2 text-sm text-cyan-900">
-              Demo lista para modelar storefront, placement y algoritmo recomendado para {previewState.host}.
-            </span>
             <a
               className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-5 text-sm font-medium text-slate-100 transition hover:border-cyan-300/30 hover:bg-slate-900/80"
               href="#simulacion"
@@ -290,10 +432,16 @@ export function LandingPreviewExperience() {
               Ver simulacion
             </a>
             <a
-              className="inline-flex h-11 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-5 text-sm font-medium text-slate-950 shadow-[0_0_60px_-24px_rgba(103,232,249,0.85)] transition hover:bg-cyan-200"
-              href={previewState.installHref}
+              className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-white px-5 text-sm font-medium text-slate-950 transition hover:border-cyan-300/40 hover:bg-cyan-50"
+              href="#widget-preview"
             >
-              Instalar esta tienda
+              Ver widget demo
+            </a>
+            <a
+              className="inline-flex h-11 items-center justify-center rounded-full border border-slate-900/10 bg-white px-5 text-sm font-medium text-slate-950 transition hover:border-cyan-300/40 hover:bg-cyan-50"
+              href="/app"
+            >
+              Abrir app
             </a>
           </div>
         </div>
@@ -305,7 +453,7 @@ export function LandingPreviewExperience() {
             title={previewState.host}
           />
           <StatusCard
-            body="El command center cambia en tiempo real para mostrar la capa mas razonable para la tienda cargada."
+            body="La preview cambia en tiempo real para mostrar la capa mas razonable para la tienda cargada."
             label="Modo actual"
             title={previewState.profile.modeTitle}
           />
@@ -318,8 +466,9 @@ export function LandingPreviewExperience() {
         </div>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]" id="simulacion">
-        <div className="rounded-[32px] border border-slate-900/10 bg-white/78 p-6 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl">
+      <section className="grid gap-5" id="simulacion">
+        <div className="grid gap-5 xl:grid-cols-[1.02fr_0.98fr] xl:items-start">
+          <div className="rounded-[32px] border border-slate-900/10 bg-white/78 p-6 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
@@ -341,7 +490,7 @@ export function LandingPreviewExperience() {
           </div>
 
           <div className="mt-6 overflow-hidden rounded-[28px] border border-cyan-300/20 bg-linear-to-b from-cyan-200/30 via-cyan-100/60 to-transparent p-5">
-            <div className="flex h-52 items-end gap-4">
+            <div className="flex h-44 items-end gap-4">
               {[34, 48, 42, 62, 80, 66].map((barHeight, index) => (
                 <div
                   className="flex-1 rounded-t-[999px] bg-linear-to-b from-cyan-300 to-cyan-100 shadow-[0_20px_50px_-25px_rgba(14,165,233,0.6)]"
@@ -354,9 +503,8 @@ export function LandingPreviewExperience() {
               {previewState.profile.commandCenterCopy}
             </p>
           </div>
-        </div>
+          </div>
 
-        <div className="grid gap-5">
           <div className="rounded-[32px] border border-slate-900/10 bg-white/78 p-6 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl">
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
@@ -369,7 +517,7 @@ export function LandingPreviewExperience() {
 
             <div className="mt-5 grid gap-3">
               {(["IA", "FBT", "Manual"] as EngineMode[]).map((mode) => {
-                const isActive = mode === previewState.profile.engine;
+                const isActive = mode === previewState.activeMode;
 
                 return (
                   <button
@@ -397,81 +545,81 @@ export function LandingPreviewExperience() {
               ))}
             </ul>
           </div>
+        </div>
 
-          <div className="grid gap-5 md:grid-cols-2">
-            <div className="rounded-[30px] border border-slate-900/10 bg-white/78 p-5 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
-                Storefront
+        <div className="grid gap-5 md:grid-cols-2 xl:items-stretch">
+          <div className="rounded-[30px] border border-slate-900/10 bg-white/78 p-5 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
+              Storefront
+            </p>
+            <h3 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-slate-950">
+              Leemos la URL y devolvemos una oportunidad clara para presentar Vortex.
+            </h3>
+            <dl className="mt-5 grid gap-4 text-sm text-slate-700">
+              <div>
+                <dt className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                  Store preview
+                </dt>
+                <dd className="mt-1 break-all font-medium text-slate-950">{previewState.normalizedStore}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                  Placement sugerido
+                </dt>
+                <dd className="mt-1 font-medium text-slate-950">{previewState.profile.placement}</dd>
+              </div>
+            </dl>
+
+            <div className="mt-5 rounded-[26px] border border-cyan-300/20 bg-slate-950 p-5 text-white">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200">
+                Oportunidad detectada
               </p>
-              <h3 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-slate-950">
-                Leemos la URL y devolvemos una oportunidad clara para presentar Vortex.
-              </h3>
-              <dl className="mt-5 grid gap-4 text-sm text-slate-700">
-                <div>
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                    Store preview
-                  </dt>
-                  <dd className="mt-1 font-medium text-slate-950">{normalizeStoreInput(storeInput)}</dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                    Placement sugerido
-                  </dt>
-                  <dd className="mt-1 font-medium text-slate-950">{previewState.profile.placement}</dd>
-                </div>
-              </dl>
-
-              <div className="mt-5 rounded-[26px] border border-cyan-300/20 bg-slate-950 p-5 text-white">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200">
-                  Oportunidad detectada
-                </p>
-                <p className="mt-3 text-xl font-semibold tracking-[-0.04em]">
-                  {previewState.profile.opportunityTitle}
-                </p>
-                <p className="mt-3 text-sm leading-6 text-slate-300">
-                  {previewState.profile.signalCopy}
-                </p>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <SmallPanel label="Revenue proyectado" value={previewState.profile.projectedRevenue} />
-                  <SmallPanel label="Algoritmo sugerido" value={previewState.profile.engine} />
-                </div>
+              <p className="mt-3 text-xl font-semibold tracking-[-0.04em]">
+                {previewState.profile.opportunityTitle}
+              </p>
+              <p className="mt-3 text-sm leading-6 text-slate-300">
+                {previewState.profile.signalCopy}
+              </p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <SmallPanel label="Revenue proyectado" value={previewState.profile.projectedRevenue} />
+                <SmallPanel label="Algoritmo sugerido" value={previewState.profile.engine} />
               </div>
             </div>
+          </div>
 
-            <div className="rounded-[30px] border border-slate-900/10 bg-slate-950 p-5 text-white shadow-[0_30px_90px_-60px_rgba(15,23,42,0.85)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-300">
-                Instalar Vortex
-              </p>
-              <h3 className="mt-2 text-3xl font-semibold tracking-[-0.05em]">
-                Ese espacio ahora cierra la historia con una CTA clara para activar la app.
-              </h3>
-              <p className="mt-4 text-sm leading-6 text-slate-300">
-                {previewState.profile.installSummary}
-              </p>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <DarkPanel
-                  description="Merchant-friendly, sin perder la narrativa comercial que ya abrimos en la demo."
-                  title="Instalacion guiada"
-                />
-                <DarkPanel
-                  description="La app conecta setup, storefront y revenue atribuido dentro del mismo flujo."
-                  title="Widget + dashboard + ROI"
-                />
-              </div>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <a
-                  className="inline-flex h-12 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-6 text-sm font-medium text-slate-950 shadow-[0_0_60px_-24px_rgba(103,232,249,0.85)] transition hover:bg-cyan-200"
-                  href={previewState.installHref}
-                >
-                  Instalar la app
-                </a>
-                <a
-                  className="inline-flex h-12 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-6 text-sm font-medium text-slate-100 transition hover:border-cyan-300/30 hover:bg-slate-900/80"
-                  href="/app"
-                >
-                  Abrir command center
-                </a>
-              </div>
+          <div className="rounded-[30px] border border-slate-900/10 bg-slate-950 p-5 text-white shadow-[0_30px_90px_-60px_rgba(15,23,42,0.85)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-300">
+              Instalar Vortex
+            </p>
+            <h3 className="mt-2 text-3xl font-semibold tracking-[-0.05em]">
+              La demo sirve para validar la propuesta. La instalacion va por un flujo separado.
+            </h3>
+            <p className="mt-4 text-sm leading-6 text-slate-300">
+              {previewState.profile.installSummary}
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <DarkPanel
+                description="Conecta la tienda, publica el script y llega al dashboard sin mezclar la simulacion con el alta real."
+                title="Instalacion guiada"
+              />
+              <DarkPanel
+                description="La app conecta setup, storefront y revenue atribuido dentro del mismo flujo operativo."
+                title="Widget + dashboard + ROI"
+              />
+            </div>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <a
+                className="inline-flex h-12 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-6 text-sm font-medium text-slate-950 shadow-[0_0_60px_-24px_rgba(103,232,249,0.85)] transition hover:bg-cyan-200"
+                href={previewState.installHref}
+              >
+                Instalar con esta tienda
+              </a>
+              <a
+                className="inline-flex h-12 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-6 text-sm font-medium text-slate-100 transition hover:border-cyan-300/30 hover:bg-slate-900/80"
+                href="/app"
+              >
+                Abrir command center
+              </a>
             </div>
           </div>
         </div>
@@ -492,7 +640,7 @@ export function LandingPreviewExperience() {
           {previewState.profile.widgetProducts.map((product) => (
             <article
               className="rounded-[28px] border border-white/8 bg-white/6 p-4 shadow-[0_30px_70px_-50px_rgba(15,23,42,0.85)]"
-              key={product.name}
+              key={`${product.badge}-${product.name}`}
             >
               <div className="flex items-center justify-between">
                 <span className="rounded-2xl bg-cyan-300/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
@@ -501,25 +649,64 @@ export function LandingPreviewExperience() {
               </div>
               <div className="mt-4 rounded-[26px] border border-white/8 bg-linear-to-b from-slate-900 via-slate-900 to-slate-950 p-6">
                 <div className="flex min-h-72 items-center justify-center rounded-[24px] border border-white/8 bg-radial from-slate-700/70 via-slate-900 to-slate-950 p-6">
-                  <img
-                    alt="Vortex preview"
-                    className="h-44 w-44 rounded-[28px] shadow-[0_30px_90px_-40px_rgba(14,165,233,0.6)]"
-                    height="176"
-                    src="/icon.png"
-                    width="176"
-                  />
+                  {product.url ? (
+                    <a
+                      className="inline-flex h-full w-full items-center justify-center"
+                      href={product.url}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <img
+                        alt={product.name}
+                        className="h-44 w-44 rounded-[28px] object-cover shadow-[0_30px_90px_-40px_rgba(14,165,233,0.6)]"
+                        height="176"
+                        src={product.image || "/icon.png"}
+                        width="176"
+                      />
+                    </a>
+                  ) : (
+                    <img
+                      alt={product.name}
+                      className="h-44 w-44 rounded-[28px] object-cover shadow-[0_30px_90px_-40px_rgba(14,165,233,0.6)]"
+                      height="176"
+                      src={product.image || "/icon.png"}
+                      width="176"
+                    />
+                  )}
                 </div>
                 <div className="mt-5 flex items-end justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-semibold tracking-[-0.04em]">{product.name}</h3>
+                  <div className="min-w-0">
+                    {product.url ? (
+                      <a
+                        className="line-clamp-2 text-xl font-semibold tracking-[-0.04em] text-white hover:text-cyan-200"
+                        href={product.url}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        {product.name}
+                      </a>
+                    ) : (
+                      <h3 className="line-clamp-2 text-xl font-semibold tracking-[-0.04em]">{product.name}</h3>
+                    )}
                     <p className="mt-1 text-sm text-slate-300">{product.subtitle}</p>
                     <p className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-cyan-300">
                       {product.price}
                     </p>
                   </div>
-                  <span className="inline-flex h-9 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-4 text-xs font-medium uppercase tracking-[0.24em] text-slate-950">
-                    Quick Add
-                  </span>
+                  {product.url ? (
+                    <a
+                      className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-4 text-xs font-medium uppercase tracking-[0.24em] text-slate-950 transition hover:bg-cyan-200"
+                      href={product.url}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      {getPreviewActionLabel(product)}
+                    </a>
+                  ) : (
+                    <span className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-300/70 px-4 text-xs font-medium uppercase tracking-[0.24em] text-slate-950">
+                      {getPreviewActionLabel(product)}
+                    </span>
+                  )}
                 </div>
               </div>
             </article>
@@ -550,7 +737,7 @@ function StatusCard({
       }`}
     >
       <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">{label}</p>
-      <h2 className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-3xl">
+      <h2 className="mt-3 break-words text-2xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-3xl">
         {title}
       </h2>
       <p className="mt-3 text-sm leading-7 text-slate-700">{body}</p>
