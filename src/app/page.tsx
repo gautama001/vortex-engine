@@ -1,9 +1,5 @@
-import Image from "next/image";
-import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 
-import { InstallForm } from "@/components/install-form";
-import { Button } from "@/components/ui/button";
 import { hasCoreEnvironment } from "@/lib/env";
 import { BUILD_TIMESTAMP, RELEASE_MARKER } from "@/lib/release";
 
@@ -92,7 +88,7 @@ export default function HomePage() {
         <header className="sticky top-4 z-30 flex flex-wrap items-center justify-between gap-4 rounded-full border border-slate-900/10 bg-white/70 px-4 py-3 shadow-[0_24px_70px_-50px_rgba(15,23,42,0.45)] backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <div className="overflow-hidden rounded-[20px] border border-slate-900/10 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)]">
-              <Image alt="Vortex Engine" height={48} src="/icon.png" width={48} />
+              <img alt="Vortex Engine" className="block h-12 w-12" height="48" src="/icon.png" width="48" />
             </div>
             <div>
               <p className="text-base font-semibold tracking-[-0.03em] text-slate-950">Vortex Engine</p>
@@ -101,27 +97,33 @@ export default function HomePage() {
           </div>
 
           <nav className="hidden items-center gap-1 text-sm text-slate-600 md:flex">
-            <Link className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#simulacion">
+            <a className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#simulacion">
               Simulacion
-            </Link>
-            <Link className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#widget-preview">
+            </a>
+            <a className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#widget-preview">
               Widget demo
-            </Link>
-            <Link className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#implementation">
+            </a>
+            <a className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#implementation">
               Implementacion
-            </Link>
-            <Link className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#resources">
+            </a>
+            <a className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#resources">
               Recursos
-            </Link>
+            </a>
           </nav>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button asChild size="sm" variant="secondary">
-              <Link href="/app">Abrir app</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/oauth/tiendanube/install">Instalar</Link>
-            </Button>
+            <a
+              className="inline-flex h-9 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-4 text-xs font-medium uppercase tracking-[0.24em] text-slate-100 transition hover:border-cyan-300/30 hover:bg-slate-900/80"
+              href="/app"
+            >
+              Abrir app
+            </a>
+            <a
+              className="inline-flex h-9 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-4 text-xs font-medium uppercase tracking-[0.24em] text-slate-950 shadow-[0_0_60px_-24px_rgba(103,232,249,0.85)] transition hover:bg-cyan-200"
+              href="/oauth/tiendanube/install"
+            >
+              Instalar
+            </a>
           </div>
         </header>
 
@@ -140,18 +142,54 @@ export default function HomePage() {
               </p>
             </div>
 
-            <InstallForm />
+            <form
+              action="/oauth/tiendanube/install"
+              className="grid gap-3 rounded-[32px] border border-slate-900/10 bg-white/75 p-4 shadow-[0_30px_90px_-60px_rgba(15,23,42,0.45)] backdrop-blur-xl sm:grid-cols-[1fr_auto]"
+              method="GET"
+            >
+              <label className="grid gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
+                  URL de la tienda o dominio de TiendaNube
+                </span>
+                <input
+                  autoComplete="off"
+                  className="h-14 rounded-full border border-slate-900/10 bg-white px-5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-cyan-400/60 focus:ring-4 focus:ring-cyan-300/20"
+                  name="store_domain"
+                  placeholder="https://mitienda.tiendanube.com"
+                  type="text"
+                />
+                <span className="text-sm leading-6 text-slate-600">
+                  La simulacion ordena oportunidad, widget y dashboard real en un recorrido simple
+                  para merchants, sin meter pasos tecnicos innecesarios.
+                </span>
+              </label>
+
+              <div className="flex items-end">
+                <button
+                  className="inline-flex h-12 w-full items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-6 text-sm font-medium text-slate-950 shadow-[0_0_60px_-24px_rgba(103,232,249,0.85)] transition hover:bg-cyan-200 sm:w-auto"
+                  type="submit"
+                >
+                  Previsualizar potencial
+                </button>
+              </div>
+            </form>
 
             <div className="flex flex-wrap gap-3">
               <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-4 py-2 text-sm text-cyan-900">
                 Demo lista para modelar storefront, placement y algoritmo recomendado.
               </span>
-              <Button asChild variant="secondary">
-                <Link href="/app">Ver command center</Link>
-              </Button>
-              <Button asChild variant="secondary">
-                <Link href="#widget-preview">Ver widget</Link>
-              </Button>
+              <a
+                className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-5 text-sm font-medium text-slate-100 transition hover:border-cyan-300/30 hover:bg-slate-900/80"
+                href="/app"
+              >
+                Ver command center
+              </a>
+              <a
+                className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-5 text-sm font-medium text-slate-100 transition hover:border-cyan-300/30 hover:bg-slate-900/80"
+                href="#widget-preview"
+              >
+                Ver widget
+              </a>
             </div>
           </div>
 
@@ -310,12 +348,18 @@ export default function HomePage() {
                   />
                 </div>
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <Button asChild size="lg">
-                    <Link href="/oauth/tiendanube/install">Instalar la app</Link>
-                  </Button>
-                  <Button asChild size="lg" variant="secondary">
-                    <Link href="/app">Abrir command center</Link>
-                  </Button>
+                  <a
+                    className="inline-flex h-12 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-6 text-sm font-medium text-slate-950 shadow-[0_0_60px_-24px_rgba(103,232,249,0.85)] transition hover:bg-cyan-200"
+                    href="/oauth/tiendanube/install"
+                  >
+                    Instalar la app
+                  </a>
+                  <a
+                    className="inline-flex h-12 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-6 text-sm font-medium text-slate-100 transition hover:border-cyan-300/30 hover:bg-slate-900/80"
+                    href="/app"
+                  >
+                    Abrir command center
+                  </a>
                 </div>
               </div>
             </div>
@@ -398,12 +442,12 @@ export default function HomePage() {
                 </div>
                 <div className="mt-4 rounded-[26px] border border-white/8 bg-linear-to-b from-slate-900 via-slate-900 to-slate-950 p-6">
                   <div className="flex min-h-72 items-center justify-center rounded-[24px] border border-white/8 bg-radial from-slate-700/70 via-slate-900 to-slate-950 p-6">
-                    <Image
+                    <img
                       alt="Vortex preview"
                       className="h-44 w-44 rounded-[28px] shadow-[0_30px_90px_-40px_rgba(14,165,233,0.6)]"
-                      height={176}
+                      height="176"
                       src="/icon.png"
-                      width={176}
+                      width="176"
                     />
                   </div>
                   <div className="mt-5 flex items-end justify-between gap-4">
@@ -414,7 +458,9 @@ export default function HomePage() {
                         {product.price}
                       </p>
                     </div>
-                    <Button size="sm">Quick Add</Button>
+                    <span className="inline-flex h-9 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-4 text-xs font-medium uppercase tracking-[0.24em] text-slate-950">
+                      Quick Add
+                    </span>
                   </div>
                 </div>
               </article>
@@ -444,9 +490,12 @@ export default function HomePage() {
                   <h3 className="text-xl font-semibold tracking-[-0.04em] text-slate-950">{item.label}</h3>
                   <p className="mt-3 text-sm leading-6 text-slate-600">{item.copy}</p>
                   <div className="mt-5">
-                    <Button asChild variant="secondary">
-                      <Link href={item.href}>{item.label}</Link>
-                    </Button>
+                    <a
+                      className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-5 text-sm font-medium text-slate-100 transition hover:border-cyan-300/30 hover:bg-slate-900/80"
+                      href={item.href}
+                    >
+                      {item.label}
+                    </a>
                   </div>
                 </article>
               ))}
@@ -483,12 +532,18 @@ export default function HomePage() {
             </div>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <Button asChild variant="secondary">
-                <Link href="/build-state.json">Ver build state</Link>
-              </Button>
-              <Button asChild variant="secondary">
-                <Link href="/api/health">Ver api health</Link>
-              </Button>
+              <a
+                className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-5 text-sm font-medium text-slate-100 transition hover:border-cyan-300/30 hover:bg-slate-900/80"
+                href="/build-state.json"
+              >
+                Ver build state
+              </a>
+              <a
+                className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-5 text-sm font-medium text-slate-100 transition hover:border-cyan-300/30 hover:bg-slate-900/80"
+                href="/api/health"
+              >
+                Ver api health
+              </a>
             </div>
           </aside>
         </section>
@@ -497,7 +552,7 @@ export default function HomePage() {
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="overflow-hidden rounded-[18px] border border-slate-900/10">
-                <Image alt="Vortex Engine" height={40} src="/icon.png" width={40} />
+                <img alt="Vortex Engine" className="block h-10 w-10" height="40" src="/icon.png" width="40" />
               </div>
               <div>
                 <p className="text-lg font-semibold tracking-[-0.03em] text-slate-950">Vortex Engine</p>
@@ -513,15 +568,15 @@ export default function HomePage() {
           </div>
 
           <div className="flex flex-wrap gap-3 text-sm text-slate-600">
-            <Link className="rounded-full border border-slate-900/10 px-4 py-2 hover:bg-slate-950/5" href="/privacy">
+            <a className="rounded-full border border-slate-900/10 px-4 py-2 hover:bg-slate-950/5" href="/privacy">
               Privacidad
-            </Link>
-            <Link className="rounded-full border border-slate-900/10 px-4 py-2 hover:bg-slate-950/5" href="/support">
+            </a>
+            <a className="rounded-full border border-slate-900/10 px-4 py-2 hover:bg-slate-950/5" href="/support">
               Soporte
-            </Link>
-            <Link className="rounded-full border border-slate-900/10 px-4 py-2 hover:bg-slate-950/5" href="/app">
+            </a>
+            <a className="rounded-full border border-slate-900/10 px-4 py-2 hover:bg-slate-950/5" href="/app">
               Dashboard
-            </Link>
+            </a>
           </div>
         </footer>
       </div>
@@ -626,7 +681,7 @@ function DashboardPreviewCard() {
           <div className="mt-5 grid gap-5 md:grid-cols-[0.95fr_1.05fr]">
             <div className="rounded-[22px] border border-white/8 bg-white/6 p-4">
               <div className="flex h-72 items-center justify-center rounded-[20px] bg-linear-to-b from-slate-300 to-slate-100">
-                <Image alt="Preview Vortex" className="h-40 w-40 rounded-[26px]" height={160} src="/icon.png" width={160} />
+                <img alt="Preview Vortex" className="h-40 w-40 rounded-[26px]" height="160" src="/icon.png" width="160" />
               </div>
             </div>
             <div className="space-y-4">
@@ -643,7 +698,9 @@ function DashboardPreviewCard() {
                 <p className="text-sm text-slate-300">Quick Add contextual + analytics del mismo flujo.</p>
                 <div className="mt-4 flex items-center justify-between">
                   <p className="text-2xl font-semibold tracking-[-0.04em] text-cyan-300">$52.900,00</p>
-                  <Button size="sm">Quick Add</Button>
+                  <span className="inline-flex h-9 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-4 text-xs font-medium uppercase tracking-[0.24em] text-slate-950">
+                    Quick Add
+                  </span>
                 </div>
               </div>
             </div>
