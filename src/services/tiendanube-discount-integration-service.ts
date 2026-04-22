@@ -10,6 +10,19 @@ import type {
 import type { StoreRecord } from "@/services/store-service";
 import { setStoreDiscountPromotionId } from "@/services/store-service";
 
+declare global {
+  // eslint-disable-next-line no-var
+  var __vortexDiscountIntegrationCache__:
+    | Map<
+        string,
+        {
+          promotionId: string | null;
+          status: string;
+        }
+      >
+    | undefined;
+}
+
 type TiendaNubeStoreCredentials = {
   accessToken: string;
   storeId: string;
@@ -20,6 +33,35 @@ const buildClient = (credentials: TiendaNubeStoreCredentials): TiendaNubeClient 
     accessToken: credentials.accessToken,
     storeId: credentials.storeId,
   });
+};
+
+const getDiscountIntegrationCache = (): Map<
+  string,
+  {
+    promotionId: string | null;
+    status: string;
+  }
+> => {
+  if (!globalThis.__vortexDiscountIntegrationCache__) {
+    globalThis.__vortexDiscountIntegrationCache__ = new Map();
+  }
+
+  return globalThis.__vortexDiscountIntegrationCache__;
+};
+
+export const primeStoreDiscountIntegrationCache = (input: {
+  promotionId: string | null;
+  status: string;
+  storeId: string;
+}): void => {
+  getDiscountIntegrationCache().set(input.storeId, {
+    promotionId: input.promotionId,
+    status: input.status,
+  });
+};
+
+export const getCachedStoreDiscountIntegration = (storeId: string) => {
+  return getDiscountIntegrationCache().get(storeId) ?? null;
 };
 
 const isPromotionActive = (promotion: TiendaNubePromotion): boolean => {
@@ -130,6 +172,12 @@ export const ensureStoreDiscountIntegration = async (
   const shouldSyncRemote = options?.syncRemote ?? false;
 
   if (store.discountPromotionId && !shouldSyncRemote) {
+    primeStoreDiscountIntegrationCache({
+      promotionId: store.discountPromotionId,
+      status: String(store.status),
+      storeId: store.tiendanubeId,
+    });
+
     return {
       callbackUrl,
       promotionId: store.discountPromotionId,
@@ -148,6 +196,12 @@ export const ensureStoreDiscountIntegration = async (
     );
 
     if (existingPromotion) {
+      primeStoreDiscountIntegrationCache({
+        promotionId: store.discountPromotionId,
+        status: String(store.status),
+        storeId: store.tiendanubeId,
+      });
+
       return {
         callbackUrl,
         promotionId: store.discountPromotionId,
@@ -155,11 +209,21 @@ export const ensureStoreDiscountIntegration = async (
     }
 
     await setStoreDiscountPromotionId(store.tiendanubeId, null);
+    primeStoreDiscountIntegrationCache({
+      promotionId: null,
+      status: String(store.status),
+      storeId: store.tiendanubeId,
+    });
   }
 
   const promotion = await createStorePromotionWithFallback(credentials, store.tiendanubeId);
 
   await setStoreDiscountPromotionId(store.tiendanubeId, String(promotion.id));
+  primeStoreDiscountIntegrationCache({
+    promotionId: String(promotion.id),
+    status: String(store.status),
+    storeId: store.tiendanubeId,
+  });
 
   return {
     callbackUrl,

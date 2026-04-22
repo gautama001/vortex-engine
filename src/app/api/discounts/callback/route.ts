@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { StoreStatus } from "@prisma/client";
 
 import { logger } from "@/lib/logger";
 import {
@@ -6,6 +7,7 @@ import {
   type TiendaNubeDiscountCommand,
 } from "@/lib/tiendanube/types";
 import { getStoreByTiendaNubeId } from "@/services/store-service";
+import { getCachedStoreDiscountIntegration } from "@/services/tiendanube-discount-integration-service";
 import { listActiveOfferSessionsByStore } from "@/services/vortex-discount-service";
 
 export const runtime = "nodejs";
@@ -52,6 +54,7 @@ export async function POST(request: NextRequest) {
     : Array.isArray(payload.line_items)
       ? payload.line_items
       : [];
+  const cachedIntegration = storeId ? getCachedStoreDiscountIntegration(storeId) : null;
 
   if (executionTier !== "line_item") {
     logger.info("Ignoring TiendaNube discount callback for unsupported tier", {
@@ -71,9 +74,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const store = await getStoreByTiendaNubeId(storeId);
+  const activeSessionsPromise = listActiveOfferSessionsByStore(storeId);
+  const store =
+    cachedIntegration?.promotionId && cachedIntegration.status !== StoreStatus.UNINSTALLED
+      ? null
+      : await getStoreByTiendaNubeId(storeId);
 
-  if (!store) {
+  if (!cachedIntegration?.promotionId && !store) {
     return NextResponse.json(
       {
         error: "store_not_found",
@@ -82,7 +89,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (store.status === "UNINSTALLED") {
+  if (
+    cachedIntegration?.status === StoreStatus.UNINSTALLED ||
+    store?.status === StoreStatus.UNINSTALLED
+  ) {
     return NextResponse.json(
       {
         error: "store_uninstalled",
@@ -91,7 +101,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!store.discountPromotionId) {
+  const promotionId = cachedIntegration?.promotionId ?? store?.discountPromotionId ?? null;
+
+  if (!promotionId) {
     logger.info("Ignoring TiendaNube discount callback without persisted promotion id", {
       durationMs: Date.now() - startedAt,
       executionTier,
@@ -100,10 +112,10 @@ export async function POST(request: NextRequest) {
     return new NextResponse(null, { status: 204 });
   }
 
-  const activeSessions = await listActiveOfferSessionsByStore(storeId);
+  const activeSessions = await activeSessionsPromise;
   const commands: TiendaNubeDiscountCommand[] = [];
   const promotionIsActive = payload.promotions?.some(
-    (promotion) => String(promotion.id) === store.discountPromotionId,
+    (promotion) => String(promotion.id) === promotionId,
   );
 
   for (const session of activeSessions) {
@@ -122,7 +134,7 @@ export async function POST(request: NextRequest) {
             line_items: rewardItems
               .map((item) => String(item.id ?? ""))
               .filter(Boolean),
-            promotion_id: store.discountPromotionId,
+            promotion_id: promotionId,
             scope: "line_item",
           },
         });
@@ -169,7 +181,7 @@ export async function POST(request: NextRequest) {
           currency: payload.currency,
           display_text: buildDisplayText(storeId),
           line_items: lineItems,
-          promotion_id: store.discountPromotionId,
+          promotion_id: promotionId,
         },
       });
     }
