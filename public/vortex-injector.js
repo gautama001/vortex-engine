@@ -35,6 +35,17 @@
   var activeToastTimer = null;
   var lastBootSignature = "";
   var lastBootAt = 0;
+  var lifecycleListenersBound = false;
+  var relevantSurfaceSelectors = [
+    '[data-store]',
+    '[data-component="cart"]',
+    '[data-modal-id="modal-cart"]',
+    '[data-modal="modal-cart"]',
+    '[data-store^="cart-item-"]',
+    '[data-store="cart-total"]',
+    '[data-store="product-detail"]',
+    '[data-store^="product-form-"]'
+  ];
 
   function getStoreId() {
     return (
@@ -546,6 +557,22 @@
       default:
         return "Best sellers fallback";
     }
+  }
+
+  function touchesRelevantSurface(node) {
+    if (!node || node.nodeType !== 1 || isVortexManagedNode(node)) {
+      return false;
+    }
+
+    var element = node;
+
+    return relevantSurfaceSelectors.some(function (selector) {
+      return (
+        (element.matches && element.matches(selector)) ||
+        (element.closest && element.closest(selector)) ||
+        (element.querySelector && element.querySelector(selector))
+      );
+    });
   }
 
   function normalizeInlineText(value) {
@@ -1739,6 +1766,34 @@
     bootTimer = window.setTimeout(boot, typeof delay === "number" ? delay : 140);
   }
 
+  function bindLifecycleListeners() {
+    if (lifecycleListenersBound) {
+      return;
+    }
+
+    lifecycleListenersBound = true;
+
+    window.addEventListener("pageshow", function () {
+      scheduleBoot(80);
+    });
+
+    window.addEventListener("popstate", function () {
+      scheduleBoot(80);
+    });
+
+    if (window.LS && window.LS.cart && typeof window.LS.cart.addItem === "function") {
+      var nativeAddItem = window.LS.cart.addItem;
+
+      window.LS.cart.addItem = function () {
+        var result = nativeAddItem.apply(this, arguments);
+
+        scheduleBoot(220);
+
+        return result;
+      };
+    }
+  }
+
   function setupObservers() {
     if (observer || !document.body) {
       return;
@@ -1751,23 +1806,27 @@
         }
 
         if (mutation.type === "attributes") {
-          return mutation.attributeName === "data-store";
+          return mutation.attributeName === "data-store" && touchesRelevantSurface(mutation.target);
         }
 
         var hasExternalAddedNodes = Array.prototype.some.call(
           mutation.addedNodes || [],
           function (node) {
-            return !isVortexManagedNode(node);
+            return touchesRelevantSurface(node);
           }
         );
         var hasExternalRemovedNodes = Array.prototype.some.call(
           mutation.removedNodes || [],
           function (node) {
-            return !isVortexManagedNode(node);
+            return touchesRelevantSurface(node);
           }
         );
 
-        return hasExternalAddedNodes || hasExternalRemovedNodes;
+        return (
+          touchesRelevantSurface(mutation.target) ||
+          hasExternalAddedNodes ||
+          hasExternalRemovedNodes
+        );
       });
 
       if (shouldReboot) {
@@ -1781,22 +1840,13 @@
       childList: true,
       subtree: true,
     });
-
-    ["click", "touchstart", "keyup"].forEach(function (eventName) {
-      document.addEventListener(eventName, function (event) {
-        if (isVortexManagedNode(event.target)) {
-          return;
-        }
-
-        scheduleBoot(280);
-      });
-    });
   }
 
   if (document.readyState === "loading") {
     document.addEventListener(
       "DOMContentLoaded",
       function () {
+        bindLifecycleListeners();
         setupObservers();
         scheduleBoot(0);
       },
@@ -1805,6 +1855,7 @@
     return;
   }
 
+  bindLifecycleListeners();
   setupObservers();
   scheduleBoot(0);
 })();

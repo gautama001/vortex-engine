@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { buildStorefrontCorsHeaders } from "@/lib/cors";
 import { getTiendaNubeConfig } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { buildRecommendationDiscountProof } from "@/lib/security";
@@ -7,17 +8,16 @@ import { getRecommendations } from "@/services/recommendation-service";
 
 export const runtime = "nodejs";
 
-const defaultHeaders = {
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Origin": "*",
-  "Cache-Control": "s-maxage=60, stale-while-revalidate=300",
-  "Content-Type": "application/json; charset=utf-8",
-};
+const buildHeaders = (request: Request) =>
+  buildStorefrontCorsHeaders(request, {
+    allowMethods: "GET, OPTIONS",
+    cacheControl: "s-maxage=60, stale-while-revalidate=300",
+    contentType: "application/json; charset=utf-8",
+  });
 
-export function OPTIONS() {
+export function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
-    headers: defaultHeaders,
+    headers: buildHeaders(request),
     status: 204,
   });
 }
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         message: "store_id is required",
       },
       {
-        headers: defaultHeaders,
+        headers: buildHeaders(request),
         status: 400,
       },
     );
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
         message: "product_id must be numeric",
       },
       {
-        headers: defaultHeaders,
+        headers: buildHeaders(request),
         status: 400,
       },
     );
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
         widget: result.widget,
       },
       {
-        headers: defaultHeaders,
+        headers: buildHeaders(request),
         status: 200,
       },
     );
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
         message: "Unable to resolve recommendations for this store",
       },
       {
-        headers: defaultHeaders,
+        headers: buildHeaders(request),
         status: 500,
       },
     );

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { buildStorefrontCorsHeaders } from "@/lib/cors";
 import { getTiendaNubeConfig } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { verifyRecommendationDiscountProof } from "@/lib/security";
@@ -16,13 +17,12 @@ import {
 
 export const runtime = "nodejs";
 
-const defaultHeaders = {
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Access-Control-Allow-Methods": "OPTIONS, POST",
-  "Access-Control-Allow-Origin": "*",
-  "Cache-Control": "no-store",
-  "Content-Type": "application/json; charset=utf-8",
-};
+const buildHeaders = (request: Request) =>
+  buildStorefrontCorsHeaders(request, {
+    allowMethods: "OPTIONS, POST",
+    cacheControl: "no-store",
+    contentType: "application/json; charset=utf-8",
+  });
 
 const ALLOWED_DISCOUNT_VALUES = new Set([10, 20, 30, 40, 50]);
 
@@ -120,9 +120,9 @@ const recoverRecommendationDiscountProof = async (input: {
   };
 };
 
-export function OPTIONS() {
+export function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
-    headers: defaultHeaders,
+    headers: buildHeaders(request),
     status: 204,
   });
 }
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
         message: "No pudimos interpretar la solicitud de descuento.",
       },
       {
-        headers: defaultHeaders,
+        headers: buildHeaders(request),
         status: 400,
       },
     );
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
         message: "Faltan datos para preparar el descuento real.",
       },
       {
-        headers: defaultHeaders,
+        headers: buildHeaders(request),
         status: 400,
       },
     );
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
         message: "El descuento solicitado no es valido para Vortex.",
       },
       {
-        headers: defaultHeaders,
+        headers: buildHeaders(request),
         status: 400,
       },
     );
@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
           message: "La firma del descuento no es valida o ya expiro.",
         },
         {
-          headers: defaultHeaders,
+          headers: buildHeaders(request),
           status: 401,
         },
       );
@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
           message: "La tienda del descuento no coincide con la sesion actual.",
         },
         {
-          headers: defaultHeaders,
+          headers: buildHeaders(request),
           status: 401,
         },
       );
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
           message: "El trigger del descuento no coincide con el producto semilla.",
         },
         {
-          headers: defaultHeaders,
+          headers: buildHeaders(request),
           status: 401,
         },
       );
@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
           message: "El reward solicitado no forma parte del set firmado por Vortex.",
         },
         {
-          headers: defaultHeaders,
+          headers: buildHeaders(request),
           status: 401,
         },
       );
@@ -261,7 +261,7 @@ export async function POST(request: NextRequest) {
           status: "skipped",
         },
         {
-          headers: defaultHeaders,
+          headers: buildHeaders(request),
           status: 200,
         },
       );
@@ -337,7 +337,7 @@ export async function POST(request: NextRequest) {
         status: "ok",
       },
       {
-        headers: defaultHeaders,
+        headers: buildHeaders(request),
         status: 200,
       },
     );
@@ -357,7 +357,7 @@ export async function POST(request: NextRequest) {
         message: "No pudimos preparar el descuento real para esta recomendacion.",
       },
       {
-        headers: defaultHeaders,
+        headers: buildHeaders(request),
         status: 500,
       },
     );

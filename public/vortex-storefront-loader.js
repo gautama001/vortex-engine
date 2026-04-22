@@ -6,14 +6,28 @@
   }
 
   window.__VORTEX_STOREFRONT_LOADER_BOOTSTRAPPED__ = true;
-  window.__VORTEX_API_ORIGIN__ = "https://vortexai.com.ar";
 
   var currentScript =
     document.currentScript ||
     document.querySelector('script[src*="vortex-storefront-loader.js"]');
 
+  var resolvedApiOrigin = window.__VORTEX_API_ORIGIN__ || "";
+
+  if (!resolvedApiOrigin && currentScript) {
+    try {
+      resolvedApiOrigin = new URL(currentScript.src, window.location.href).origin;
+    } catch (_error) {
+      resolvedApiOrigin = "";
+    }
+  }
+
+  if (!resolvedApiOrigin) {
+    resolvedApiOrigin = window.location.origin;
+  }
+
   var loaderParams = new URLSearchParams();
-  loaderParams.set("api_origin", window.__VORTEX_API_ORIGIN__);
+  window.__VORTEX_API_ORIGIN__ = resolvedApiOrigin;
+  loaderParams.set("api_origin", resolvedApiOrigin);
 
   if (currentScript) {
     try {
@@ -33,8 +47,7 @@
 
   var injector = document.createElement("script");
   injector.async = true;
-  injector.src =
-    window.__VORTEX_API_ORIGIN__ + "/vortex-injector.js?" + loaderParams.toString();
+  injector.src = resolvedApiOrigin + "/vortex-injector.js?" + loaderParams.toString();
 
   var target = document.head || document.body || document.documentElement;
 
