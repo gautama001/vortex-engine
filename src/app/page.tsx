@@ -1,258 +1,206 @@
 import Link from "next/link";
+import Image from "next/image";
+import { unstable_noStore as noStore } from "next/cache";
 
-import { InstallForm } from "@/components/install-form";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { hasCoreEnvironment } from "@/lib/env";
 import { BUILD_TIMESTAMP, RELEASE_MARKER } from "@/lib/release";
-import { unstable_noStore as noStore } from "next/cache";
+import { LandingExperience } from "@/components/landing/landing-experience";
 
 export const dynamic = "force-dynamic";
 
-const proofPoints = [
-  { label: "Revenue lift", value: "+14.7%" },
-  { label: "AOV boost", value: "+10.5%" },
-  { label: "Setup", value: "Simple" },
-];
-
-const steps = [
+const resourceLinks = [
   {
-    step: "01",
-    copy: "Pegas la URL de la tienda y Vortex la convierte en una demo útil en segundos.",
-    title: "Detectar",
+    copy: "Flujo de instalacion, command center y activacion storefront.",
+    href: "/app",
+    label: "Abrir app",
   },
   {
-    step: "02",
-    copy: "La landing muestra dónde conviene entrar, qué algoritmo usar y cuánto lift puede capturar.",
-    title: "Simular",
+    copy: "Instalacion guiada para conectar Vortex con TiendaNube.",
+    href: "/oauth/tiendanube/install",
+    label: "Instalar Vortex",
   },
   {
-    step: "03",
-    copy: "El merchant sigue directo al dashboard y al install flow sin ruido técnico.",
-    title: "Instalar",
+    copy: "Centro de ayuda para merchants y operacion diaria.",
+    href: "/support",
+    label: "Soporte",
   },
-];
-
-const storefrontBullets = [
-  "Widget visible en PDP o carrito.",
-  "Quick add con recomendaciones contextualizadas.",
-  "Fallback seguro si todavía falta data histórica.",
+  {
+    copy: "Politicas de privacidad y tratamiento de datos.",
+    href: "/privacy",
+    label: "Privacidad",
+  },
 ];
 
 export default function HomePage() {
   noStore();
   const environmentReady = hasCoreEnvironment();
+  const formattedBuildDate = new Intl.DateTimeFormat("es-AR", {
+    dateStyle: "short",
+    timeStyle: "medium",
+  }).format(new Date(BUILD_TIMESTAMP));
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
-      <div
-        className="pointer-events-none fixed inset-0 -z-10"
-        style={{
-          background:
-            "radial-gradient(circle at 18% 18%, rgba(103,232,249,0.18), transparent 24%), radial-gradient(circle at 84% 16%, rgba(59,130,246,0.15), transparent 28%), radial-gradient(circle at 50% 100%, rgba(14,165,233,0.08), transparent 30%), linear-gradient(180deg, #f4efe5 0%, #efe7d6 45%, #f7f4ec 100%)",
-        }}
-      />
+    <main className="relative isolate min-h-screen overflow-hidden bg-[#f5efe3] text-slate-950">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_18%,rgba(103,232,249,0.16),transparent_24%),radial-gradient(circle_at_84%_16%,rgba(59,130,246,0.14),transparent_25%),radial-gradient(circle_at_50%_100%,rgba(14,165,233,0.08),transparent_30%),linear-gradient(180deg,#f6f2e8_0%,#efe7d8_42%,#f8f5ee_100%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-linear-to-b from-white/45 to-transparent" />
 
-      <header className="flex flex-wrap items-center justify-between gap-4 rounded-full border border-slate-900/10 bg-white/65 px-4 py-3 shadow-[0_24px_70px_-50px_rgba(15,23,42,0.45)] backdrop-blur-xl">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-cyan-300">
-            <span className="text-lg font-semibold">V</span>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-950">Vortex Engine</p>
-            <p className="text-xs text-slate-600">Preview liviana para TiendaNube</p>
-          </div>
-        </div>
-
-        <nav className="hidden items-center gap-1 text-sm text-slate-600 md:flex">
-          <Link className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#simulacion">
-            Simulacion
-          </Link>
-          <Link className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#widget">
-            Widget demo
-          </Link>
-          <Link className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#implementacion">
-            Implementacion
-          </Link>
-        </nav>
-
-        <Button asChild size="sm" variant="secondary">
-          <Link href="/app">Abrir app</Link>
-        </Button>
-      </header>
-
-      <section className="grid gap-6 py-8 lg:grid-cols-[1.08fr_0.92fr] lg:py-10">
-        <div className="flex flex-col gap-6">
-          <div className="space-y-5">
-            <Badge tone={environmentReady ? "success" : "danger"}>
-              {environmentReady ? "Runtime listo" : "Config pendiente"}
-            </Badge>
-            <div className="space-y-2 text-xs uppercase tracking-[0.22em] text-slate-500">
-              <p>Release {RELEASE_MARKER}</p>
-              <p>
-                Build {new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(BUILD_TIMESTAMP))}
-              </p>
-              <div className="flex flex-wrap gap-2 normal-case tracking-normal text-slate-600">
-                <Link className="underline decoration-slate-400/50 underline-offset-4" href="/build-state.json">
-                  /build-state.json
-                </Link>
-                <Link className="underline decoration-slate-400/50 underline-offset-4" href="/api/health">
-                  /api/health
-                </Link>
-              </div>
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-5 pb-10 pt-5 sm:px-8 lg:px-10">
+        <header className="sticky top-4 z-30 flex flex-wrap items-center justify-between gap-4 rounded-full border border-slate-900/10 bg-white/70 px-4 py-3 shadow-[0_24px_70px_-50px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+          <div className="flex items-center gap-3">
+            <div className="overflow-hidden rounded-[20px] border border-slate-900/10 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)]">
+              <Image alt="Vortex Engine" height={48} src="/icon.png" width={48} />
             </div>
-            <div className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-slate-600">
-                Vortex para TiendaNube
-              </p>
-              <h1 className="max-w-3xl text-5xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-6xl lg:text-7xl">
-                Recomendaciones que convierten sin pedirle al merchant que piense como developer.
-              </h1>
-              <p className="max-w-2xl text-lg leading-8 text-slate-700">
-                Una landing simple, una demo clara y una install que lleva directo a impacto
-                comercial. Menos explicación técnica, más ventas visibles.
-              </p>
+            <div>
+              <p className="text-base font-semibold tracking-[-0.03em] text-slate-950">Vortex Engine</p>
+              <p className="text-sm text-slate-600">Preview liviana para TiendaNube</p>
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            {proofPoints.map((item) => (
-              <Card className="border-slate-950/10 bg-white/75" key={item.label}>
-                <CardContent className="space-y-2 p-4">
-                  <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{item.label}</p>
-                  <p className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">
-                    {item.value}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <InstallForm />
-
-          <div className="flex flex-wrap gap-2 text-sm text-slate-600">
-            <span className="rounded-full border border-slate-900/10 bg-white/70 px-4 py-2 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)]">
-              Simulacion comercial
-            </span>
-            <span className="rounded-full border border-slate-900/10 bg-white/70 px-4 py-2 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)]">
-              Widget listo
-            </span>
-            <span className="rounded-full border border-slate-900/10 bg-white/70 px-4 py-2 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)]">
-              Dashboard real
-            </span>
-          </div>
-        </div>
-
-        <div className="grid gap-6">
-          <Card className="overflow-hidden border-slate-950/10 bg-slate-950 text-white shadow-[0_30px_120px_-60px_rgba(15,23,42,0.9)]">
-            <CardHeader className="space-y-4 p-6">
-              <div className="flex items-center justify-between gap-4">
-                <Badge tone="info">Simulacion</Badge>
-                <span className="text-xs uppercase tracking-[0.28em] text-cyan-200/70">
-                  Demo lista
-                </span>
-              </div>
-              <CardTitle className="max-w-md text-3xl tracking-[-0.05em] text-white">
-                Mostramos oportunidad, widget y camino a instalar Vortex.
-              </CardTitle>
-              <CardDescription className="max-w-xl text-slate-300">
-                El merchant entiende el valor sin leer arquitectura ni tocar un setup pesado.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 pb-6 sm:grid-cols-3">
-              {proofPoints.map((metric) => (
-                <div className="rounded-3xl border border-white/10 bg-white/5 p-4" key={metric.label}>
-                  <p className="text-xs uppercase tracking-[0.24em] text-cyan-100/60">
-                    {metric.label}
-                  </p>
-                  <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-cyan-200">
-                    {metric.value}
-                  </p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="border-slate-950/10 bg-white/82" id="widget">
-              <CardHeader>
-                <Badge>Widget demo</Badge>
-                <CardTitle className="text-2xl tracking-[-0.04em] text-slate-950">
-                  Quick add con contexto.
-                </CardTitle>
-                <CardDescription className="text-slate-600">
-                  El widget aparece donde importa y deja la compra a un paso.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {storefrontBullets.map((line) => (
-                  <div
-                    className="rounded-2xl border border-slate-900/8 bg-slate-950/[0.03] p-4 text-sm text-slate-700"
-                    key={line}
-                  >
-                    {line}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card className="border-slate-950/10 bg-white/82" id="simulacion">
-              <CardHeader>
-                <Badge>Implementacion</Badge>
-                <CardTitle className="text-2xl tracking-[-0.04em] text-slate-950">
-                  Instalacion guiada, sin friccion.
-                </CardTitle>
-                <CardDescription className="text-slate-600">
-                  El merchant pasa de la preview al dashboard y al storefront en un flujo corto.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {steps.map((step) => (
-                  <div className="flex gap-4" key={step.title}>
-                    <div className="min-w-10 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">
-                      {step.step}
-                    </div>
-                    <div className="space-y-1">
-                      <p className="font-semibold text-slate-950">{step.title}</p>
-                      <p className="text-sm leading-6 text-slate-600">{step.copy}</p>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      <section
-        className="mb-8 grid gap-4 rounded-[32px] border border-slate-900/10 bg-white/70 p-5 shadow-[0_24px_80px_-60px_rgba(15,23,42,0.4)] backdrop-blur-xl sm:grid-cols-[1.2fr_0.8fr]"
-        id="implementacion"
-      >
-        <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-700">
-            Storefront y dashboard
-          </p>
-          <h2 className="text-2xl font-semibold tracking-[-0.04em] text-slate-950">
-            Un index que vende la historia completa, no solo el producto.
-          </h2>
-          <p className="max-w-2xl text-sm leading-6 text-slate-600">
-            La landing abre con valor comercial, sigue con la simulacion y termina en una CTA que
-            ya no parece tecnica.
-          </p>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Button asChild size="lg">
-            <Link href="/app">Ver command center</Link>
-          </Button>
-          <Button asChild size="lg" variant="ghost">
-            <Link href="https://tiendanube.github.io/api-documentation/v1/resources/discounts">
-              Ver docs de descuentos
+          <nav className="hidden items-center gap-1 text-sm text-slate-600 md:flex">
+            <Link className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#preview">
+              Simulacion
             </Link>
-          </Button>
-        </div>
-      </section>
+            <Link className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#widget-preview">
+              Widget demo
+            </Link>
+            <Link className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#implementation">
+              Implementacion
+            </Link>
+            <Link className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#resources">
+              Recursos
+            </Link>
+          </nav>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild size="sm" variant="secondary">
+              <Link href="/app">Abrir app</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/oauth/tiendanube/install">Instalar</Link>
+            </Button>
+          </div>
+        </header>
+
+        <LandingExperience />
+
+        <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_0.75fr]" id="resources">
+          <div className="rounded-[34px] border border-slate-900/10 bg-white/78 p-6 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
+              Recursos
+            </p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+              Botones claros para todo lo que Vortex ofrece hoy.
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+              Documentacion, soporte, instalacion y acceso al command center dentro del mismo index,
+              sin dejar links tecnicos sueltos ni obligar al merchant a adivinar el siguiente paso.
+            </p>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {resourceLinks.map((item) => (
+                <article
+                  className="rounded-[28px] border border-slate-900/10 bg-white p-5 shadow-[0_24px_60px_-50px_rgba(15,23,42,0.35)]"
+                  key={item.label}
+                >
+                  <h3 className="text-xl font-semibold tracking-[-0.04em] text-slate-950">{item.label}</h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">{item.copy}</p>
+                  <div className="mt-5">
+                    <Button asChild variant="secondary">
+                      <Link href={item.href}>{item.label}</Link>
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <aside className="rounded-[34px] border border-cyan-300/15 bg-slate-950 p-6 text-white shadow-[0_30px_100px_-55px_rgba(15,23,42,0.95)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-300">
+              Estado y confianza
+            </p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-[-0.05em]">
+              La capa operativa queda visible, pero no invade la venta.
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              Separar recursos tecnicos del discurso comercial hace que el index sea mas util para
+              homologacion, soporte y seguimiento de despliegues.
+            </p>
+
+            <div className="mt-6 grid gap-3">
+              <RuntimeTile
+                description={environmentReady ? "La base del runtime esta lista para servir la app." : "Faltan variables base o algun paso de runtime por completar."}
+                label="Runtime"
+                value={environmentReady ? "Listo" : "Pendiente"}
+              />
+              <RuntimeTile
+                description={`Build generado ${formattedBuildDate}.`}
+                label="Release"
+                value={RELEASE_MARKER}
+              />
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <Button asChild variant="secondary">
+                <Link href="/build-state.json">Ver build state</Link>
+              </Button>
+              <Button asChild variant="secondary">
+                <Link href="/api/health">Ver api health</Link>
+              </Button>
+            </div>
+          </aside>
+        </section>
+
+        <footer className="mt-8 grid gap-5 rounded-[34px] border border-slate-900/10 bg-white/72 px-6 py-8 shadow-[0_24px_80px_-60px_rgba(15,23,42,0.35)] backdrop-blur-xl md:grid-cols-[1fr_auto] md:items-end">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="overflow-hidden rounded-[18px] border border-slate-900/10">
+                <Image alt="Vortex Engine" height={40} src="/icon.png" width={40} />
+              </div>
+              <div>
+                <p className="text-lg font-semibold tracking-[-0.03em] text-slate-950">Vortex Engine</p>
+                <p className="text-sm text-slate-600">
+                  IA + merchandising + revenue layer para TiendaNube.
+                </p>
+              </div>
+            </div>
+            <p className="max-w-2xl text-sm leading-6 text-slate-600">
+              Previsualiza potencial, activa widgets, conecta descuentos reales y opera el
+              storefront desde un command center pensado para merchants.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3 text-sm text-slate-600">
+            <Link className="rounded-full border border-slate-900/10 px-4 py-2 hover:bg-slate-950/5" href="/privacy">
+              Privacidad
+            </Link>
+            <Link className="rounded-full border border-slate-900/10 px-4 py-2 hover:bg-slate-950/5" href="/support">
+              Soporte
+            </Link>
+            <Link className="rounded-full border border-slate-900/10 px-4 py-2 hover:bg-slate-950/5" href="/app">
+              Dashboard
+            </Link>
+          </div>
+        </footer>
+      </div>
     </main>
+  );
+}
+
+function RuntimeTile({
+  description,
+  label,
+  value,
+}: {
+  description: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-[24px] border border-white/8 bg-white/6 p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">{label}</p>
+      <p className="mt-2 text-xl font-semibold tracking-[-0.04em] text-cyan-200">{value}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-300">{description}</p>
+    </div>
   );
 }
