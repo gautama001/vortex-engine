@@ -567,21 +567,60 @@
     return pill;
   }
 
+  function getLeafTextElements(root) {
+    if (!root || !root.querySelectorAll) {
+      return [];
+    }
+
+    return Array.prototype.filter.call(root.querySelectorAll("*"), function (node) {
+      return (
+        node &&
+        node.children &&
+        node.children.length === 0 &&
+        normalizeInlineText(node.textContent).length > 0
+      );
+    });
+  }
+
+  function findPromoLabelElement(root) {
+    var leafElements = getLeafTextElements(root);
+
+    for (var index = 0; index < leafElements.length; index += 1) {
+      var node = leafElements[index];
+
+      if (/^Promo Vortex\b/i.test(normalizeInlineText(node.textContent))) {
+        return node;
+      }
+    }
+
+    return null;
+  }
+
+  function findPromoRowElement(labelElement, drawerAnchor) {
+    var current = labelElement;
+
+    while (current && current !== drawerAnchor) {
+      if (findPromoAmountElement(current, labelElement)) {
+        return current;
+      }
+
+      current = current.parentElement;
+    }
+
+    return labelElement.parentElement || null;
+  }
+
   function findPromoAmountElement(row, labelElement) {
-    if (!row || !row.querySelectorAll) {
+    if (!row) {
       return null;
     }
 
-    var descendants = row.querySelectorAll("*");
+    var descendants = getLeafTextElements(row);
 
     for (var index = 0; index < descendants.length; index += 1) {
       var node = descendants[index];
 
       if (node === labelElement || node.contains(labelElement)) {
-        continue;
-      }
-
-      if (node.children && node.children.length > 0) {
         continue;
       }
 
@@ -593,61 +632,63 @@
     return null;
   }
 
+  function findCartDrawerAnchor() {
+    var selectors = [
+      '[data-modal-id="modal-cart"]',
+      '[data-modal="modal-cart"]',
+      '.js-fullscreen-modal[data-component="cart"]',
+      '.js-modal[data-component="cart"]',
+      '.js-modal-open[data-component="cart"]',
+    ];
+
+    for (var i = 0; i < selectors.length; i += 1) {
+      var element = document.querySelector(selectors[i]);
+
+      if (element && isVisibleElement(element)) {
+        return element;
+      }
+    }
+
+    return null;
+  }
+
   function enhanceCartPromotionRows() {
-    var cartAnchor = findCartAnchor();
+    var cartAnchor = findCartDrawerAnchor();
 
     if (!cartAnchor) {
       return;
     }
 
-    var descendants = cartAnchor.querySelectorAll("*");
+    var node = findPromoLabelElement(cartAnchor);
 
-    for (var index = 0; index < descendants.length; index += 1) {
-      var node = descendants[index];
+    if (!node || isVortexManagedNode(node)) {
+      return;
+    }
 
-      if (!node || !node.textContent || isVortexManagedNode(node)) {
-        continue;
-      }
+    if (node.dataset && node.dataset.vortexPromoLabelEnhanced === "true") {
+      return;
+    }
 
-      if (node.dataset && node.dataset.vortexPromoLabelEnhanced === "true") {
-        continue;
-      }
+    var row = findPromoRowElement(node, cartAnchor);
 
-      if (node.children && node.children.length > 0) {
-        continue;
-      }
+    if (!row) {
+      return;
+    }
 
-      var text = normalizeInlineText(node.textContent);
+    node.classList.add("vortex-cart-promo-label");
+    node.textContent = "";
+    node.appendChild(createPromoPill("Promo Vortex"));
 
-      if (!/^Promo Vortex\b/i.test(text)) {
-        continue;
-      }
+    if (node.dataset) {
+      node.dataset.vortexPromoLabelEnhanced = "true";
+    }
 
-      var row = node.parentElement;
+    row.classList.add("vortex-cart-promo-line");
 
-      if (!row) {
-        continue;
-      }
+    var amountElement = findPromoAmountElement(row, node);
 
-      node.textContent = "Promo Vortex";
-      node.classList.add("vortex-cart-promo-label");
-
-      if (!node.querySelector(".vortex-cart-promo-pill")) {
-        node.textContent = "";
-        node.appendChild(createPromoPill("Promo Vortex"));
-      }
-
-      if (node.dataset) {
-        node.dataset.vortexPromoLabelEnhanced = "true";
-      }
-
-      row.classList.add("vortex-cart-promo-line");
-
-      var amountElement = findPromoAmountElement(row, node);
-
-      if (amountElement) {
-        amountElement.classList.add("vortex-cart-promo-amount");
-      }
+    if (amountElement) {
+      amountElement.classList.add("vortex-cart-promo-amount");
     }
   }
 
