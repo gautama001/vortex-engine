@@ -12,13 +12,31 @@ import { listActiveOfferSessionsByStore } from "@/services/vortex-discount-servi
 
 export const runtime = "nodejs";
 
-const buildDisplayText = (storeId: string): Record<string, string> => {
-  const label = `Vortex discounts for store ${storeId}`;
+const normalizeDiscountLocale = (language: string | null | undefined): string => {
+  const normalized = String(language ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (normalized.startsWith("pt")) {
+    return "pt-br";
+  }
+
+  if (normalized.startsWith("en")) {
+    return "en";
+  }
+
+  return "es-ar";
+};
+
+const buildDisplayText = (
+  language: string | null | undefined,
+  storeId: string,
+): Record<string, string> => {
+  const label = `Promo Vortex ${storeId}`;
+  const locale = normalizeDiscountLocale(language);
 
   return {
-    en: label,
-    es: label,
-    "es-ar": label,
+    [locale]: label,
   };
 };
 
@@ -114,6 +132,16 @@ export async function POST(request: NextRequest) {
 
   const activeSessions = await activeSessionsPromise;
   const commands: TiendaNubeDiscountCommand[] = [];
+  const commandDiagnostics: Array<{
+    discountValue: number;
+    kind: "create_or_update_discount" | "remove_discount" | "skip";
+    lineItemIds: string[];
+    rewardProductId: string;
+    selectedVariantId: string | null;
+    sessionId: string;
+    triggerMatched: boolean;
+    triggerProductId: string;
+  }> = [];
   const promotionIsActive = payload.promotions?.some(
     (promotion) => String(promotion.id) === promotionId,
   );
@@ -122,21 +150,58 @@ export async function POST(request: NextRequest) {
     const triggerPresent = cartProducts.some(
       (product) => String(product.product_id ?? product.id ?? "") === session.triggerProductId,
     );
-    const rewardItems = cartProducts.filter(
-      (product) => String(product.product_id ?? product.id ?? "") === session.rewardProductId,
-    );
+    const rewardItems = cartProducts.filter((product) => {
+      const rewardProductMatches =
+        String(product.product_id ?? product.id ?? "") === session.rewardProductId;
+
+      if (!rewardProductMatches) {
+        return false;
+      }
+
+      if (!session.selectedVariantId) {
+        return true;
+      }
+
+      return String(product.variant_id ?? "") === session.selectedVariantId;
+    });
 
     if (!triggerPresent || rewardItems.length === 0) {
       if (promotionIsActive && rewardItems.length > 0) {
+        const lineItemIds = rewardItems
+          .map((item) => String(item.id ?? ""))
+          .filter(Boolean);
+
         commands.push({
           command: "remove_discount",
           specs: {
-            line_items: rewardItems
-              .map((item) => String(item.id ?? ""))
-              .filter(Boolean),
+            line_items: lineItemIds,
             promotion_id: promotionId,
             scope: "line_item",
           },
+        });
+
+        commandDiagnostics.push({
+          discountValue: session.discountValue,
+          kind: "remove_discount",
+          lineItemIds,
+          rewardProductId: session.rewardProductId,
+          selectedVariantId: session.selectedVariantId,
+          sessionId: session.id,
+          triggerMatched: triggerPresent,
+          triggerProductId: session.triggerProductId,
+        });
+      } else {
+        commandDiagnostics.push({
+          discountValue: session.discountValue,
+          kind: "skip",
+          lineItemIds: rewardItems
+            .map((item) => String(item.id ?? ""))
+            .filter(Boolean),
+          rewardProductId: session.rewardProductId,
+          selectedVariantId: session.selectedVariantId,
+          sessionId: session.id,
+          triggerMatched: triggerPresent,
+          triggerProductId: session.triggerProductId,
         });
       }
 
@@ -179,19 +244,44 @@ export async function POST(request: NextRequest) {
         command: "create_or_update_discount",
         specs: {
           currency: payload.currency,
-          display_text: buildDisplayText(storeId),
+          display_text: buildDisplayText(payload.language, storeId),
           line_items: lineItems,
           promotion_id: promotionId,
         },
       });
+
+      commandDiagnostics.push({
+        discountValue: session.discountValue,
+        kind: "create_or_update_discount",
+        lineItemIds: lineItems.map((item) => item.line_item),
+        rewardProductId: session.rewardProductId,
+        selectedVariantId: session.selectedVariantId,
+        sessionId: session.id,
+        triggerMatched: triggerPresent,
+        triggerProductId: session.triggerProductId,
+      });
+      continue;
     }
+
+    commandDiagnostics.push({
+      discountValue: session.discountValue,
+      kind: "skip",
+      lineItemIds: [],
+      rewardProductId: session.rewardProductId,
+      selectedVariantId: session.selectedVariantId,
+      sessionId: session.id,
+      triggerMatched: triggerPresent,
+      triggerProductId: session.triggerProductId,
+    });
   }
 
   if (commands.length === 0) {
     logger.info("No discount actions required for TiendaNube callback", {
       cartProductCount: cartProducts.length,
+      commandDiagnostics,
       durationMs: Date.now() - startedAt,
       executionTier,
+      promotionId,
       storeId,
     });
     return new NextResponse(null, { status: 204 });
@@ -200,8 +290,11 @@ export async function POST(request: NextRequest) {
   logger.info("Resolved TiendaNube discount callback", {
     cartProductCount: cartProducts.length,
     commandCount: commands.length,
+    commandDiagnostics,
+    commands,
     durationMs: Date.now() - startedAt,
     executionTier,
+    promotionId,
     storeId,
   });
 
