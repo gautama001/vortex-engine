@@ -4,6 +4,7 @@ import { hasCoreEnvironment } from "@/lib/env";
 import { BUILD_TIMESTAMP, RELEASE_MARKER } from "@/lib/release";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const metrics = [
   { label: "Revenue lift", value: "+14.7%" },
@@ -126,6 +127,10 @@ export default function HomePage() {
             </a>
           </div>
         </header>
+
+        <div className="sr-only" data-vortex-build={BUILD_TIMESTAMP} data-vortex-release={RELEASE_MARKER}>
+          vortex-homepage-live-marker
+        </div>
 
         <section className="grid gap-8 py-8 lg:grid-cols-[1.18fr_0.82fr] lg:items-start lg:py-12">
           <div className="space-y-8">
