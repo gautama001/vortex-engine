@@ -360,6 +360,9 @@
       ".vortex-widget__button[disabled]{opacity:.65;cursor:wait}" +
       ".vortex-widget__button:hover{transform:translateY(-1px)}" +
       ".vortex-widget__tag{margin-left:auto;color:color-mix(in srgb,var(--vortex-text,#eef6ff) 12%, var(--vortex-accent,#67e8f9) 88%);font-weight:700;text-transform:uppercase}" +
+      ".vortex-cart-promo-line{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}" +
+      ".vortex-cart-promo-pill{display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;background:#070b11;border:1px solid rgba(255,255,255,.08);color:#f8fafc;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;line-height:1}" +
+      ".vortex-cart-promo-amount{color:#dc2626!important;font-weight:800!important;font-variant-numeric:tabular-nums}" +
       ".vortex-quickadd-overlay{--vortex-modal-bg:#07111a;--vortex-modal-accent:#67e8f9;--vortex-modal-radius:24px;--vortex-modal-text:#eef6ff;--vortex-modal-font:\"IBM Plex Sans\",\"Segoe UI\",Arial,sans-serif;position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(2,6,12,.72);backdrop-filter:blur(10px)}" +
       ".vortex-quickadd-modal{position:relative;width:min(560px,100%);max-height:min(80vh,720px);overflow:auto;border-radius:calc(var(--vortex-modal-radius) + 4px);border:1px solid color-mix(in srgb,var(--vortex-modal-accent) 22%, rgba(255,255,255,.08));background:linear-gradient(180deg,var(--vortex-modal-bg),color-mix(in srgb,var(--vortex-modal-bg) 88%, #02060c 12%));padding:24px;color:var(--vortex-modal-text,#eef6ff);font-family:var(--vortex-modal-font,\"IBM Plex Sans\",\"Segoe UI\",Arial,sans-serif);box-shadow:0 40px 100px -40px color-mix(in srgb,var(--vortex-modal-accent) 42%, transparent)}" +
       ".vortex-quickadd-close{position:absolute;top:16px;right:16px;border:1px solid color-mix(in srgb,var(--vortex-modal-accent) 18%, rgba(255,255,255,.06));background:rgba(255,255,255,.08);color:#fff;width:38px;height:38px;border-radius:999px;font-size:24px;line-height:1;cursor:pointer}" +
@@ -542,6 +545,109 @@
         return "IA Engine";
       default:
         return "Best sellers fallback";
+    }
+  }
+
+  function normalizeInlineText(value) {
+    return String(value || "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function looksLikePromoAmount(value) {
+    var normalized = normalizeInlineText(value);
+
+    return /^-\s*[$€£]?\s*[\d.,]+$/.test(normalized) || /^-\s*[\d.,]+$/.test(normalized);
+  }
+
+  function createPromoPill(label) {
+    var pill = document.createElement("span");
+    pill.className = "vortex-cart-promo-pill";
+    pill.textContent = label;
+    return pill;
+  }
+
+  function findPromoAmountElement(row, labelElement) {
+    if (!row || !row.querySelectorAll) {
+      return null;
+    }
+
+    var descendants = row.querySelectorAll("*");
+
+    for (var index = 0; index < descendants.length; index += 1) {
+      var node = descendants[index];
+
+      if (node === labelElement || node.contains(labelElement)) {
+        continue;
+      }
+
+      if (node.children && node.children.length > 0) {
+        continue;
+      }
+
+      if (looksLikePromoAmount(node.textContent)) {
+        return node;
+      }
+    }
+
+    return null;
+  }
+
+  function enhanceCartPromotionRows() {
+    var cartAnchor = findCartAnchor();
+
+    if (!cartAnchor) {
+      return;
+    }
+
+    var descendants = cartAnchor.querySelectorAll("*");
+
+    for (var index = 0; index < descendants.length; index += 1) {
+      var node = descendants[index];
+
+      if (!node || !node.textContent || isVortexManagedNode(node)) {
+        continue;
+      }
+
+      if (node.dataset && node.dataset.vortexPromoLabelEnhanced === "true") {
+        continue;
+      }
+
+      if (node.children && node.children.length > 0) {
+        continue;
+      }
+
+      var text = normalizeInlineText(node.textContent);
+
+      if (!/^Promo Vortex\b/i.test(text)) {
+        continue;
+      }
+
+      var row = node.parentElement;
+
+      if (!row) {
+        continue;
+      }
+
+      node.textContent = "Promo Vortex";
+      node.classList.add("vortex-cart-promo-label");
+
+      if (!node.querySelector(".vortex-cart-promo-pill")) {
+        node.textContent = "";
+        node.appendChild(createPromoPill("Promo Vortex"));
+      }
+
+      if (node.dataset) {
+        node.dataset.vortexPromoLabelEnhanced = "true";
+      }
+
+      row.classList.add("vortex-cart-promo-line");
+
+      var amountElement = findPromoAmountElement(row, node);
+
+      if (amountElement) {
+        amountElement.classList.add("vortex-cart-promo-amount");
+      }
     }
   }
 
@@ -1560,6 +1666,7 @@
 
     if (!context) {
       removeObsoleteWidgets("vortex-widget-none");
+      enhanceCartPromotionRows();
       return;
     }
 
@@ -1579,6 +1686,7 @@
 
     fetchRecommendations(context).then(function (payload) {
       renderWidget(context, payload);
+      enhanceCartPromotionRows();
     });
   }
 

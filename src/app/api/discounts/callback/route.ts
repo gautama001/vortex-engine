@@ -34,9 +34,9 @@ const normalizeDiscountLocale = (language: string | null | undefined): string =>
 
 const buildDisplayText = (
   language: string | null | undefined,
-  storeId: string,
+  _storeId: string,
 ): Record<string, string> => {
-  const label = `Promo Vortex ${storeId}`;
+  const label = "Promo Vortex";
   const locale = normalizeDiscountLocale(language);
 
   return {
