@@ -1,5 +1,5 @@
 export const BUILD_METADATA = {
-  "builtAt": "2026-04-22T15:28:44.342Z",
+  "builtAt": "2026-04-22T16:19:33.225Z",
   "commitSha": null,
   "release": "local-dev"
 } as const;
