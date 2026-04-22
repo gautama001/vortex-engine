@@ -7,7 +7,10 @@ import {
   type TiendaNubeDiscountCommand,
 } from "@/lib/tiendanube/types";
 import { getStoreByTiendaNubeId } from "@/services/store-service";
-import { getCachedStoreDiscountIntegration } from "@/services/tiendanube-discount-integration-service";
+import {
+  getCachedStoreDiscountIntegration,
+  normalizePromotionId,
+} from "@/services/tiendanube-discount-integration-service";
 import { listActiveOfferSessionsByStore } from "@/services/vortex-discount-service";
 
 export const runtime = "nodejs";
@@ -119,12 +122,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const promotionId = cachedIntegration?.promotionId ?? store?.discountPromotionId ?? null;
+  const promotionId = normalizePromotionId(
+    cachedIntegration?.promotionId ?? store?.discountPromotionId ?? null,
+  );
 
   if (!promotionId) {
     logger.info("Ignoring TiendaNube discount callback without persisted promotion id", {
+      cachedPromotionId: cachedIntegration?.promotionId ?? null,
       durationMs: Date.now() - startedAt,
       executionTier,
+      storedPromotionId: store?.discountPromotionId ?? null,
       storeId,
     });
     return new NextResponse(null, { status: 204 });

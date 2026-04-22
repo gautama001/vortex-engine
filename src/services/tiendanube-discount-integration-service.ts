@@ -28,6 +28,24 @@ type TiendaNubeStoreCredentials = {
   storeId: string;
 };
 
+const normalizePromotionId = (value: unknown): string | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const normalized = String(value).trim();
+
+  if (
+    !normalized ||
+    normalized.toLowerCase() === "undefined" ||
+    normalized.toLowerCase() === "null"
+  ) {
+    return null;
+  }
+
+  return normalized;
+};
+
 const buildClient = (credentials: TiendaNubeStoreCredentials): TiendaNubeClient => {
   return new TiendaNubeClient({
     accessToken: credentials.accessToken,
@@ -55,7 +73,7 @@ export const primeStoreDiscountIntegrationCache = (input: {
   storeId: string;
 }): void => {
   getDiscountIntegrationCache().set(input.storeId, {
-    promotionId: input.promotionId,
+    promotionId: normalizePromotionId(input.promotionId),
     status: input.status,
   });
 };
@@ -154,6 +172,8 @@ export const listStorePromotions = async (
   return buildClient(credentials).get<TiendaNubePromotion[]>("/promotions");
 };
 
+export { normalizePromotionId };
+
 export const ensureStoreDiscountIntegration = async (
   store: StoreRecord,
   options?: {
@@ -170,41 +190,56 @@ export const ensureStoreDiscountIntegration = async (
     storeId: store.tiendanubeId,
   };
   const shouldSyncRemote = options?.syncRemote ?? false;
+  const persistedPromotionId = normalizePromotionId(store.discountPromotionId);
 
-  if (store.discountPromotionId && !shouldSyncRemote) {
+  if (persistedPromotionId && !shouldSyncRemote) {
     primeStoreDiscountIntegrationCache({
-      promotionId: store.discountPromotionId,
+      promotionId: persistedPromotionId,
       status: String(store.status),
       storeId: store.tiendanubeId,
     });
 
     return {
       callbackUrl,
-      promotionId: store.discountPromotionId,
+      promotionId: persistedPromotionId,
     };
   }
 
   await registerStoreDiscountCallback(credentials, callbackUrl);
 
-  if (store.discountPromotionId && shouldSyncRemote) {
+  if (!persistedPromotionId && store.discountPromotionId) {
+    logger.warn("Discarding invalid persisted TiendaNube promotion id", {
+      persistedPromotionId: store.discountPromotionId,
+      storeId: store.tiendanubeId,
+    });
+
+    await setStoreDiscountPromotionId(store.tiendanubeId, null);
+    primeStoreDiscountIntegrationCache({
+      promotionId: null,
+      status: String(store.status),
+      storeId: store.tiendanubeId,
+    });
+  }
+
+  if (persistedPromotionId && shouldSyncRemote) {
     const promotions = await listStorePromotions(credentials);
     const existingPromotion = promotions.find(
       (promotion) =>
-        String(promotion.id) === store.discountPromotionId &&
+        normalizePromotionId(promotion.id) === persistedPromotionId &&
         isPromotionActive(promotion) &&
         isLineItemPromotion(promotion),
     );
 
     if (existingPromotion) {
       primeStoreDiscountIntegrationCache({
-        promotionId: store.discountPromotionId,
+        promotionId: persistedPromotionId,
         status: String(store.status),
         storeId: store.tiendanubeId,
       });
 
       return {
         callbackUrl,
-        promotionId: store.discountPromotionId,
+        promotionId: persistedPromotionId,
       };
     }
 
@@ -217,16 +252,25 @@ export const ensureStoreDiscountIntegration = async (
   }
 
   const promotion = await createStorePromotionWithFallback(credentials, store.tiendanubeId);
+  const createdPromotionId = normalizePromotionId(promotion.id);
 
-  await setStoreDiscountPromotionId(store.tiendanubeId, String(promotion.id));
+  if (!createdPromotionId) {
+    logger.error("TiendaNube promotion creation returned an invalid id", {
+      promotion,
+      storeId: store.tiendanubeId,
+    });
+    throw new Error("invalid_tiendanube_promotion_id");
+  }
+
+  await setStoreDiscountPromotionId(store.tiendanubeId, createdPromotionId);
   primeStoreDiscountIntegrationCache({
-    promotionId: String(promotion.id),
+    promotionId: createdPromotionId,
     status: String(store.status),
     storeId: store.tiendanubeId,
   });
 
   return {
     callbackUrl,
-    promotionId: String(promotion.id),
+    promotionId: createdPromotionId,
   };
 };
