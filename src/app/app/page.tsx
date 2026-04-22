@@ -14,7 +14,7 @@ import {
   shouldPrefetchRemoteMerchantContext,
 } from "@/lib/env";
 import { logger } from "@/lib/logger";
-import { RELEASE_MARKER } from "@/lib/release";
+import { BUILD_TIMESTAMP, RELEASE_MARKER } from "@/lib/release";
 import { ADMIN_SESSION_COOKIE, verifySignedSessionValue } from "@/lib/security";
 import { listCatalogPreview } from "@/services/catalog-service";
 import { getStorefrontContext } from "@/services/storefront-service";
@@ -348,6 +348,21 @@ export default async function AppDashboardPage({
                   ? "Panel de beta privada para gobernar configuracion visual, estrategia, previsualizacion y activacion storefront sin tocar la base operativa ya validada."
                   : "La capa operativa de Vortex esta online, pero necesitamos volver a enlazar la sesion merchant para mostrar productos, configuracion y storefront de la tienda correcta."}
               </CardDescription>
+              <div className="flex flex-wrap gap-4 text-sm text-slate-400">
+                <a className="underline decoration-slate-500/60 underline-offset-4" href="/build-state.json">
+                  Build state
+                </a>
+                <a className="underline decoration-slate-500/60 underline-offset-4" href="/api/health">
+                  Runtime health
+                </a>
+                <span>
+                  Build:{" "}
+                  {new Intl.DateTimeFormat("es-AR", {
+                    dateStyle: "short",
+                    timeStyle: "medium",
+                  }).format(new Date(BUILD_TIMESTAMP))}
+                </span>
+              </div>
               {!prefetchRemoteMerchantContext && hasResolvedMerchantContext ? (
                 <p className="max-w-4xl text-sm leading-6 text-slate-400">
                   La precarga remota de catalogo/storefront esta pausada en el primer render para

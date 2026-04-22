@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { hasCoreEnvironment } from "@/lib/env";
-import { RELEASE_MARKER } from "@/lib/release";
+import { BUILD_TIMESTAMP, RELEASE_MARKER } from "@/lib/release";
 import { unstable_noStore as noStore } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -88,9 +88,20 @@ export default function HomePage() {
             <Badge tone={environmentReady ? "success" : "danger"}>
               {environmentReady ? "Runtime listo" : "Config pendiente"}
             </Badge>
-            <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
-              Release {RELEASE_MARKER}
-            </p>
+            <div className="space-y-2 text-xs uppercase tracking-[0.22em] text-slate-500">
+              <p>Release {RELEASE_MARKER}</p>
+              <p>
+                Build {new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(BUILD_TIMESTAMP))}
+              </p>
+              <div className="flex flex-wrap gap-2 normal-case tracking-normal text-slate-600">
+                <Link className="underline decoration-slate-400/50 underline-offset-4" href="/build-state.json">
+                  /build-state.json
+                </Link>
+                <Link className="underline decoration-slate-400/50 underline-offset-4" href="/api/health">
+                  /api/health
+                </Link>
+              </div>
+            </div>
             <div className="space-y-4">
               <p className="text-xs font-semibold uppercase tracking-[0.34em] text-slate-600">
                 Vortex para TiendaNube

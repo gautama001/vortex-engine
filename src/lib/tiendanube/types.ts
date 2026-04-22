@@ -176,8 +176,11 @@ export type TiendaNubePromotion = {
   allocation_type?: TiendaNubePromotionAllocationType;
   combines_with_other_discounts?: boolean | null;
   created_at?: string | null;
+  data?: {
+    id?: number | string | null;
+  } | null;
   execution_tier?: TiendaNubePromotionTier;
-  id: number | string;
+  id?: number | string | null;
   name?: string | null;
   status?: TiendaNubePromotionStatus;
   updated_at?: string | null;

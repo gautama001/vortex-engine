@@ -8,6 +8,7 @@ import {
 } from "@/lib/tiendanube/types";
 import { getStoreByTiendaNubeId } from "@/services/store-service";
 import {
+  extractPromotionId,
   getCachedStoreDiscountIntegration,
   normalizePromotionId,
 } from "@/services/tiendanube-discount-integration-service";
@@ -150,7 +151,7 @@ export async function POST(request: NextRequest) {
     triggerProductId: string;
   }> = [];
   const promotionIsActive = payload.promotions?.some(
-    (promotion) => String(promotion.id) === promotionId,
+    (promotion) => extractPromotionId(promotion) === promotionId,
   );
 
   for (const session of activeSessions) {

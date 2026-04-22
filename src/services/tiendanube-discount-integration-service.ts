@@ -46,6 +46,21 @@ const normalizePromotionId = (value: unknown): string | null => {
   return normalized;
 };
 
+const extractPromotionId = (value: unknown): string | null => {
+  if (!value || typeof value !== "object") {
+    return normalizePromotionId(value);
+  }
+
+  const candidate = value as {
+    data?: {
+      id?: unknown;
+    } | null;
+    id?: unknown;
+  };
+
+  return normalizePromotionId(candidate.id) ?? normalizePromotionId(candidate.data?.id);
+};
+
 const buildClient = (credentials: TiendaNubeStoreCredentials): TiendaNubeClient => {
   return new TiendaNubeClient({
     accessToken: credentials.accessToken,
@@ -172,7 +187,7 @@ export const listStorePromotions = async (
   return buildClient(credentials).get<TiendaNubePromotion[]>("/promotions");
 };
 
-export { normalizePromotionId };
+export { extractPromotionId, normalizePromotionId };
 
 export const ensureStoreDiscountIntegration = async (
   store: StoreRecord,
@@ -225,7 +240,7 @@ export const ensureStoreDiscountIntegration = async (
     const promotions = await listStorePromotions(credentials);
     const existingPromotion = promotions.find(
       (promotion) =>
-        normalizePromotionId(promotion.id) === persistedPromotionId &&
+        extractPromotionId(promotion) === persistedPromotionId &&
         isPromotionActive(promotion) &&
         isLineItemPromotion(promotion),
     );
@@ -252,7 +267,7 @@ export const ensureStoreDiscountIntegration = async (
   }
 
   const promotion = await createStorePromotionWithFallback(credentials, store.tiendanubeId);
-  const createdPromotionId = normalizePromotionId(promotion.id);
+  const createdPromotionId = extractPromotionId(promotion);
 
   if (!createdPromotionId) {
     logger.error("TiendaNube promotion creation returned an invalid id", {

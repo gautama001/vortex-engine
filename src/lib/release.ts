@@ -1,8 +1,5 @@
-const explicitReleaseMarker = process.env.VORTEX_RELEASE_MARKER?.trim();
-const gitSha =
-  process.env.HOSTINGER_GIT_COMMIT_SHA?.trim() ||
-  process.env.VERCEL_GIT_COMMIT_SHA?.trim() ||
-  process.env.GIT_COMMIT_SHA?.trim() ||
-  "";
+import { BUILD_METADATA } from "@/generated/build-metadata";
 
-export const RELEASE_MARKER = explicitReleaseMarker || gitSha || "2026-04-21-runtime-hardening";
+export const RELEASE_MARKER = BUILD_METADATA.release;
+export const BUILD_TIMESTAMP = BUILD_METADATA.builtAt;
+export const BUILD_COMMIT_SHA = BUILD_METADATA.commitSha;
