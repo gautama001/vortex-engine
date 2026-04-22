@@ -29,8 +29,12 @@
   var observer = null;
   var bootTimer = null;
   var productOptionCache = {};
+  var recommendationCache = {};
+  var recommendationRequestCache = {};
   var activeQuickAddOverlay = null;
   var activeToastTimer = null;
+  var lastBootSignature = "";
+  var lastBootAt = 0;
 
   function getStoreId() {
     return (
@@ -56,6 +60,52 @@
 
   function getDiscountSessionEndpoint() {
     return apiOrigin + "/api/v1/store/discount-session";
+  }
+
+  function isVortexManagedNode(node) {
+    if (!node || node.nodeType !== 1) {
+      return false;
+    }
+
+    if (
+      node.id === "vortex-widget-styles" ||
+      node.id === "vortex-widget-toast" ||
+      node.id === "vortex-widget-product" ||
+      node.id === "vortex-widget-cart"
+    ) {
+      return true;
+    }
+
+    if (node.classList) {
+      if (
+        node.classList.contains("vortex-widget") ||
+        node.classList.contains("vortex-widget-toast") ||
+        node.classList.contains("vortex-quickadd-overlay") ||
+        node.classList.contains("vortex-quickadd-modal")
+      ) {
+        return true;
+      }
+    }
+
+    return Boolean(
+      node.closest &&
+        node.closest(
+          "#vortex-widget-product, #vortex-widget-cart, #vortex-widget-toast, .vortex-quickadd-overlay, .vortex-quickadd-modal"
+        )
+    );
+  }
+
+  function buildRecommendationRequestKey(context) {
+    if (!context) {
+      return "";
+    }
+
+    return [
+      getStoreId(),
+      context.page || "",
+      context.productId || "",
+      context.widgetId || "",
+    ].join("::");
   }
 
   function normalizeHandle(handle) {
@@ -1470,7 +1520,15 @@
       endpoint += "&product_id=" + encodeURIComponent(context.productId);
     }
 
-    return fetch(endpoint, {
+    if (recommendationCache[endpoint]) {
+      return Promise.resolve(recommendationCache[endpoint]);
+    }
+
+    if (recommendationRequestCache[endpoint]) {
+      return recommendationRequestCache[endpoint];
+    }
+
+    recommendationRequestCache[endpoint] = fetch(endpoint, {
       credentials: "omit",
       method: "GET",
       mode: "cors",
@@ -1482,9 +1540,17 @@
 
         return response.json();
       })
+      .then(function (payload) {
+        recommendationCache[endpoint] = payload;
+        delete recommendationRequestCache[endpoint];
+        return payload;
+      })
       .catch(function () {
+        delete recommendationRequestCache[endpoint];
         return null;
       });
+
+    return recommendationRequestCache[endpoint];
   }
 
   function boot() {
@@ -1496,6 +1562,20 @@
       removeObsoleteWidgets("vortex-widget-none");
       return;
     }
+
+    var bootSignature = buildRecommendationRequestKey(context);
+    var now = Date.now();
+
+    if (
+      bootSignature &&
+      bootSignature === lastBootSignature &&
+      now - lastBootAt < 1200
+    ) {
+      return;
+    }
+
+    lastBootSignature = bootSignature;
+    lastBootAt = now;
 
     fetchRecommendations(context).then(function (payload) {
       renderWidget(context, payload);
@@ -1517,28 +1597,49 @@
 
     observer = new MutationObserver(function (mutations) {
       var shouldReboot = mutations.some(function (mutation) {
-        if (mutation.type === "attributes") {
-          return true;
+        if (isVortexManagedNode(mutation.target)) {
+          return false;
         }
 
-        return mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0;
+        if (mutation.type === "attributes") {
+          return mutation.attributeName === "data-store";
+        }
+
+        var hasExternalAddedNodes = Array.prototype.some.call(
+          mutation.addedNodes || [],
+          function (node) {
+            return !isVortexManagedNode(node);
+          }
+        );
+        var hasExternalRemovedNodes = Array.prototype.some.call(
+          mutation.removedNodes || [],
+          function (node) {
+            return !isVortexManagedNode(node);
+          }
+        );
+
+        return hasExternalAddedNodes || hasExternalRemovedNodes;
       });
 
       if (shouldReboot) {
-        scheduleBoot(120);
+        scheduleBoot(220);
       }
     });
 
     observer.observe(document.body, {
       attributes: true,
-      attributeFilter: ["class", "data-store", "style"],
+      attributeFilter: ["data-store"],
       childList: true,
       subtree: true,
     });
 
     ["click", "touchstart", "keyup"].forEach(function (eventName) {
-      document.addEventListener(eventName, function () {
-        scheduleBoot(180);
+      document.addEventListener(eventName, function (event) {
+        if (isVortexManagedNode(event.target)) {
+          return;
+        }
+
+        scheduleBoot(280);
       });
     });
   }
