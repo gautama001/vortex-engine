@@ -5,41 +5,60 @@ import { LandingPreviewExperience } from "@/components/landing-preview-experienc
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const implementationTiles = [
+const benefitTiles = [
   {
-    copy: "El merchant ve estrategia, branding, placement y reglas desde un panel ordenado y mucho mas facil de entender que una instalacion tecnica.",
-    title: "Configuracion simple",
+    copy: "Vortex ayuda a que cada cliente vea una recomendacion util en el momento justo para sumar una pieza mas sin rehacer la tienda ni sumar complejidad operativa.",
+    title: "Subi ticket promedio sin rehacer tu tienda",
   },
   {
-    copy: "La vista encapsulada permite revisar storefront, copy y recomendacion antes de mover nada en la tienda en vivo.",
+    copy: "IA, compras conjuntas y seleccion manual conviven dentro del mismo panel para que el merchant pueda automatizar o conservar control editorial segun su tipo de negocio.",
+    title: "Usa el motor que mejor calza con tu negocio",
+  },
+  {
+    copy: "La recomendacion no queda en promesa: Vortex conecta storefront, descuentos y ventas atribuidas para mostrar si realmente esta vendiendo mas y cuanto deja de ganancia.",
+    title: "Hace visible la ganancia que genera la app",
+  },
+];
+
+const implementationTiles = [
+  {
+    copy: "Conecta la tienda, publica la capa storefront y entra al panel sin depender de una implementacion pesada ni de un equipo tecnico grande.",
+    title: "Instalacion guiada",
+  },
+  {
+    copy: "Antes de mover nada en vivo, el merchant puede ver una simulacion del widget y revisar copy, branding y placement con claridad.",
     title: "Preview antes de publicar",
   },
   {
-    copy: "Revenue atribuido, operacion y contexto comercial quedan dentro del mismo flujo para vender impacto y no solo configuracion.",
-    title: "Analytics y operacion",
+    copy: "Despues, Vortex muestra si hubo mas ticket promedio, mas ventas cruzadas y mas ganancia atribuida para que el retorno quede visible.",
+    title: "Operacion y ROI visibles",
   },
 ];
 
 const resourceLinks = [
   {
-    copy: "Flujo de instalacion, command center y activacion storefront.",
+    copy: "Entra al panel real para configurar motores, branding, widget y descuentos sin salir del flujo comercial.",
+    cta: "Abrir app",
     href: "/app",
-    label: "Abrir app",
+    label: "Panel de Vortex",
   },
   {
-    copy: "Instalacion guiada para conectar Vortex con TiendaNube.",
+    copy: "Conecta Vortex con TiendaNube y activa la capa storefront en un flujo real separado de la demo.",
+    cta: "Instalar ahora",
     href: "/api/auth/install",
-    label: "Instalar Vortex",
+    label: "Instalacion",
   },
   {
-    copy: "Centro de ayuda para merchants y operacion diaria.",
+    copy: "Entiende que incluye cada plan, cuanto paga cada tienda y como se proyecta la ganancia atribuida con Vortex.",
+    cta: "Ver precios",
+    href: "/pricing",
+    label: "Precios",
+  },
+  {
+    copy: "Ayuda clara para merchants que necesitan resolver rapido sin pasar por una capa tecnica.",
+    cta: "Ver soporte",
     href: "/support",
     label: "Soporte",
-  },
-  {
-    copy: "Politicas de privacidad y tratamiento de datos.",
-    href: "/privacy",
-    label: "Privacidad",
   },
 ];
 
@@ -59,7 +78,7 @@ export default function HomePage() {
             </div>
             <div>
               <p className="text-base font-semibold tracking-[-0.03em] text-slate-950">Vortex Engine</p>
-              <p className="text-sm text-slate-600">Preview liviana para TiendaNube</p>
+              <p className="text-sm text-slate-600">IA comercial para vender mas en TiendaNube</p>
             </div>
           </div>
 
@@ -67,11 +86,14 @@ export default function HomePage() {
             <a className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#simulacion">
               Simulacion
             </a>
+            <a className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#dashboard-real">
+              Casos reales
+            </a>
             <a className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#widget-preview">
               Widget demo
             </a>
-            <a className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#implementation">
-              Implementacion
+            <a className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="/pricing">
+              Precios
             </a>
             <a className="rounded-full px-3 py-2 hover:bg-slate-950/5" href="#resources">
               Recursos
@@ -80,7 +102,13 @@ export default function HomePage() {
 
           <div className="flex flex-wrap items-center gap-2">
             <a
-              className="inline-flex h-9 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-4 text-xs font-medium uppercase tracking-[0.24em] text-slate-100 transition hover:border-cyan-300/30 hover:bg-slate-900/80"
+              className="inline-flex h-9 items-center justify-center rounded-full border border-slate-900/10 bg-white px-4 text-xs font-medium uppercase tracking-[0.24em] text-slate-950 transition hover:border-cyan-300/40 hover:bg-cyan-50"
+              href="/pricing"
+            >
+              Ver precios
+            </a>
+            <a
+              className="inline-flex h-9 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-4 text-xs font-medium uppercase tracking-[0.24em] text-white transition hover:border-cyan-300/30 hover:bg-slate-900/80"
               href="/app"
             >
               Abrir app
@@ -96,69 +124,70 @@ export default function HomePage() {
 
         <LandingPreviewExperience />
 
-        <section className="mt-10 grid gap-5 scroll-mt-28" id="implementation">
-          <div className="rounded-[32px] border border-slate-900/10 bg-white/78 p-6 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
-              Implementacion
-            </p>
-            <h2 className="mt-2 max-w-4xl text-3xl font-semibold tracking-[-0.05em] text-slate-950">
-              La historia se vende mejor cuando la preview conecta widget, dashboard real y resultado visible.
-            </h2>
-            <div className="mt-6 grid gap-4 xl:grid-cols-3">
-              {implementationTiles.map((tile) => (
-                <InfoTile key={tile.title} copy={tile.copy} title={tile.title} />
-              ))}
-            </div>
+        <section className="mt-10 rounded-[34px] border border-slate-900/10 bg-white/80 p-6 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
+            Por que Vortex le sirve a un merchant real
+          </p>
+          <h2 className="mt-2 max-w-4xl text-3xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-4xl">
+            No vendemos un panel tecnico. Vendemos una forma mas clara de subir ventas cruzadas y ticket promedio.
+          </h2>
+          <div className="mt-6 grid gap-4 xl:grid-cols-3">
+            {benefitTiles.map((tile) => (
+              <InfoTile key={tile.title} copy={tile.copy} title={tile.title} />
+            ))}
           </div>
+        </section>
 
-          <div className="rounded-[34px] border border-cyan-300/15 bg-slate-950 p-6 text-white shadow-[0_30px_100px_-55px_rgba(15,23,42,0.95)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-300">
-              Dashboard real en tienda
-            </p>
-            <h2 className="mt-2 max-w-4xl text-3xl font-semibold tracking-[-0.05em]">
-              Estas son 3 vistas del dashboard ya funcionando sobre un merchant real.
-            </h2>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-              Configuracion del widget, storefront preview y lectura de ROI dentro del mismo recorrido.
-            </p>
-
-            <div className="mt-6 grid gap-4 xl:grid-cols-[0.9fr_1.12fr_0.78fr]">
-              <DashboardColumn
-                lines={[
-                  "Algoritmo sugerido",
-                  "Quick add y CTA",
-                  "Branding y colores",
-                  "Placement y reglas",
-                  "Estado de publicacion",
-                ]}
-                title="Configuracion del widget"
-              />
-              <DashboardPreviewCard />
-              <DashboardColumn
-                lines={[
-                  "Ganancia extra generada",
-                  "AOV atribuido",
-                  "Conversion uplift",
-                  "Insight accionable",
-                  "Operacion y storefront",
-                ]}
-                title="Analytics funnel"
-              />
-            </div>
+        <section className="mt-10 rounded-[34px] border border-slate-900/10 bg-white/78 p-6 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl scroll-mt-28" id="implementation">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
+            Como entra Vortex en la operacion
+          </p>
+          <h2 className="mt-2 max-w-4xl text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+            Instalacion simple, preview clara y resultados visibles para que el merchant entienda rapido de que se trata.
+          </h2>
+          <div className="mt-6 grid gap-4 xl:grid-cols-3">
+            {implementationTiles.map((tile) => (
+              <InfoTile key={tile.title} copy={tile.copy} title={tile.title} />
+            ))}
           </div>
         </section>
 
         <section className="mt-10 rounded-[34px] border border-slate-900/10 bg-white/78 p-6 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl scroll-mt-28" id="resources">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
-            Recursos
-          </p>
-          <h2 className="mt-2 max-w-4xl text-3xl font-semibold tracking-[-0.05em] text-slate-950">
-            Botones claros para todo lo que Vortex ofrece hoy.
-          </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-            Instalacion, command center, soporte y privacidad dentro del mismo index, sin cajas
-            tecnicas ni botones que mezclen la demo con el flujo operativo real.
-          </p>
+          <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">Recursos</p>
+              <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+                Un index claro para entender que hace Vortex, cuanto cuesta y cual es el siguiente paso.
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-700">
+                Documentacion, instalacion, precios y soporte sin mezclar la demo con el flujo real del producto.
+              </p>
+            </div>
+
+            <div className="rounded-[28px] border border-slate-900/10 bg-slate-950 p-5 text-white shadow-[0_30px_100px_-55px_rgba(15,23,42,0.95)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-300">Precios y ROI</p>
+              <h3 className="mt-2 text-3xl font-semibold tracking-[-0.05em]">
+                Tres planes para crecer con Vortex segun el nivel de control, automatizacion y lectura de ROI que necesita cada tienda.
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-slate-300">
+                La pagina de precios explica alcance, success fee y una calculadora simple para estimar ganancia atribuida y retorno sin perder tiempo en tecnicismos.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <a
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
+                  href="/pricing"
+                >
+                  Ver precios
+                </a>
+                <a
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-white/12 bg-white/8 px-5 text-sm font-semibold text-white transition hover:border-cyan-300/30 hover:bg-white/12"
+                  href="/api/auth/install"
+                >
+                  Instalar Vortex
+                </a>
+              </div>
+            </div>
+          </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {resourceLinks.map((item) => (
@@ -170,10 +199,10 @@ export default function HomePage() {
                 <p className="mt-3 flex-1 text-sm leading-6 text-slate-600">{item.copy}</p>
                 <div className="mt-5">
                   <a
-                    className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-5 text-sm font-medium text-slate-100 transition hover:border-cyan-300/30 hover:bg-slate-900/80"
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-slate-800 px-5 text-sm font-medium text-white transition hover:border-cyan-300/30 hover:bg-slate-700"
                     href={item.href}
                   >
-                    {item.label}
+                    {item.cta}
                   </a>
                 </div>
               </article>
@@ -189,16 +218,18 @@ export default function HomePage() {
               </div>
               <div>
                 <p className="text-lg font-semibold tracking-[-0.03em] text-slate-950">Vortex Engine</p>
-                <p className="text-sm text-slate-600">IA + merchandising + revenue layer para TiendaNube.</p>
+                <p className="text-sm text-slate-600">IA + merchandising + descuentos para subir ticket en TiendaNube.</p>
               </div>
             </div>
             <p className="max-w-2xl text-sm leading-6 text-slate-600">
-              Previsualiza potencial, activa widgets, conecta descuentos reales y opera el storefront
-              desde un command center pensado para merchants.
+              Una app para vender mejor sin volver tecnica la operacion del merchant: recomendaciones, quick add, descuentos y ganancia atribuida dentro del mismo recorrido.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3 text-sm text-slate-600">
+            <a className="rounded-full border border-slate-900/10 px-4 py-2 hover:bg-slate-950/5" href="/pricing">
+              Precios
+            </a>
             <a className="rounded-full border border-slate-900/10 px-4 py-2 hover:bg-slate-950/5" href="/privacy">
               Privacidad
             </a>
@@ -221,68 +252,5 @@ function InfoTile({ copy, title }: { copy: string; title: string }) {
       <h3 className="text-xl font-semibold tracking-[-0.04em] text-slate-950">{title}</h3>
       <p className="mt-3 text-sm leading-6 text-slate-600">{copy}</p>
     </article>
-  );
-}
-
-function DashboardColumn({ lines, title }: { lines: string[]; title: string }) {
-  return (
-    <div className="rounded-[28px] border border-white/8 bg-white/6 p-4">
-      <p className="text-sm font-semibold text-slate-200">{title}</p>
-      <div className="mt-4 grid gap-3">
-        {lines.map((line) => (
-          <div
-            className="rounded-[20px] border border-white/8 bg-slate-900/65 px-4 py-3 text-sm text-slate-300"
-            key={line}
-          >
-            {line}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function DashboardPreviewCard() {
-  return (
-    <div className="rounded-[28px] border border-white/8 bg-white/6 p-4">
-      <div className="rounded-[24px] border border-white/8 bg-linear-to-b from-slate-900 via-slate-950 to-black p-4">
-        <div className="rounded-[20px] border border-white/10 bg-slate-950 p-4">
-          <div className="flex items-center justify-between">
-            <span className="inline-flex rounded-full bg-cyan-300/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200">
-              Preview merchant
-            </span>
-            <span className="text-xs uppercase tracking-[0.24em] text-slate-400">Pagina de producto</span>
-          </div>
-
-          <div className="mt-5 grid gap-5 md:grid-cols-[0.3fr_0.7fr]">
-            <div className="rounded-[22px] border border-white/8 bg-white/6 p-4">
-              <div className="flex h-full min-h-72 items-center justify-center rounded-[20px] bg-linear-to-b from-slate-300 to-slate-100">
-                <img alt="Preview Vortex" className="h-40 w-40 rounded-[26px]" height="160" src="/icon.png" width="160" />
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="rounded-[18px] bg-cyan-300/15 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200">
-                Seleccion manual
-              </div>
-              <h3 className="max-w-sm text-4xl font-semibold tracking-[-0.06em] text-white">
-                Llevate algo que combine mejor con esta compra
-              </h3>
-              <p className="max-w-md text-sm leading-6 text-slate-300">
-                Preview aislado del storefront para validar branding, copy y placement antes de publicar.
-              </p>
-              <div className="max-w-sm rounded-[22px] border border-white/8 bg-white/6 p-4">
-                <p className="text-sm text-slate-300">Quick Add contextual + analytics del mismo flujo.</p>
-                <div className="mt-4 flex items-center justify-between gap-3">
-                  <p className="text-2xl font-semibold tracking-[-0.04em] text-cyan-300">$52.900,00</p>
-                  <span className="inline-flex h-9 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-4 text-xs font-medium uppercase tracking-[0.24em] text-slate-950">
-                    Quick Add
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }

@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     await assertPublicHost(normalizedStore.hostname);
 
     const storefrontPages = await collectStorefrontPages(normalizedStore);
-    const products = extractProducts(storefrontPages, normalizedStore.origin).slice(0, MAX_PRODUCTS);
+    const products = await extractProducts(storefrontPages, normalizedStore.origin);
 
     return NextResponse.json(
       {
@@ -159,11 +159,36 @@ async function fetchHtml(url: string) {
   return response.text();
 }
 
-function extractProducts(htmlPages: string[], baseOrigin: string): PreviewProduct[] {
+async function extractProducts(htmlPages: string[], baseOrigin: string): Promise<PreviewProduct[]> {
   const products: PreviewProduct[] = [];
   const seen = new Set<string>();
+  const candidates: Array<{
+    fallbackImage: string;
+    fallbackName: string;
+    fallbackPrice: string;
+    url: string;
+  }> = [];
 
   for (const html of htmlPages) {
+    const storefrontCards = extractStorefrontCardCandidates(html, baseOrigin);
+
+    for (const candidate of storefrontCards) {
+      if (candidates.length >= MAX_PRODUCTS) {
+        break;
+      }
+
+      if (!candidate.url || seen.has(candidate.url) || !candidate.fallbackName || !candidate.fallbackPrice) {
+        continue;
+      }
+
+      seen.add(candidate.url);
+      candidates.push(candidate);
+    }
+
+    if (candidates.length >= MAX_PRODUCTS) {
+      break;
+    }
+
     const hrefRegex = /href=(["'])([^"'<>]*\/productos\/[^"'<>]*)\1/gi;
     let match: RegExpExecArray | null = null;
 
@@ -185,20 +210,131 @@ function extractProducts(htmlPages: string[], baseOrigin: string): PreviewProduc
       }
 
       seen.add(href);
-      products.push({
-        image,
-        name,
-        price,
+      candidates.push({
+        fallbackImage: image,
+        fallbackName: name,
+        fallbackPrice: price,
         url: href,
       });
     }
 
-    if (products.length >= MAX_PRODUCTS) {
+    if (candidates.length >= MAX_PRODUCTS) {
       break;
     }
   }
 
+  const hydrated = await Promise.all(
+    candidates.slice(0, MAX_PRODUCTS).map(async (candidate) => {
+      const details = await fetchProductDetails(candidate.url, baseOrigin);
+
+      return {
+        image: candidate.fallbackImage || details.image,
+        name: details.name || candidate.fallbackName,
+        price: details.price || candidate.fallbackPrice,
+        url: candidate.url,
+      };
+    }),
+  );
+
+  products.push(...hydrated);
+
   return products;
+}
+
+function extractStorefrontCardCandidates(html: string, baseOrigin: string) {
+  const candidates: Array<{
+    fallbackImage: string;
+    fallbackName: string;
+    fallbackPrice: string;
+    url: string;
+  }> = [];
+  const blockRegex =
+    /<[^>]+data-component=(["'])product-list-item\1[\s\S]*?<\/(?:article|div|li|section)>/gi;
+  let match: RegExpExecArray | null = null;
+
+  while ((match = blockRegex.exec(html)) && candidates.length < MAX_PRODUCTS) {
+    const fragment = match[0] ?? "";
+    const url = resolveUrl(
+      fragment.match(/href=(["'])([^"'<>]*\/productos\/[^"'<>]*)\1/i)?.[2] ?? "",
+      baseOrigin,
+    );
+    const fallbackName = extractName(fragment);
+    const fallbackPrice = extractPrice(fragment);
+    const fallbackImage = extractImage(fragment, baseOrigin);
+
+    if (!url || !fallbackName || !fallbackPrice) {
+      continue;
+    }
+
+    candidates.push({
+      fallbackImage,
+      fallbackName,
+      fallbackPrice,
+      url,
+    });
+  }
+
+  return candidates;
+}
+
+async function fetchProductDetails(productUrl: string, baseOrigin: string) {
+  try {
+    const html = await fetchHtml(productUrl);
+    const structured = extractStructuredProductData(html, baseOrigin);
+
+    return {
+      image: structured.image || extractProductPageImage(html, baseOrigin),
+      name: structured.name || extractProductPageName(html),
+      price: structured.price || extractProductPagePrice(html),
+    };
+  } catch {
+    return {
+      image: "",
+      name: "",
+      price: "",
+    };
+  }
+}
+
+function extractStructuredProductData(html: string, baseOrigin: string) {
+  const scriptRegex = /<script[^>]*type=(["'])application\/ld\+json\1[^>]*>([\s\S]*?)<\/script>/gi;
+  let match: RegExpExecArray | null = null;
+
+  while ((match = scriptRegex.exec(html))) {
+    const payload = cleanJsonLd(match[2] ?? "");
+
+    if (!payload) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(payload);
+      const product = findProductNode(parsed);
+
+      if (!product) {
+        continue;
+      }
+
+      const imageSource = Array.isArray(product.image) ? product.image[0] : product.image;
+      const offer = Array.isArray(product.offers) ? product.offers[0] : product.offers;
+      const rawPrice =
+        typeof offer?.price === "string" || typeof offer?.price === "number" ? String(offer.price) : "";
+
+      return {
+        image: resolveUrl(typeof imageSource === "string" ? imageSource : "", baseOrigin),
+        name: cleanText(typeof product.name === "string" ? product.name : ""),
+        price: rawPrice ? (rawPrice.startsWith("$") ? rawPrice : `$${rawPrice}`) : "",
+      };
+    } catch {
+      continue;
+    }
+  }
+
+  return {
+    image: "",
+    name: "",
+    price: "",
+  };
 }
 
 function extractName(fragment: string) {
@@ -250,11 +386,71 @@ function extractImage(fragment: string, baseOrigin: string) {
   }
 
   const directSource =
+    fragment.match(/<meta[^>]+property=(["'])og:image\1[^>]+content=(["'])([^"']+)\2/i)?.[3] ??
     fragment.match(/(?:data-src|src)=(["'])([^"']+)\1/i)?.[2] ??
+    fragment.match(/data-original=(["'])([^"']+)\1/i)?.[2] ??
+    fragment.match(/data-image=(["'])([^"']+)\1/i)?.[2] ??
     fragment.match(/data-bg=(["'])([^"']+)\1/i)?.[2] ??
     "";
 
   return resolveUrl(directSource, baseOrigin);
+}
+
+function extractProductPageImage(html: string, baseOrigin: string) {
+  const patterns = [
+    /<meta[^>]+property=(["'])og:image\1[^>]+content=(["'])([^"']+)\2/i,
+    /<meta[^>]+name=(["'])twitter:image\1[^>]+content=(["'])([^"']+)\2/i,
+    /(?:data-image|data-zoom|data-src|src)=(["'])([^"']+)\1/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    const candidate = resolveUrl(match?.[3] ?? match?.[2] ?? "", baseOrigin);
+
+    if (candidate) {
+      return candidate;
+    }
+  }
+
+  return "";
+}
+
+function extractProductPageName(html: string) {
+  const patterns = [
+    /<meta[^>]+property=(["'])og:title\1[^>]+content=(["'])([^"']+)\2/i,
+    /<h1[^>]*>([\s\S]{1,180}?)<\/h1>/i,
+    /<title>([\s\S]{1,180}?)<\/title>/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    const candidate = cleanText(match?.[3] ?? match?.[1] ?? "");
+
+    if (candidate) {
+      return candidate.replace(/\s+\|\s+.*$/, "").trim();
+    }
+  }
+
+  return "";
+}
+
+function extractProductPagePrice(html: string) {
+  const patterns = [
+    /<meta[^>]+property=(["'])product:price:amount\1[^>]+content=(["'])([^"']+)\2/i,
+    /<meta[^>]+itemprop=(["'])price\1[^>]+content=(["'])([^"']+)\2/i,
+    /(?:ARS\s*)?\$\s?[\d\.\,]+/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    const candidate = cleanText((match?.[3] ?? match?.[0] ?? "").replace(/&nbsp;/gi, " "));
+
+    if (candidate) {
+      return candidate.startsWith("$") ? candidate : `$${candidate}`;
+    }
+  }
+
+  return "";
 }
 
 function pickBestSrcsetCandidate(srcset: string) {
@@ -303,6 +499,56 @@ function decodeHtml(value: string) {
     .replace(/&gt;/gi, ">")
     .replace(/&nbsp;/gi, " ")
     .replace(/\\\//g, "/");
+}
+
+function cleanJsonLd(value: string) {
+  return decodeHtml(value)
+    .replace(/^\s*<!--/, "")
+    .replace(/-->\s*$/, "")
+    .trim();
+}
+
+function findProductNode(node: unknown): Record<string, unknown> | null {
+  if (!node) {
+    return null;
+  }
+
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      const found = findProductNode(item);
+
+      if (found) {
+        return found;
+      }
+    }
+
+    return null;
+  }
+
+  if (typeof node !== "object") {
+    return null;
+  }
+
+  const candidate = node as Record<string, unknown>;
+  const type = candidate["@type"];
+
+  if (type === "Product" || (Array.isArray(type) && type.includes("Product"))) {
+    return candidate;
+  }
+
+  if (candidate["@graph"]) {
+    return findProductNode(candidate["@graph"]);
+  }
+
+  for (const value of Object.values(candidate)) {
+    const found = findProductNode(value);
+
+    if (found) {
+      return found;
+    }
+  }
+
+  return null;
 }
 
 function isPublicIp(ipAddress: string) {
