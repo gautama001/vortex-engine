@@ -156,6 +156,15 @@ export async function POST(request: NextRequest) {
 
   for (const session of activeSessions) {
     const isSecondUnitRule = session.triggerProductId === session.rewardProductId;
+    const triggerProductQuantity = cartProducts.reduce((total, product) => {
+      const productId = String(product.product_id ?? product.id ?? "");
+
+      if (productId !== session.triggerProductId) {
+        return total;
+      }
+
+      return total + Math.max(1, normalizeNumber(product.quantity) ?? 1);
+    }, 0);
     const triggerPresent = cartProducts.some(
       (product) => String(product.product_id ?? product.id ?? "") === session.triggerProductId,
     );
@@ -217,12 +226,21 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
+    let remainingEligibleQuantity = isSecondUnitRule
+      ? Math.floor(triggerProductQuantity / 2)
+      : null;
     const lineItems = rewardItems
       .map((item) => {
         const lineItemId = String(item.id ?? "");
         const quantity = Math.max(1, normalizeNumber(item.quantity) ?? 1);
         const unitPrice = normalizeNumber(item.price) ?? 0;
-        const eligibleQuantity = isSecondUnitRule ? Math.floor(quantity / 2) : quantity;
+        const eligibleQuantity =
+          remainingEligibleQuantity === null ? quantity : Math.min(quantity, remainingEligibleQuantity);
+
+        if (remainingEligibleQuantity !== null) {
+          remainingEligibleQuantity = Math.max(0, remainingEligibleQuantity - eligibleQuantity);
+        }
+
         const discountAmount = (unitPrice * eligibleQuantity * session.discountValue) / 100;
 
         if (!lineItemId || discountAmount <= 0) {
