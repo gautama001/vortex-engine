@@ -155,6 +155,7 @@ export async function POST(request: NextRequest) {
   );
 
   for (const session of activeSessions) {
+    const isSecondUnitRule = session.triggerProductId === session.rewardProductId;
     const triggerPresent = cartProducts.some(
       (product) => String(product.product_id ?? product.id ?? "") === session.triggerProductId,
     );
@@ -221,7 +222,8 @@ export async function POST(request: NextRequest) {
         const lineItemId = String(item.id ?? "");
         const quantity = Math.max(1, normalizeNumber(item.quantity) ?? 1);
         const unitPrice = normalizeNumber(item.price) ?? 0;
-        const discountAmount = (unitPrice * quantity * session.discountValue) / 100;
+        const eligibleQuantity = isSecondUnitRule ? Math.floor(quantity / 2) : quantity;
+        const discountAmount = (unitPrice * eligibleQuantity * session.discountValue) / 100;
 
         if (!lineItemId || discountAmount <= 0) {
           return null;
@@ -269,6 +271,35 @@ export async function POST(request: NextRequest) {
         triggerProductId: session.triggerProductId,
       });
       continue;
+    }
+
+    if (promotionIsActive && rewardItems.length > 0) {
+      const lineItemIds = rewardItems
+        .map((item) => String(item.id ?? ""))
+        .filter(Boolean);
+
+      if (lineItemIds.length > 0) {
+        commands.push({
+          command: "remove_discount",
+          specs: {
+            line_items: lineItemIds,
+            promotion_id: promotionId,
+            scope: "line_item",
+          },
+        });
+
+        commandDiagnostics.push({
+          discountValue: session.discountValue,
+          kind: "remove_discount",
+          lineItemIds,
+          rewardProductId: session.rewardProductId,
+          selectedVariantId: session.selectedVariantId,
+          sessionId: session.id,
+          triggerMatched: triggerPresent,
+          triggerProductId: session.triggerProductId,
+        });
+        continue;
+      }
     }
 
     commandDiagnostics.push({

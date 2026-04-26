@@ -24,6 +24,7 @@ import {
 } from "@/components/dashboard/types";
 import { VisualPreview } from "@/components/dashboard/visual-preview";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const formatCurrencyArs = (value: number): string => {
@@ -287,17 +288,25 @@ const DashboardContent = ({
     };
 
     if (draftConfig.algoritmo === "seleccion-manual") {
-      const fallbackSeedProduct =
-        catalogPool.find((product) => !draftConfig.manuales.productIds.includes(product.id)) ??
-        catalogPool[0] ??
-        null;
-      const heroProduct =
-        selectedSeedProduct && !draftConfig.manuales.productIds.includes(selectedSeedProduct.id)
-          ? selectedSeedProduct
-          : fallbackSeedProduct;
+      const fallbackSeedProduct = catalogPool[0] ?? null;
+      const heroProduct = selectedSeedProduct ?? fallbackSeedProduct;
 
       pushUnique(heroProduct);
-      manualProducts.forEach(pushUnique);
+
+      for (const product of manualProducts) {
+        const manualEntry = draftConfig.manuales.recommendations.find(
+          (entry) => entry.productId === product.id,
+        );
+        const isSecondUnitPreview =
+          heroProduct?.id === product.id && (manualEntry?.discountPercentage ?? 0) > 0;
+
+        if (isSecondUnitPreview) {
+          previewList.push(product);
+          continue;
+        }
+
+        pushUnique(product);
+      }
 
       return previewList;
     }
@@ -329,6 +338,7 @@ const DashboardContent = ({
 
     return `${productPageBaseUrl}/productos/${selectedProduct.handle}`;
   }, [previewProducts, productPageBaseUrl]);
+  const quickStorefrontUrl = storefrontUrl ?? productPageBaseUrl;
 
   return (
     <section className="grid gap-8 xl:grid-cols-[minmax(280px,0.76fr)_minmax(0,1.24fr)] min-[1950px]:grid-cols-[minmax(280px,0.68fr)_minmax(0,1.46fr)_minmax(300px,0.56fr)]">
@@ -489,6 +499,13 @@ const DashboardContent = ({
               <p className="mt-3 text-base font-medium text-white">
                 {storefront?.name ?? "Store"} / #{storeId}
               </p>
+              {quickStorefrontUrl ? (
+                <Button asChild className="mt-4 w-full rounded-full bg-cyan-300 text-slate-950 hover:bg-cyan-200">
+                  <a href={quickStorefrontUrl} rel="noreferrer" target="_blank">
+                    Abrir storefront
+                  </a>
+                </Button>
+              ) : null}
             </div>
           </CardContent>
         </Card>

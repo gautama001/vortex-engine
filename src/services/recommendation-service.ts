@@ -362,10 +362,18 @@ const fetchManualRecommendations = async (
   excludedProductIds: number[],
 ): Promise<RecommendationItem[]> => {
   const filteredEntries = manualRecommendations
-    .filter(
-      (entry) =>
-        Number.isFinite(entry.productId) && !excludedProductIds.includes(entry.productId),
-    )
+    .filter((entry) => {
+      if (!Number.isFinite(entry.productId)) {
+        return false;
+      }
+
+      if (!excludedProductIds.includes(entry.productId)) {
+        return true;
+      }
+
+      // Same-product manual discounts power "2da unidad" campaigns.
+      return entry.discountPercentage > 0;
+    })
     .slice(0, limit);
   const products = await fetchProductsByIds(
     client,
