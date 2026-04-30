@@ -71,7 +71,7 @@ export default function HomePage() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-linear-to-b from-white/45 to-transparent" />
 
       <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col px-5 pb-16 pt-5 sm:px-8 lg:px-10">
-        <header className="sticky top-4 z-30 flex flex-wrap items-center justify-between gap-4 rounded-full border border-slate-900/10 bg-white/70 px-4 py-3 shadow-[0_24px_70px_-50px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+        <header className="sticky top-4 z-30 flex flex-wrap items-center justify-between gap-3 rounded-[28px] border border-slate-900/10 bg-white/70 px-3 py-3 shadow-[0_24px_70px_-50px_rgba(15,23,42,0.45)] backdrop-blur-xl sm:gap-4 sm:rounded-full sm:px-4">
           <div className="flex items-center gap-3">
             <div className="overflow-hidden rounded-[20px] border border-slate-900/10 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)]">
               <img alt="Vortex Engine" className="block h-12 w-12" height="48" src="/icon.png" width="48" />
@@ -100,21 +100,21 @@ export default function HomePage() {
             </a>
           </nav>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid w-full min-w-0 grid-cols-3 gap-1.5 sm:w-auto sm:grid-cols-none sm:grid-flow-col sm:gap-2">
             <a
-              className="inline-flex h-9 items-center justify-center rounded-full border border-slate-900/10 bg-white px-4 text-xs font-medium uppercase tracking-[0.24em] text-slate-950 transition hover:border-cyan-300/40 hover:bg-cyan-50"
+              className="inline-flex h-9 min-w-0 items-center justify-center rounded-full border border-slate-900/10 bg-white px-2 text-[11px] font-medium uppercase tracking-[0.12em] text-slate-950 transition hover:border-cyan-300/40 hover:bg-cyan-50 sm:px-4 sm:text-xs sm:tracking-[0.24em]"
               href="/pricing"
             >
               Ver precios
             </a>
             <a
-              className="inline-flex h-9 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-4 text-xs font-medium uppercase tracking-[0.24em] text-white transition hover:border-cyan-300/30 hover:bg-slate-900/80"
+              className="inline-flex h-9 min-w-0 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-2 text-[11px] font-medium uppercase tracking-[0.12em] text-white transition hover:border-cyan-300/30 hover:bg-slate-900/80 sm:px-4 sm:text-xs sm:tracking-[0.24em]"
               href="/app"
             >
               Abrir app
             </a>
             <a
-              className="inline-flex h-9 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-4 text-xs font-medium uppercase tracking-[0.24em] text-slate-950 shadow-[0_0_60px_-24px_rgba(103,232,249,0.85)] transition hover:bg-cyan-200"
+              className="inline-flex h-9 min-w-0 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-2 text-[11px] font-medium uppercase tracking-[0.12em] text-slate-950 shadow-[0_0_60px_-24px_rgba(103,232,249,0.85)] transition hover:bg-cyan-200 sm:px-4 sm:text-xs sm:tracking-[0.24em]"
               href="/api/auth/install"
             >
               Instalar
