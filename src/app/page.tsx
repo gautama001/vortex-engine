@@ -70,7 +70,7 @@ export default function HomePage() {
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_18%,rgba(103,232,249,0.16),transparent_24%),radial-gradient(circle_at_84%_16%,rgba(59,130,246,0.14),transparent_25%),radial-gradient(circle_at_50%_100%,rgba(14,165,233,0.08),transparent_30%),linear-gradient(180deg,#f6f2e8_0%,#efe7d8_42%,#f8f5ee_100%)]" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-linear-to-b from-white/45 to-transparent" />
 
-      <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col px-5 pb-10 pt-5 sm:px-8 lg:px-10">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col px-5 pb-16 pt-5 sm:px-8 lg:px-10">
         <header className="sticky top-4 z-30 flex flex-wrap items-center justify-between gap-4 rounded-full border border-slate-900/10 bg-white/70 px-4 py-3 shadow-[0_24px_70px_-50px_rgba(15,23,42,0.45)] backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <div className="overflow-hidden rounded-[20px] border border-slate-900/10 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)]">
@@ -124,36 +124,36 @@ export default function HomePage() {
 
         <LandingPreviewExperience />
 
-        <section className="mt-10 rounded-[34px] border border-slate-900/10 bg-white/80 p-6 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl">
+        <section className="mt-14 rounded-[34px] border border-slate-900/10 bg-white/80 p-7 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
             Por que Vortex le sirve a un merchant real
           </p>
           <h2 className="mt-2 max-w-4xl text-3xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-4xl">
             No vendemos un panel tecnico. Vendemos una forma mas clara de subir ventas cruzadas y ticket promedio.
           </h2>
-          <div className="mt-6 grid gap-4 xl:grid-cols-3">
+          <div className="mt-8 grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
             {benefitTiles.map((tile) => (
               <InfoTile key={tile.title} copy={tile.copy} title={tile.title} />
             ))}
           </div>
         </section>
 
-        <section className="mt-10 rounded-[34px] border border-slate-900/10 bg-white/78 p-6 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl scroll-mt-28" id="implementation">
+        <section className="mt-10 rounded-[34px] border border-slate-900/10 bg-white/78 p-7 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl scroll-mt-28 sm:p-8" id="implementation">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
             Como entra Vortex en la operacion
           </p>
           <h2 className="mt-2 max-w-4xl text-3xl font-semibold tracking-[-0.05em] text-slate-950">
             Instalacion simple, preview clara y resultados visibles para que el merchant entienda rapido de que se trata.
           </h2>
-          <div className="mt-6 grid gap-4 xl:grid-cols-3">
+          <div className="mt-8 grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
             {implementationTiles.map((tile) => (
               <InfoTile key={tile.title} copy={tile.copy} title={tile.title} />
             ))}
           </div>
         </section>
 
-        <section className="mt-10 rounded-[34px] border border-slate-900/10 bg-white/78 p-6 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl scroll-mt-28" id="resources">
-          <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <section className="mt-10 rounded-[34px] border border-slate-900/10 bg-white/78 p-7 shadow-[0_30px_90px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl scroll-mt-28 sm:p-8" id="resources">
+          <div className="grid gap-8 xl:grid-cols-[0.95fr_1.05fr]">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">Recursos</p>
               <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-[-0.05em] text-slate-950">
@@ -189,7 +189,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {resourceLinks.map((item) => (
               <article
                 className="flex h-full flex-col rounded-[28px] border border-slate-900/10 bg-white p-5 shadow-[0_24px_60px_-50px_rgba(15,23,42,0.35)]"
