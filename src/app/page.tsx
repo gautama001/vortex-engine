@@ -108,7 +108,7 @@ export default function HomePage() {
               Ver precios
             </a>
             <a
-              className="inline-flex h-9 min-w-0 items-center justify-center rounded-full border border-white/12 bg-slate-900 px-2 text-[11px] font-medium uppercase tracking-[0.12em] text-slate-50 transition hover:border-cyan-300/35 hover:bg-slate-800 sm:px-4 sm:text-xs sm:tracking-[0.24em]"
+              className="inline-flex h-9 min-w-0 items-center justify-center rounded-full border border-slate-500/30 bg-slate-600 px-2 text-[11px] font-medium uppercase tracking-[0.12em] text-white transition hover:border-slate-400/40 hover:bg-slate-500 sm:px-4 sm:text-xs sm:tracking-[0.24em]"
               href="/app"
             >
               Abrir app
