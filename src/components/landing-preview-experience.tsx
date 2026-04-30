@@ -324,7 +324,7 @@ function PreviewProductImage({ image, name }: { image?: string; name: string }) 
   return (
     <img
       alt={name}
-      className="block h-[460px] w-full object-cover object-top"
+      className="block h-full w-full object-contain object-center"
       height="920"
       loading="eager"
       referrerPolicy="no-referrer"
@@ -832,7 +832,7 @@ export function LandingPreviewExperience() {
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
           {previewState.profile.widgetProducts.map((product) => (
             <article
-              className="rounded-[28px] border border-white/8 bg-white/6 p-4 shadow-[0_30px_70px_-50px_rgba(15,23,42,0.85)]"
+              className="min-w-0 overflow-hidden rounded-[28px] border border-white/8 bg-white/6 p-4 shadow-[0_30px_70px_-50px_rgba(15,23,42,0.85)]"
               key={`${product.badge}-${product.name}`}
             >
               <div className="flex items-center justify-between">
@@ -840,38 +840,28 @@ export function LandingPreviewExperience() {
                   {product.badge}
                 </span>
               </div>
-              <div className="mt-4 rounded-[26px] border border-white/8 bg-slate-900/70 p-4">
+              <div className="mt-4 min-w-0 rounded-[26px] border border-white/8 bg-slate-900/70 p-4">
                 <div className="overflow-hidden rounded-[24px] border border-white/8 bg-linear-to-b from-[#0d1730] via-[#111d37] to-[#0a1224]">
                   <PreviewProductImage image={product.image} name={product.name} />
                 </div>
-                <div className="mt-5 flex items-end justify-between gap-4">
+                <div className="mt-5 min-w-0">
                   <div className="min-w-0">
-                    <h3 className="line-clamp-2 text-2xl font-semibold tracking-[-0.04em]">{product.name}</h3>
-                    <p className="mt-1 text-sm text-slate-300">{product.subtitle}</p>
-                    <p className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-cyan-300">
-                      {product.price}
+                    <h3 className="line-clamp-2 break-words text-xl font-semibold tracking-[-0.04em] sm:text-2xl">{product.name}</h3>
+                    <p className="mt-2 inline-flex max-w-full rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-medium text-cyan-100 sm:text-sm">
+                      <span className="truncate">{product.subtitle}</span>
                     </p>
                   </div>
-                  <button
-                    className="inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300 px-5 text-xs font-semibold uppercase tracking-[0.24em] text-slate-950 transition hover:bg-cyan-200"
-                    onClick={() => handleWidgetDemoClick(product)}
-                    type="button"
-                  >
-                    Ver dentro de la demo
-                  </button>
-                </div>
-                {product.url ? (
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <a
-                      className="inline-flex h-10 items-center justify-center rounded-full border border-white/10 bg-white/8 px-4 text-sm font-medium text-white transition hover:border-cyan-300/30 hover:bg-white/12"
-                      href={product.url}
-                      rel="noreferrer"
-                      target="_blank"
+                  <div className="mt-4 flex min-w-0 flex-wrap items-center justify-between gap-3">
+                    <p className="text-2xl font-semibold tracking-[-0.04em] text-cyan-300 sm:text-3xl">{product.price}</p>
+                    <button
+                      className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/40 bg-cyan-300 px-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
+                      onClick={() => handleWidgetDemoClick(product)}
+                      type="button"
                     >
-                      Ver producto real
-                    </a>
+                      Agregar
+                    </button>
                   </div>
-                ) : null}
+                </div>
               </div>
             </article>
           ))}
