@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/generate-build-metadata.mjs && next build && node scripts/prepare-standalone.mjs",
+    "build": "node scripts/generate-build-metadata.mjs && next build",
     "start": "node server.js",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
