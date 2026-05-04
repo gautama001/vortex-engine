@@ -9,7 +9,7 @@ export const metadata = {
 export default function PricingPage() {
   return (
     <main className="min-h-screen bg-[#0A0F1A] px-5 py-8 text-white sm:px-8 lg:px-10">
-      <div className="mx-auto flex max-w-[1440px] flex-col gap-8">
+      <div className="mx-auto flex max-w-[1440px] flex-col gap-10">
         <header className="flex flex-wrap items-center justify-between gap-4 rounded-full border border-white/8 bg-white/5 px-4 py-3 shadow-[0_24px_70px_-50px_rgba(0,0,0,0.45)] backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <div className="overflow-hidden rounded-[20px] border border-white/8">
@@ -37,15 +37,15 @@ export default function PricingPage() {
           </div>
         </header>
 
-        <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr] xl:items-end">
-          <div className="space-y-4">
+        <section className="grid gap-8 xl:grid-cols-[0.9fr_1.1fr] xl:items-end">
+          <div className="space-y-5">
             <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-300">Pricing</p>
             <h1 className="max-w-4xl text-5xl font-semibold tracking-[-0.065em] text-white sm:text-6xl lg:text-[5.2rem] lg:leading-[0.92]">
               Elegi el plan segun el control, la inteligencia y la ganancia que queres capturar con Vortex.
             </h1>
           </div>
 
-          <div className="rounded-[30px] border border-cyan-300/14 bg-white/5 p-6">
+          <div className="rounded-[30px] border border-cyan-300/14 bg-white/5 p-6 sm:p-7">
             <p className="text-lg leading-8 text-slate-300">
               Vortex esta pensado para vender mejor, no para sumar otra herramienta dificil de operar. Cada plan combina suscripcion, success fee y una lectura mas clara del impacto real en ticket promedio y ventas cruzadas.
             </p>

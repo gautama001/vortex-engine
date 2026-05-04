@@ -97,8 +97,8 @@ export function PricingTable() {
   }, [monthlyRevenue]);
 
   return (
-    <div className="space-y-8" style={{ fontFamily: '"IBM Plex Sans", "Segoe UI", sans-serif' }}>
-      <div className="grid gap-5 xl:grid-cols-3">
+    <div className="space-y-10" style={{ fontFamily: '"IBM Plex Sans", "Segoe UI", sans-serif' }}>
+      <div className="grid gap-6 xl:grid-cols-3">
         {plans.map((plan) => (
           <article
             className={`relative flex h-full flex-col rounded-[30px] border p-6 shadow-[0_30px_90px_-60px_rgba(0,0,0,0.55)] ${
@@ -150,12 +150,12 @@ export function PricingTable() {
               </ul>
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-7 flex flex-wrap gap-3">
               <a
                 className={`inline-flex h-11 items-center justify-center rounded-full px-5 text-sm font-semibold transition ${
                   plan.highlight
                     ? "border border-cyan-300/40 bg-cyan-300 text-slate-950 hover:bg-cyan-200"
-                    : "border border-white/12 bg-white/8 text-white hover:border-cyan-300/30 hover:bg-white/12"
+                    : "border border-slate-200/20 bg-slate-800 text-slate-50 hover:border-cyan-300/45 hover:bg-slate-700"
                 }`}
                 href="/api/auth/install"
               >
@@ -166,8 +166,8 @@ export function PricingTable() {
         ))}
       </div>
 
-      <section className="rounded-[34px] border border-white/8 bg-[#0f1726] p-6 shadow-[0_30px_90px_-60px_rgba(0,0,0,0.55)]">
-        <div className="grid gap-6 xl:grid-cols-[0.78fr_1.22fr]">
+      <section className="rounded-[34px] border border-white/8 bg-[#0f1726] p-6 shadow-[0_30px_90px_-60px_rgba(0,0,0,0.55)] sm:p-8">
+        <div className="grid gap-7 xl:grid-cols-[0.78fr_1.22fr]">
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-300">Calculadora ROI</p>
             <h3 className="text-3xl font-semibold tracking-[-0.05em] text-white">
@@ -192,7 +192,7 @@ export function PricingTable() {
             </label>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <RoiCard label="Facturacion mensual" value={formatCurrency(roi.revenue)} />
             <RoiCard label="Costo Vortex Pro" value={formatCurrency(roi.cost)} />
             <RoiCard accent label="Ganancia extra estimada" value={formatCurrency(roi.projectedGain)} />
