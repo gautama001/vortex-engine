@@ -1,9 +1,4 @@
-import { unstable_noStore as noStore } from "next/cache";
-
 import { LandingPreviewExperience } from "@/components/landing-preview-experience";
-
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 const benefitTiles = [
   {
@@ -63,8 +58,6 @@ const resourceLinks = [
 ];
 
 export default function HomePage() {
-  noStore();
-
   return (
     <main className="relative isolate min-h-screen overflow-hidden bg-[#f5efe3] text-slate-950">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_18%,rgba(103,232,249,0.16),transparent_24%),radial-gradient(circle_at_84%_16%,rgba(59,130,246,0.14),transparent_25%),radial-gradient(circle_at_50%_100%,rgba(14,165,233,0.08),transparent_30%),linear-gradient(180deg,#f6f2e8_0%,#efe7d8_42%,#f8f5ee_100%)]" />
@@ -108,7 +101,7 @@ export default function HomePage() {
               Ver precios
             </a>
             <a
-              className="inline-flex h-9 min-w-0 items-center justify-center rounded-full border border-slate-500/30 bg-slate-600 px-2 text-[11px] font-medium uppercase tracking-[0.12em] text-white transition hover:border-slate-400/40 hover:bg-slate-500 sm:px-4 sm:text-xs sm:tracking-[0.24em]"
+              className="inline-flex h-9 min-w-0 items-center justify-center rounded-full border border-white/10 bg-slate-950/70 px-2 text-[11px] font-medium uppercase tracking-[0.12em] text-white transition hover:border-cyan-300/30 hover:bg-slate-900/80 sm:px-4 sm:text-xs sm:tracking-[0.24em]"
               href="/app"
             >
               Abrir app
@@ -199,7 +192,7 @@ export default function HomePage() {
                 <p className="mt-3 flex-1 text-sm leading-6 text-slate-600">{item.copy}</p>
                 <div className="mt-5">
                   <a
-                    className="inline-flex h-11 items-center justify-center rounded-full border border-white/12 bg-slate-900 px-5 text-sm font-medium text-slate-50 transition hover:border-cyan-300/35 hover:bg-slate-800"
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-slate-800 px-5 text-sm font-medium text-white transition hover:border-cyan-300/30 hover:bg-slate-700"
                     href={item.href}
                   >
                     {item.cta}
