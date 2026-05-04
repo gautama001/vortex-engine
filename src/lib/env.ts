@@ -11,6 +11,9 @@ type TiendaNubeConfig = {
   scopes: string;
 };
 
+const DEFAULT_TIENDANUBE_SCOPES =
+  "read_products,write_scripts,read_orders,write_coupons,write_discounts,write_charges";
+
 const required = (key: string): string => {
   const value = process.env[key];
 
@@ -97,6 +100,6 @@ export const getTiendaNubeConfig = (): TiendaNubeConfig => {
       "Vortex Engine (team@vortex.engine)",
     ),
     scriptId: Number.isFinite(parsedScriptId) ? parsedScriptId : null,
-    scopes: optional("TIENDANUBE_SCOPES", "read_products,write_scripts"),
+    scopes: optional("TIENDANUBE_SCOPES", DEFAULT_TIENDANUBE_SCOPES),
   };
 };
